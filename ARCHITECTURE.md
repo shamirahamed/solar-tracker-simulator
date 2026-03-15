@@ -125,6 +125,48 @@ Tracker geometry
 Irradiance on panel  
 → Estimated power output
 
+## Ground Coverage Ratio (GCR)
+
+Ground Coverage Ratio (GCR) is a key parameter used in solar tracker simulations to represent the spacing between rows of solar panels.
+
+Definition:
+
+GCR = Panel Width / Row Spacing
+
+Where:
+
+Panel Width  
+The width of the solar panel row measured perpendicular to the tracker axis.
+
+Row Spacing  
+The distance between two adjacent tracker rows.
+
+Example:
+
+Panel width = 2.2 m  
+Row spacing = 6 m  
+
+GCR = 2.2 / 6 = 0.37
+
+Typical GCR values in solar plants:
+
+0.30 – 0.45
+
+Lower GCR
+→ Larger spacing between rows  
+→ Less shading  
+→ Higher land usage
+
+Higher GCR
+→ Rows closer together  
+→ More shading risk  
+→ Better land utilization
+
+In this simulator, GCR is used for:
+
+- Backtracking calculations
+- Row shading estimation
+- Tracker angle adjustment to avoid inter-row shading
 ---
 
 ## Main API
