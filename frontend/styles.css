@@ -102,3 +102,33 @@ canvas {
     grid-template-columns: 1fr;
   }
 }
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.summary-item {
+  background: #f1f5f9;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.summary-item span {
+  display: block;
+  font-size: 12px;
+  color: #475569;
+}
+
+.summary-item strong {
+  font-size: 20px;
+  color: #0f172a;
+}
+
+@media (max-width:768px) {
+  .summary-grid {
+    grid-template-columns: repeat(2,1fr);
+  }
+}

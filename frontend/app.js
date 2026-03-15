@@ -26,6 +26,18 @@ function formatTimeLabel(timestamp) {
   return `${hh}:${mm}`;
 }
 
+function updateSummary(data) {
+  const maxIdeal = Math.max(...data.map(d => d.ideal_tracker_angle));
+  const maxLimited = Math.max(...data.map(d => d.limited_tracker_angle));
+  const maxBack = Math.max(...data.map(d => d.backtracking_angle));
+  const maxSun = Math.max(...data.map(d => d.sun_elevation));
+
+  document.getElementById("maxIdeal").textContent = maxIdeal.toFixed(1) + "°";
+  document.getElementById("maxLimited").textContent = maxLimited.toFixed(1) + "°";
+  document.getElementById("maxBacktracking").textContent = maxBack.toFixed(1) + "°";
+  document.getElementById("maxSun").textContent = maxSun.toFixed(1) + "°";
+}
+
 function buildChart(data) {
   const labels = data.map(row => formatTimeLabel(row.timestamp));
   const ideal = data.map(row => row.ideal_tracker_angle);
@@ -121,6 +133,8 @@ async function runSimulation() {
     );
 
     buildChart(result.data);
+    updateSummary(result.data);
+
   } catch (error) {
     preview.textContent = `Request failed:\n${error.message}`;
   }
