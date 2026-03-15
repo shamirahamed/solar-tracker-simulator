@@ -1,5 +1,10 @@
+import io
+import csv
 from fastapi import APIRouter
-from backend.app.services.solar import get_solar_position, get_full_day_solar_profile
+from fastapi.responses import StreamingResponse
+
+from backend.app.models import SimulationRequest, SimulationResponse
+from backend.app.services.tracker import get_tracker_day_profile
 
 router = APIRouter(prefix="/api/v1")
 
@@ -9,11 +14,52 @@ def health():
     return {"status": "ok"}
 
 
-@router.get("/solar-position")
-def solar_position(latitude: float, longitude: float, timestamp: str):
-    return get_solar_position(latitude, longitude, timestamp)
+@router.post("/simulate/day", response_model=SimulationResponse)
+def simulate_day(payload: SimulationRequest):
+    return get_tracker_day_profile(
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        timezone=payload.timezone,
+        date=payload.date,
+        gcr=payload.gcr,
+        max_angle=payload.max_angle,
+        backtracking=payload.backtracking,
+    )
 
 
-@router.get("/solar-profile")
-def solar_profile(latitude: float, longitude: float, date: str):
-    return get_full_day_solar_profile(latitude, longitude, date)
+@router.post("/simulate/day.csv")
+def simulate_day_csv(payload: SimulationRequest):
+    result = get_tracker_day_profile(
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        timezone=payload.timezone,
+        date=payload.date,
+        gcr=payload.gcr,
+        max_angle=payload.max_angle,
+        backtracking=payload.backtracking,
+    )
+
+    output = io.StringIO()
+    writer = csv.DictWriter(
+        output,
+        fieldnames=[
+            "timestamp",
+            "sun_elevation",
+            "sun_azimuth",
+            "ideal_tracker_angle",
+            "limited_tracker_angle",
+            "backtracking_angle",
+        ],
+    )
+
+    writer.writeheader()
+    writer.writerows(result["data"])
+    output.seek(0)
+
+    filename = f"simulation_{payload.date}.csv"
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
