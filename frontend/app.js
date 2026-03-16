@@ -100,13 +100,28 @@ function buildCharts(data) {
     },
     options: {
       responsive: true,
+      plugins: {
+        legend:{
+          position: "bottom",
+          align: "start",
+          labels: {
+            boxWidth: 12,
+            boxHeight:12,
+            padding: 8,
+            font:{
+              size:8
+            }
+          }
+        }
+      },
       interaction: { mode: "index", intersect: false },
       scales: {
         x: { ticks: { maxTicksLimit: 12 } },
         y: { title: { display: true, text: "Angle (deg)" } }
       }
     }
-  });
+  }
+);
 
   sunChart = new Chart(sunCtx, {
     type: "line",
@@ -119,6 +134,20 @@ function buildCharts(data) {
     },
     options: {
       responsive: true,
+      plugins: {
+        legend:{
+          position: "bottom",
+          align: "start",
+          labels: {
+            boxWidth: 12,
+            boxHeight:12,
+            padding: 8,
+            font:{
+              size:8
+            }
+          }
+        }
+      },
       interaction: { mode: "index", intersect: false },
       scales: {
         x: { ticks: { maxTicksLimit: 12 } },
@@ -164,6 +193,20 @@ function buildCharts(data) {
     },
     options: {
       responsive: true,
+      plugins: {
+        legend:{
+          position: "bottom",
+          align: "start",
+          labels: {
+            boxWidth: 12,
+            boxHeight:12,
+            padding: 8,
+            font:{
+              size:8
+            }
+          }
+        }
+      },
       interaction: { mode: "index", intersect: false },
       scales: {
         x: { ticks: { maxTicksLimit: 12 } },
@@ -193,6 +236,20 @@ function buildCharts(data) {
     },
     options: {
       responsive: true,
+      plugins: {
+        legend:{
+          position: "bottom",
+          align: "start",
+          labels: {
+            boxWidth: 12,
+            boxHeight:12,
+            padding: 8,
+            font:{
+              size:8
+            }
+          }
+        }
+      },
       interaction: { mode: "index", intersect: false },
       scales: {
         x: { ticks: { maxTicksLimit: 12 } },

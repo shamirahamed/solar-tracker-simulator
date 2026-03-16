@@ -40,14 +40,30 @@ label {
   margin-bottom: 6px;
 }
 
+
 input[type="number"],
 input[type="text"],
 input[type="date"] {
+  display: block;
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 10px;
+  background-color: white;
+  color:  #1f2937;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+input[type="date"] {
+  min-height: 48px ;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="date"] ::-wekit-calender-picker-indicator{
+    opacity: 1;
+  cursor: pointer;
 }
 
 .actions-row {
@@ -69,19 +85,28 @@ input[type="date"] {
 }
 
 button {
-  padding: 10px 16px;
+  width: 100%;
+  padding: 14px;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   background: #2563eb;
   color: white;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  transition: background 0.2s ease;
 }
 
 button:hover {
   background: #1d4ed8;
 }
 
+.button-row{
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
