@@ -36,24 +36,44 @@ function formatTimeLabel(timestamp) {
   return `${hh}:${mm}`;
 }
 
-function updateSummary(data) {
-  const maxIdeal = Math.max(...data.map(d => d.ideal_tracker_angle));
-  const maxLimited = Math.max(...data.map(d => d.limited_tracker_angle));
-  const maxBack = Math.max(...data.map(d => d.backtracking_angle));
-  const maxSun = Math.max(...data.map(d => d.sun_elevation));
-  const maxAzimuth = Math.max(...data.map(d => d.sun_azimuth));
-  const maxShadow = Math.max(...data.map(d => d.shadow_length));
-  const maxShading = Math.max(...data.map(d => d.shading_percent));
-  const maxPower = Math.max(...data.map(d => d.power_with_backtracking));
+function updateSummary(result) {
+  const data = result.data;
 
-  document.getElementById("maxIdeal").textContent = maxIdeal.toFixed(1) + "°";
-  document.getElementById("maxLimited").textContent = maxLimited.toFixed(1) + "°";
-  document.getElementById("maxBacktracking").textContent = maxBack.toFixed(1) + "°";
-  document.getElementById("maxSun").textContent = maxSun.toFixed(1) + "°";
-  document.getElementById("maxAzimuth").textContent = maxAzimuth.toFixed(1) + "°";
-  document.getElementById("maxShadow").textContent = maxShadow.toFixed(2) + " m";
-  document.getElementById("maxShading").textContent = maxShading.toFixed(1) + "%";
-  document.getElementById("maxPower").textContent = maxPower.toFixed(1) + " W";
+  document.getElementById("maxIdeal").textContent =
+    Math.max(...data.map(d => d.ideal_tracker_angle)).toFixed(1) + "°";
+
+  document.getElementById("maxLimited").textContent =
+    Math.max(...data.map(d => d.limited_tracker_angle)).toFixed(1) + "°";
+
+  document.getElementById("maxBacktracking").textContent =
+    Math.max(...data.map(d => d.backtracking_angle)).toFixed(1) + "°";
+
+  document.getElementById("maxSun").textContent =
+    Math.max(...data.map(d => d.sun_elevation)).toFixed(1) + "°";
+
+  document.getElementById("maxAzimuth").textContent =
+    Math.max(...data.map(d => d.sun_azimuth)).toFixed(1) + "°";
+
+  document.getElementById("maxShadowWithout").textContent =
+    Math.max(...data.map(d => d.shadow_length_without_backtracking)).toFixed(2) + " m";
+
+  document.getElementById("maxShadowWith").textContent =
+    Math.max(...data.map(d => d.shadow_length_with_backtracking)).toFixed(2) + " m";
+
+  document.getElementById("maxPowerWithout").textContent =
+    Math.max(...data.map(d => d.power_without_backtracking)).toFixed(1) + " W";
+
+  document.getElementById("maxPowerWith").textContent =
+    Math.max(...data.map(d => d.power_with_backtracking)).toFixed(1) + " W";
+
+  document.getElementById("energyNo").textContent =
+    result.daily_energy_without_backtracking.toFixed(3) + " kWh";
+
+  document.getElementById("energyBt").textContent =
+    result.daily_energy_with_backtracking.toFixed(3) + " kWh";
+
+  document.getElementById("energyGain").textContent =
+    result.daily_energy_gain_percent.toFixed(2) + "%";
 }
 
 function destroyCharts() {
@@ -66,64 +86,119 @@ function destroyCharts() {
 function buildCharts(data) {
   const labels = data.map(row => formatTimeLabel(row.timestamp));
 
-  const ideal = data.map(row => row.ideal_tracker_angle);
-  const limited = data.map(row => row.limited_tracker_angle);
-  const backtracking = data.map(row => row.backtracking_angle);
-
-  const sunElevation = data.map(row => row.sun_elevation);
-  const sunAzimuth = data.map(row => row.sun_azimuth);
-
-  const shadowLength = data.map(row => row.shadow_length);
-  const shadingPercent = data.map(row => row.shading_percent);
-
-  const powerWithout = data.map(row => row.power_without_backtracking);
-  const powerWith = data.map(row => row.power_with_backtracking);
-
   destroyCharts();
 
   anglesChart = new Chart(anglesCtx, {
     type: "line",
-    data: { labels, datasets: [
-      { label: "Ideal Tracker Angle", data: ideal, borderWidth: 1.5, pointRadius: 0 },
-      { label: "Limited Tracker Angle", data: limited, borderWidth: 1.5, pointRadius: 0 },
-      { label: "Backtracking Angle", data: backtracking, borderWidth: 1.5, pointRadius: 0 }
-    ]},
-    options: { responsive: true, interaction: { mode: "index", intersect: false },
-      scales: { x: { ticks: { maxTicksLimit: 12 } }, y: { title: { display: true, text: "Angle (deg)" } } } }
+    data: {
+      labels,
+      datasets: [
+        { label: "Ideal Tracker Angle", data: data.map(r => r.ideal_tracker_angle), borderWidth: 1.5, pointRadius: 0 },
+        { label: "Limited Tracker Angle", data: data.map(r => r.limited_tracker_angle), borderWidth: 1.5, pointRadius: 0 },
+        { label: "Backtracking Angle", data: data.map(r => r.backtracking_angle), borderWidth: 1.5, pointRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { ticks: { maxTicksLimit: 12 } },
+        y: { title: { display: true, text: "Angle (deg)" } }
+      }
+    }
   });
 
   sunChart = new Chart(sunCtx, {
     type: "line",
-    data: { labels, datasets: [
-      { label: "Sun Elevation", data: sunElevation, borderWidth: 1.5, pointRadius: 0 },
-      { label: "Sun Azimuth", data: sunAzimuth, borderWidth: 1.5, pointRadius: 0 }
-    ]},
-    options: { responsive: true, interaction: { mode: "index", intersect: false },
-      scales: { x: { ticks: { maxTicksLimit: 12 } }, y: { title: { display: true, text: "Sun Angle (deg)" } } } }
+    data: {
+      labels,
+      datasets: [
+        { label: "Sun Elevation", data: data.map(r => r.sun_elevation), borderWidth: 1.5, pointRadius: 0 },
+        { label: "Sun Azimuth", data: data.map(r => r.sun_azimuth), borderWidth: 1.5, pointRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { ticks: { maxTicksLimit: 12 } },
+        y: { title: { display: true, text: "Sun Angle (deg)" } }
+      }
+    }
   });
 
   shadingChart = new Chart(shadingCtx, {
     type: "line",
-    data: { labels, datasets: [
-      { label: "Shadow Length", data: shadowLength, borderWidth: 1.5, pointRadius: 0, yAxisID: "y" },
-      { label: "Shading %", data: shadingPercent, borderWidth: 1.5, pointRadius: 0, yAxisID: "y1" }
-    ]},
-    options: { responsive: true, interaction: { mode: "index", intersect: false },
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Shadow Without Backtracking",
+          data: data.map(r => r.shadow_length_without_backtracking),
+          borderWidth: 1.5,
+          pointRadius: 0,
+          yAxisID: "y"
+        },
+        {
+          label: "Shadow With Backtracking",
+          data: data.map(r => r.shadow_length_with_backtracking),
+          borderWidth: 1.5,
+          pointRadius: 0,
+          yAxisID: "y"
+        },
+        {
+          label: "Shading % Without Backtracking",
+          data: data.map(r => r.shading_percent_without_backtracking),
+          borderWidth: 1.5,
+          pointRadius: 0,
+          yAxisID: "y1"
+        },
+        {
+          label: "Shading % With Backtracking",
+          data: data.map(r => r.shading_percent_with_backtracking),
+          borderWidth: 1.5,
+          pointRadius: 0,
+          yAxisID: "y1"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: "index", intersect: false },
       scales: {
         x: { ticks: { maxTicksLimit: 12 } },
-        y: { type: "linear", position: "left", title: { display: true, text: "Shadow Length (m)" } },
-        y1: { type: "linear", position: "right", title: { display: true, text: "Shading (%)" }, grid: { drawOnChartArea: false } }
-      } }
+        y: {
+          type: "linear",
+          position: "left",
+          title: { display: true, text: "Shadow Length (m)" }
+        },
+        y1: {
+          type: "linear",
+          position: "right",
+          title: { display: true, text: "Shading (%)" },
+          grid: { drawOnChartArea: false }
+        }
+      }
+    }
   });
 
   powerChart = new Chart(powerCtx, {
     type: "line",
-    data: { labels, datasets: [
-      { label: "Power Without Backtracking", data: powerWithout, borderWidth: 1.5, pointRadius: 0 },
-      { label: "Power With Backtracking", data: powerWith, borderWidth: 1.5, pointRadius: 0 }
-    ]},
-    options: { responsive: true, interaction: { mode: "index", intersect: false },
-      scales: { x: { ticks: { maxTicksLimit: 12 } }, y: { title: { display: true, text: "Power (W)" } } } }
+    data: {
+      labels,
+      datasets: [
+        { label: "Power Without Backtracking", data: data.map(r => r.power_without_backtracking), borderWidth: 1.5, pointRadius: 0 },
+        { label: "Power With Backtracking", data: data.map(r => r.power_with_backtracking), borderWidth: 1.5, pointRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { ticks: { maxTicksLimit: 12 } },
+        y: { title: { display: true, text: "Power (W)" } }
+      }
+    }
   });
 }
 
@@ -139,8 +214,7 @@ async function runSimulation() {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      preview.textContent = `API Error:\n${errorText}`;
+      preview.textContent = `API Error:\n${await response.text()}`;
       return;
     }
 
@@ -153,6 +227,9 @@ async function runSimulation() {
         timezone: result.timezone,
         date: result.date,
         total_points: result.total_points,
+        daily_energy_without_backtracking: result.daily_energy_without_backtracking,
+        daily_energy_with_backtracking: result.daily_energy_with_backtracking,
+        daily_energy_gain_percent: result.daily_energy_gain_percent,
         first_row: result.data[0],
         midday_row: result.data[720]
       },
@@ -160,9 +237,8 @@ async function runSimulation() {
       2
     );
 
-    updateSummary(result.data);
+    updateSummary(result);
     buildCharts(result.data);
-
   } catch (error) {
     preview.textContent = `Request failed:\n${error.message}`;
   }
@@ -179,19 +255,20 @@ async function downloadCsv() {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      preview.textContent = `CSV Error:\n${errorText}`;
+      preview.textContent = `CSV Error:\n${await response.text()}`;
       return;
     }
 
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
+
     const a = document.createElement("a");
     a.href = url;
     a.download = `simulation_${payload.date}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
+
     window.URL.revokeObjectURL(url);
   } catch (error) {
     preview.textContent = `CSV download failed:\n${error.message}`;
@@ -206,3 +283,4 @@ form.addEventListener("submit", async (event) => {
 downloadCsvBtn.addEventListener("click", async () => {
   await downloadCsv();
 });
+

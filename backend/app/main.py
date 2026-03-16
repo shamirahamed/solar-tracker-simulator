@@ -18,3 +18,4 @@ app.include_router(router)
 @app.get("/")
 def home():
     return {"message": "Solar Tracker Simulator API running"}
+

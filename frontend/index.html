@@ -39,22 +39,27 @@
       <div class="summary-grid">
         <div class="summary-item"><span>Max Ideal Angle</span><strong id="maxIdeal">-</strong></div>
         <div class="summary-item"><span>Max Limited Angle</span><strong id="maxLimited">-</strong></div>
-        <div class="summary-item"><span>Max Backtracking</span><strong id="maxBacktracking">-</strong></div>
+        <div class="summary-item"><span>Max Backtracking Angle</span><strong id="maxBacktracking">-</strong></div>
         <div class="summary-item"><span>Max Sun Elevation</span><strong id="maxSun">-</strong></div>
         <div class="summary-item"><span>Max Sun Azimuth</span><strong id="maxAzimuth">-</strong></div>
-        <div class="summary-item"><span>Max Shadow Length</span><strong id="maxShadow">-</strong></div>
-        <div class="summary-item"><span>Max Shading %</span><strong id="maxShading">-</strong></div>
-        <div class="summary-item"><span>Max Power With Backtracking</span><strong id="maxPower">-</strong></div>
+        <div class="summary-item"><span>Max Shadow (No Backtracking)</span><strong id="maxShadowWithout">-</strong></div>
+        <div class="summary-item"><span>Max Shadow (With Backtracking)</span><strong id="maxShadowWith">-</strong></div>
+        <div class="summary-item"><span>Max Power (No Backtracking)</span><strong id="maxPowerWithout">-</strong></div>
+        <div class="summary-item"><span>Max Power (With Backtracking)</span><strong id="maxPowerWith">-</strong></div>
+        <div class="summary-item"><span>Daily Energy (No Backtracking)</span><strong id="energyNo">-</strong></div>
+        <div class="summary-item"><span>Daily Energy (With Backtracking)</span><strong id="energyBt">-</strong></div>
+        <div class="summary-item"><span>Energy Gain %</span><strong id="energyGain">-</strong></div>
       </div>
     </div>
 
     <div class="card"><h2>Tracker Angle Chart</h2><canvas id="anglesChart"></canvas></div>
     <div class="card"><h2>Sun Chart</h2><canvas id="sunChart"></canvas></div>
-    <div class="card"><h2>Shading Chart</h2><canvas id="shadingChart"></canvas></div>
+    <div class="card"><h2>Shadow / Shading Chart</h2><canvas id="shadingChart"></canvas></div>
     <div class="card"><h2>Power Chart</h2><canvas id="powerChart"></canvas></div>
     <div class="card"><h2>Response Preview</h2><pre id="preview">Run a simulation to view output...</pre></div>
   </div>
 
   <script src="app.js"></script>
 </body>
-</html
+</html>
+

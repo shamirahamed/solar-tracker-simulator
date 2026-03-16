@@ -26,9 +26,14 @@ class SimulationPoint(BaseModel):
     limited_tracker_angle: float
     backtracking_angle: float
 
-    shadow_length: float
-    shaded: bool
-    shading_percent: float
+    shadow_length_without_backtracking: float
+    shadow_length_with_backtracking: float
+
+    shaded_without_backtracking: bool
+    shaded_with_backtracking: bool
+
+    shading_percent_without_backtracking: float
+    shading_percent_with_backtracking: float
 
     irradiance_raw: float
     irradiance_without_backtracking: float
@@ -36,6 +41,11 @@ class SimulationPoint(BaseModel):
 
     power_without_backtracking: float
     power_with_backtracking: float
+
+    selected_shadow_length: float
+    selected_shaded: bool
+    selected_shading_percent: float
+    selected_power: float
 
 
 class SimulationResponse(BaseModel):
@@ -45,4 +55,9 @@ class SimulationResponse(BaseModel):
     date: str
     interval_minutes: int
     total_points: int
+
+    daily_energy_without_backtracking: float
+    daily_energy_with_backtracking: float
+    daily_energy_gain_percent: float
+
     data: List[SimulationPoint]

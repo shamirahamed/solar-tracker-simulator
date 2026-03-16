@@ -78,3 +78,4 @@ def get_tracker_day_profile(
         )
 
     return data
+
