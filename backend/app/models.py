@@ -1,24 +1,41 @@
 from typing import List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class SimulationRequest(BaseModel):
-    latitude: float = Field(..., description="Latitude in decimal degrees")
-    longitude: float = Field(..., description="Longitude in decimal degrees")
-    timezone: str = Field(..., description="Timezone, e.g. Europe/Dublin")
-    date: str = Field(..., description="Simulation date in YYYY-MM-DD format")
-    gcr: float = Field(..., gt=0, lt=1, description="Ground Coverage Ratio")
-    max_angle: float = Field(..., gt=0, le=90, description="Maximum tracker angle")
-    backtracking: bool = Field(..., description="Enable or disable backtracking")
+    latitude: float
+    longitude: float
+    timezone: str
+    date: str
+
+    panel_width: float
+    panel_height: float
+    row_spacing: float
+    panel_efficiency: float
+
+    max_angle: float
+    backtracking: bool
 
 
 class SimulationPoint(BaseModel):
     timestamp: str
     sun_elevation: float
     sun_azimuth: float
+
     ideal_tracker_angle: float
     limited_tracker_angle: float
     backtracking_angle: float
+
+    shadow_length: float
+    shaded: bool
+    shading_percent: float
+
+    irradiance_raw: float
+    irradiance_without_backtracking: float
+    irradiance_with_backtracking: float
+
+    power_without_backtracking: float
+    power_with_backtracking: float
 
 
 class SimulationResponse(BaseModel):

@@ -7,10 +7,12 @@ def get_tracker_day_profile(
     longitude: float,
     timezone: str,
     date: str,
-    gcr: float,
+    panel_width: float,
+    row_spacing: float,
     max_angle: float,
-    backtracking: bool,
 ):
+    gcr = panel_width / row_spacing
+
     start = pd.Timestamp(f"{date} 00:00:00", tz=timezone)
     times = pd.date_range(start=start, periods=1440, freq="1min")
 
@@ -20,8 +22,6 @@ def get_tracker_day_profile(
         longitude=longitude,
     )
 
-    # 1) Ideal tracking angle: use a very high max angle so it behaves like
-    # full theoretical sun-following rotation (practically close to ±90).
     tracking_ideal = pvlib.tracking.singleaxis(
         apparent_zenith=solar_position["apparent_zenith"],
         apparent_azimuth=solar_position["azimuth"],
@@ -32,7 +32,6 @@ def get_tracker_day_profile(
         gcr=gcr,
     )
 
-    # 2) Limited tracking angle: same tracking logic, but restricted by user max_angle
     tracking_limited = pvlib.tracking.singleaxis(
         apparent_zenith=solar_position["apparent_zenith"],
         apparent_azimuth=solar_position["azimuth"],
@@ -43,7 +42,6 @@ def get_tracker_day_profile(
         gcr=gcr,
     )
 
-    # 3) Backtracking angle: restricted by user max_angle and backtracking rule
     tracking_backtracking = pvlib.tracking.singleaxis(
         apparent_zenith=solar_position["apparent_zenith"],
         apparent_azimuth=solar_position["azimuth"],
@@ -66,13 +64,7 @@ def get_tracker_day_profile(
 
         ideal_tracker_angle = 0.0 if pd.isna(ideal_theta) else float(ideal_theta)
         limited_tracker_angle = 0.0 if pd.isna(limited_theta) else float(limited_theta)
-        computed_backtracking_angle = 0.0 if pd.isna(backtracking_theta) else float(backtracking_theta)
-
-        # If backtracking is disabled by input, return limited angle as the effective backtracking angle.
-        # This keeps output always populated and easy to compare.
-        backtracking_angle = (
-            computed_backtracking_angle if backtracking else limited_tracker_angle
-        )
+        backtracking_angle = 0.0 if pd.isna(backtracking_theta) else float(backtracking_theta)
 
         data.append(
             {
@@ -85,12 +77,4 @@ def get_tracker_day_profile(
             }
         )
 
-    return {
-        "latitude": latitude,
-        "longitude": longitude,
-        "timezone": timezone,
-        "date": date,
-        "interval_minutes": 1,
-        "total_points": len(data),
-        "data": data,
-    }
+    return data
