@@ -1,113 +1,87 @@
 const API_BASE = "https://organic-space-eureka-6rrg9vx496r2r5qx-8000.app.github.dev/api/v1";
+const form = document.getElementById("simulation-form");
+const downloadCsvBtn = document.getElementById("download-csv");
+const getLocationBtn = document.getElementById("getLocation");
+const preview = document.getElementById("preview");
 
-
-let form;
-let downloadCsvBtn;
-let preview;
-
-let timezoneSelect;
-let locationBtn;
-let latitudeInput;
-let longitudeInput;
-
-let anglesCtx;
-let sunCtx;
-let shadingCtx;
-let powerCtx;
+const anglesCtx = document.getElementById("anglesChart").getContext("2d");
+const sunCtx = document.getElementById("sunChart").getContext("2d");
+const shadingCtx = document.getElementById("shadingChart").getContext("2d");
+const powerCtx = document.getElementById("powerChart").getContext("2d");
 
 let anglesChart = null;
 let sunChart = null;
 let shadingChart = null;
 let powerChart = null;
 
-function populateTimezoneDropdown() {
-  if (!timezoneSelect) return;
+function showPopup(message, type = "info", timeout = 4000) {
+  const el = document.getElementById("statusPopup");
+  if (!el) return;
 
-  timezoneSelect.innerHTML = "";
+  el.textContent = message;
+  el.className = `status-popup ${type}`;
+
+  setTimeout(() => {
+    el.className = "status-popup hidden";
+  }, timeout);
+}
+
+function loadTimezones() {
+  const tzSelect = document.getElementById("timezone");
+  tzSelect.innerHTML = "";
 
   let timezones = [];
-
   if (typeof Intl.supportedValuesOf === "function") {
     timezones = Intl.supportedValuesOf("timeZone");
-    timezones.sort();
   } else {
     timezones = [
       "UTC",
-      "Africa/Cairo",
-      "Africa/Johannesburg",
-      "America/Chicago",
-      "America/Denver",
-      "America/Los_Angeles",
-      "America/New_York",
+      "Europe/Dublin",
+      "Europe/London",
+      "Europe/Paris",
+      "Europe/Berlin",
       "Asia/Dubai",
       "Asia/Kolkata",
       "Asia/Singapore",
       "Asia/Tokyo",
-      "Australia/Sydney",
-      "Europe/Berlin",
-      "Europe/Dublin",
-      "Europe/London",
-      "Europe/Paris",
-      "Pacific/Auckland"
+      "America/New_York",
+      "America/Chicago",
+      "America/Denver",
+      "America/Los_Angeles",
+      "Australia/Sydney"
     ];
   }
 
-  timezones.forEach((tz) => {
+  timezones.forEach(tz => {
     const option = document.createElement("option");
     option.value = tz;
     option.textContent = tz;
-    timezoneSelect.appendChild(option);
+    tzSelect.appendChild(option);
   });
-}
 
-function setBrowserTimezone() {
-  if (!timezoneSelect) return;
-
-  const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  const exists = Array.from(timezoneSelect.options).some(
-    (option) => option.value === browserTimezone
-  );
-
-  if (exists) {
-    timezoneSelect.value = browserTimezone;
+  const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (browserTz && timezones.includes(browserTz)) {
+    tzSelect.value = browserTz;
+  } else if (timezones.includes("Europe/Dublin")) {
+    tzSelect.value = "Europe/Dublin";
   }
 }
 
-function useMyLocation() {
-  if (!navigator.geolocation) {
-    if (preview) preview.textContent = "Geolocation is not supported by this browser.";
-    return;
-  }
+function restoreSavedInputs() {
+  const saved = localStorage.getItem("solarInputs");
+  if (!saved) return;
 
-  if (preview) preview.textContent = "Getting location...";
+  const data = JSON.parse(saved);
+  Object.keys(data).forEach(key => {
+    const el = document.getElementById(key);
+    if (!el) return;
 
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      const lat = position.coords.latitude.toFixed(6);
-      const lon = position.coords.longitude.toFixed(6);
-
-      if (latitudeInput) latitudeInput.value = lat;
-      if (longitudeInput) longitudeInput.value = lon;
-
-      setBrowserTimezone();
-
-      if (preview) {
-        preview.textContent =
-          `Location detected successfully.\nLatitude: ${lat}\nLongitude: ${lon}\nTimezone: ${timezoneSelect ? timezoneSelect.value : ""}`;
-      }
-    },
-    (error) => {
-      if (preview) {
-        preview.textContent = `Location error:\n${error.message}`;
-      }
-    },
-    {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
+    if (el.type === "checkbox") {
+      el.checked = !!data[key];
+    } else {
+      el.value = data[key];
     }
-  );
+  });
 }
 
 function getPayload() {
@@ -179,6 +153,37 @@ function destroyCharts() {
   if (powerChart) powerChart.destroy();
 }
 
+function chartBaseOptions(yText) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: {
+        position: "bottom",
+        align: "start",
+        labels: {
+          boxWidth: 12,
+          boxHeight: 12,
+          padding: 8,
+          font: { size: 11 }
+        }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { maxTicksLimit: 12 }
+      },
+      y: {
+        title: {
+          display: true,
+          text: yText
+        }
+      }
+    }
+  };
+}
+
 function buildCharts(data) {
   const labels = data.map(row => formatTimeLabel(row.timestamp));
 
@@ -189,31 +194,12 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Ideal Tracker Angle", data: data.map(r => r.ideal_tracker_angle), borderWidth: 1.5, pointRadius: 0 },
-        { label: "Limited Tracker Angle", data: data.map(r => r.limited_tracker_angle), borderWidth: 1.5, pointRadius: 0 },
-        { label: "Backtracking Angle", data: data.map(r => r.backtracking_angle), borderWidth: 1.5, pointRadius: 0 }
+        { label: "Ideal Tracker Angle", data: data.map(r => r.ideal_tracker_angle), borderWidth: 1.5, pointRadius: 0, tension: 0.25 },
+        { label: "Limited Tracker Angle", data: data.map(r => r.limited_tracker_angle), borderWidth: 1.5, pointRadius: 0, tension: 0.25 },
+        { label: "Backtracking Angle", data: data.map(r => r.backtracking_angle), borderWidth: 1.5, pointRadius: 0, tension: 0.25 }
       ]
     },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: "bottom",
-          align: "start",
-          labels: {
-            boxWidth: 12,
-            boxHeight: 12,
-            padding: 8,
-            font: { size: 8 }
-          }
-        }
-      },
-      interaction: { mode: "index", intersect: false },
-      scales: {
-        x: { ticks: { maxTicksLimit: 12 } },
-        y: { title: { display: true, text: "Angle (deg)" } }
-      }
-    }
+    options: chartBaseOptions("Angle (deg)")
   });
 
   sunChart = new Chart(sunCtx, {
@@ -221,30 +207,11 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Sun Elevation", data: data.map(r => r.sun_elevation), borderWidth: 1.5, pointRadius: 0 },
-        { label: "Sun Azimuth", data: data.map(r => r.sun_azimuth), borderWidth: 1.5, pointRadius: 0 }
+        { label: "Sun Elevation", data: data.map(r => r.sun_elevation), borderWidth: 1.5, pointRadius: 0, tension: 0.25 },
+        { label: "Sun Azimuth", data: data.map(r => r.sun_azimuth), borderWidth: 1.5, pointRadius: 0, tension: 0.25 }
       ]
     },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: "bottom",
-          align: "start",
-          labels: {
-            boxWidth: 12,
-            boxHeight: 12,
-            padding: 8,
-            font: { size: 8 }
-          }
-        }
-      },
-      interaction: { mode: "index", intersect: false },
-      scales: {
-        x: { ticks: { maxTicksLimit: 12 } },
-        y: { title: { display: true, text: "Sun Angle (deg)" } }
-      }
-    }
+    options: chartBaseOptions("Sun Angle (deg)")
   });
 
   shadingChart = new Chart(shadingCtx, {
@@ -257,6 +224,7 @@ function buildCharts(data) {
           data: data.map(r => r.shadow_length_without_backtracking),
           borderWidth: 1.5,
           pointRadius: 0,
+          tension: 0.25,
           yAxisID: "y"
         },
         {
@@ -264,6 +232,7 @@ function buildCharts(data) {
           data: data.map(r => r.shadow_length_with_backtracking),
           borderWidth: 1.5,
           pointRadius: 0,
+          tension: 0.25,
           yAxisID: "y"
         },
         {
@@ -271,6 +240,7 @@ function buildCharts(data) {
           data: data.map(r => r.shading_percent_without_backtracking),
           borderWidth: 1.5,
           pointRadius: 0,
+          tension: 0.25,
           yAxisID: "y1"
         },
         {
@@ -278,12 +248,15 @@ function buildCharts(data) {
           data: data.map(r => r.shading_percent_with_backtracking),
           borderWidth: 1.5,
           pointRadius: 0,
+          tension: 0.25,
           yAxisID: "y1"
         }
       ]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
       plugins: {
         legend: {
           position: "bottom",
@@ -292,13 +265,14 @@ function buildCharts(data) {
             boxWidth: 12,
             boxHeight: 12,
             padding: 8,
-            font: { size: 8 }
+            font: { size: 11 }
           }
         }
       },
-      interaction: { mode: "index", intersect: false },
       scales: {
-        x: { ticks: { maxTicksLimit: 12 } },
+        x: {
+          ticks: { maxTicksLimit: 12 }
+        },
         y: {
           type: "linear",
           position: "left",
@@ -319,36 +293,19 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Power Without Backtracking", data: data.map(r => r.power_without_backtracking), borderWidth: 1.5, pointRadius: 0 },
-        { label: "Power With Backtracking", data: data.map(r => r.power_with_backtracking), borderWidth: 1.5, pointRadius: 0 }
+        { label: "Power Without Backtracking", data: data.map(r => r.power_without_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.25 },
+        { label: "Power With Backtracking", data: data.map(r => r.power_with_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.25 }
       ]
     },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: "bottom",
-          align: "start",
-          labels: {
-            boxWidth: 12,
-            boxHeight: 12,
-            padding: 8,
-            font: { size: 8 }
-          }
-        }
-      },
-      interaction: { mode: "index", intersect: false },
-      scales: {
-        x: { ticks: { maxTicksLimit: 12 } },
-        y: { title: { display: true, text: "Power (W)" } }
-      }
-    }
+    options: chartBaseOptions("Power (W)")
   });
 }
 
 async function runSimulation() {
   const payload = getPayload();
+  localStorage.setItem("solarInputs", JSON.stringify(payload));
   preview.textContent = "Loading simulation...";
+  showPopup("Running simulation...", "info", 2000);
 
   try {
     const response = await fetch(`${API_BASE}/simulate/day`, {
@@ -358,7 +315,17 @@ async function runSimulation() {
     });
 
     if (!response.ok) {
-      preview.textContent = `API Error:\n${await response.text()}`;
+      const text = await response.text();
+
+      if (response.status === 429) {
+        showPopup("Server limit reached. Please try again later.", "error");
+      } else if (response.status >= 500) {
+        showPopup("Simulation server error. Please try later.", "error");
+      } else {
+        showPopup("API request failed. Check inputs or API URL.", "error");
+      }
+
+      preview.textContent = `API Error:\n${text}`;
       return;
     }
 
@@ -383,7 +350,9 @@ async function runSimulation() {
 
     updateSummary(result);
     buildCharts(result.data);
+    showPopup("Simulation completed successfully.", "success");
   } catch (error) {
+    showPopup("Unable to connect to simulation server.", "error");
     preview.textContent = `Request failed:\n${error.message}`;
   }
 }
@@ -399,6 +368,11 @@ async function downloadCsv() {
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        showPopup("CSV request limit reached. Please try later.", "error");
+      } else {
+        showPopup("CSV download failed.", "error");
+      }
       preview.textContent = `CSV Error:\n${await response.text()}`;
       return;
     }
@@ -414,48 +388,44 @@ async function downloadCsv() {
     a.remove();
 
     window.URL.revokeObjectURL(url);
+    showPopup("CSV downloaded successfully.", "success");
   } catch (error) {
+    showPopup("CSV download failed. Server may be unavailable.", "error");
     preview.textContent = `CSV download failed:\n${error.message}`;
   }
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  form = document.getElementById("simulation-form");
-  downloadCsvBtn = document.getElementById("download-csv");
-  preview = document.getElementById("preview");
+function setupLocationButton() {
+  getLocationBtn.addEventListener("click", function () {
+    if (!navigator.geolocation) {
+      showPopup("Geolocation is not supported on this browser.", "error");
+      return;
+    }
 
-  timezoneSelect = document.getElementById("timezone");
-  locationBtn = document.getElementById("locationBtn");
-  latitudeInput = document.getElementById("latitude");
-  longitudeInput = document.getElementById("longitude");
+    navigator.geolocation.getCurrentPosition(
+      function (position) {
+        document.getElementById("latitude").value = position.coords.latitude.toFixed(4);
+        document.getElementById("longitude").value = position.coords.longitude.toFixed(4);
+        showPopup("Location detected successfully.", "success");
+      },
+      function () {
+        showPopup("Unable to retrieve location.", "error");
+      }
+    );
+  });
+}
 
-  const anglesCanvas = document.getElementById("anglesChart");
-  const sunCanvas = document.getElementById("sunChart");
-  const shadingCanvas = document.getElementById("shadingChart");
-  const powerCanvas = document.getElementById("powerChart");
-
-  if (anglesCanvas) anglesCtx = anglesCanvas.getContext("2d");
-  if (sunCanvas) sunCtx = sunCanvas.getContext("2d");
-  if (shadingCanvas) shadingCtx = shadingCanvas.getContext("2d");
-  if (powerCanvas) powerCtx = powerCanvas.getContext("2d");
-
-  populateTimezoneDropdown();
-  setBrowserTimezone();
-
-  if (locationBtn) {
-    locationBtn.addEventListener("click", useMyLocation);
-  }
-
-  if (form) {
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      await runSimulation();
-    });
-  }
-
-  if (downloadCsvBtn) {
-    downloadCsvBtn.addEventListener("click", async () => {
-      await downloadCsv();
-    });
-  }
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await runSimulation();
 });
+
+downloadCsvBtn.addEventListener("click", async () => {
+  await downloadCsv();
+});
+
+window.onload = function () {
+  loadTimezones();
+  restoreSavedInputs();
+  setupLocationButton();
+};
