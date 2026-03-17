@@ -1,33 +1,94 @@
-const API_BASE = "https://organic-space-eureka-6rrg9vx496r2r5qx-8000.app.github.dev/api/v1";
+const DEFAULT_API_BASE = "https://YOUR-8000-URL.app.github.dev/api/v1";
+let API_BASE = DEFAULT_API_BASE;
+
 const form = document.getElementById("simulation-form");
 const downloadCsvBtn = document.getElementById("download-csv");
 const getLocationBtn = document.getElementById("getLocation");
 const preview = document.getElementById("preview");
+
+const apiUrlInput = document.getElementById("api_url");
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsPanel = document.getElementById("settingsPanel");
+const saveApiBtn = document.getElementById("save-api-url");
+const resetApiBtn = document.getElementById("reset-api-url");
+const closeSettingsBtn = document.getElementById("close-settings");
 
 const anglesCtx = document.getElementById("anglesChart").getContext("2d");
 const sunCtx = document.getElementById("sunChart").getContext("2d");
 const shadingCtx = document.getElementById("shadingChart").getContext("2d");
 const powerCtx = document.getElementById("powerChart").getContext("2d");
 
+const trackerCanvas = document.getElementById("tracker2dCanvas");
+const tracker2dCtx = trackerCanvas.getContext("2d");
+const timeSlider = document.getElementById("timeSlider");
+const timeLabel = document.getElementById("timeLabel");
+const play2dBtn = document.getElementById("play2d");
+const pause2dBtn = document.getElementById("pause2d");
+
 let anglesChart = null;
 let sunChart = null;
 let shadingChart = null;
 let powerChart = null;
 
-function showPopup(message, type = "info", timeout = 4000) {
+let latestSimulationData = [];
+let playTimer = null;
+
+function showPopup(message, type = "info", timeout = 4500) {
   const el = document.getElementById("statusPopup");
   if (!el) return;
-
   el.textContent = message;
   el.className = `status-popup ${type}`;
-
   setTimeout(() => {
     el.className = "status-popup hidden";
   }, timeout);
 }
 
+function initApiBase() {
+  const savedApi = localStorage.getItem("api_url");
+  API_BASE = savedApi || DEFAULT_API_BASE;
+  if (apiUrlInput) apiUrlInput.value = API_BASE;
+}
+
+function openSettings() {
+  if (settingsPanel) settingsPanel.classList.remove("hidden");
+}
+
+function closeSettings() {
+  if (settingsPanel) settingsPanel.classList.add("hidden");
+}
+
+function setupSettingsButtons() {
+  if (settingsBtn) settingsBtn.addEventListener("click", openSettings);
+  if (closeSettingsBtn) closeSettingsBtn.addEventListener("click", closeSettings);
+
+  if (saveApiBtn) {
+    saveApiBtn.addEventListener("click", () => {
+      const value = apiUrlInput.value.trim();
+      if (!value) {
+        showPopup("Please enter a valid API URL in Settings.", "error");
+        return;
+      }
+      API_BASE = value;
+      localStorage.setItem("api_url", value);
+      showPopup("API URL saved successfully.", "success");
+      closeSettings();
+    });
+  }
+
+  if (resetApiBtn) {
+    resetApiBtn.addEventListener("click", () => {
+      API_BASE = DEFAULT_API_BASE;
+      if (apiUrlInput) apiUrlInput.value = DEFAULT_API_BASE;
+      localStorage.removeItem("api_url");
+      showPopup("API URL reset to default.", "success");
+    });
+  }
+}
+
 function loadTimezones() {
   const tzSelect = document.getElementById("timezone");
+  if (!tzSelect) return;
+
   tzSelect.innerHTML = "";
 
   let timezones = [];
@@ -92,6 +153,7 @@ function getPayload() {
     date: document.getElementById("date").value,
     panel_width: parseFloat(document.getElementById("panel_width").value),
     panel_height: parseFloat(document.getElementById("panel_height").value),
+    tracker_height: parseFloat(document.getElementById("tracker_height").value),
     row_spacing: parseFloat(document.getElementById("row_spacing").value),
     panel_efficiency: parseFloat(document.getElementById("panel_efficiency").value),
     max_angle: parseFloat(document.getElementById("max_angle").value),
@@ -107,43 +169,33 @@ function formatTimeLabel(timestamp) {
 }
 
 function updateSummary(result) {
-  const data = result.data;
+  const data = result.data || [];
 
   document.getElementById("maxIdeal").textContent =
-    Math.max(...data.map(d => d.ideal_tracker_angle)).toFixed(1) + "°";
-
+    Math.max(...data.map(d => d.ideal_tracker_angle), 0).toFixed(1) + "°";
   document.getElementById("maxLimited").textContent =
-    Math.max(...data.map(d => d.limited_tracker_angle)).toFixed(1) + "°";
-
+    Math.max(...data.map(d => d.limited_tracker_angle), 0).toFixed(1) + "°";
   document.getElementById("maxBacktracking").textContent =
-    Math.max(...data.map(d => d.backtracking_angle)).toFixed(1) + "°";
-
+    Math.max(...data.map(d => d.backtracking_angle), 0).toFixed(1) + "°";
   document.getElementById("maxSun").textContent =
-    Math.max(...data.map(d => d.sun_elevation)).toFixed(1) + "°";
-
+    Math.max(...data.map(d => d.sun_elevation), 0).toFixed(1) + "°";
   document.getElementById("maxAzimuth").textContent =
-    Math.max(...data.map(d => d.sun_azimuth)).toFixed(1) + "°";
-
+    Math.max(...data.map(d => d.sun_azimuth), 0).toFixed(1) + "°";
   document.getElementById("maxShadowWithout").textContent =
-    Math.max(...data.map(d => d.shadow_length_without_backtracking)).toFixed(2) + " m";
-
+    Math.max(...data.map(d => d.shadow_length_without_backtracking), 0).toFixed(2) + " m";
   document.getElementById("maxShadowWith").textContent =
-    Math.max(...data.map(d => d.shadow_length_with_backtracking)).toFixed(2) + " m";
-
+    Math.max(...data.map(d => d.shadow_length_with_backtracking), 0).toFixed(2) + " m";
   document.getElementById("maxPowerWithout").textContent =
-    Math.max(...data.map(d => d.power_without_backtracking)).toFixed(1) + " W";
-
+    Math.max(...data.map(d => d.power_without_backtracking), 0).toFixed(1) + " W";
   document.getElementById("maxPowerWith").textContent =
-    Math.max(...data.map(d => d.power_with_backtracking)).toFixed(1) + " W";
+    Math.max(...data.map(d => d.power_with_backtracking), 0).toFixed(1) + " W";
 
   document.getElementById("energyNo").textContent =
-    result.daily_energy_without_backtracking.toFixed(3) + " kWh";
-
+    Number(result.daily_energy_without_backtracking || 0).toFixed(3) + " kWh";
   document.getElementById("energyBt").textContent =
-    result.daily_energy_with_backtracking.toFixed(3) + " kWh";
-
+    Number(result.daily_energy_with_backtracking || 0).toFixed(3) + " kWh";
   document.getElementById("energyGain").textContent =
-    result.daily_energy_gain_percent.toFixed(2) + "%";
+    Number(result.daily_energy_gain_percent || 0).toFixed(2) + "%";
 }
 
 function destroyCharts() {
@@ -171,22 +223,14 @@ function chartBaseOptions(yText) {
       }
     },
     scales: {
-      x: {
-        ticks: { maxTicksLimit: 12 }
-      },
-      y: {
-        title: {
-          display: true,
-          text: yText
-        }
-      }
+      x: { ticks: { maxTicksLimit: 12 } },
+      y: { title: { display: true, text: yText } }
     }
   };
 }
 
 function buildCharts(data) {
   const labels = data.map(row => formatTimeLabel(row.timestamp));
-
   destroyCharts();
 
   anglesChart = new Chart(anglesCtx, {
@@ -219,38 +263,10 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        {
-          label: "Shadow Without Backtracking",
-          data: data.map(r => r.shadow_length_without_backtracking),
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.25,
-          yAxisID: "y"
-        },
-        {
-          label: "Shadow With Backtracking",
-          data: data.map(r => r.shadow_length_with_backtracking),
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.25,
-          yAxisID: "y"
-        },
-        {
-          label: "Shading % Without Backtracking",
-          data: data.map(r => r.shading_percent_without_backtracking),
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.25,
-          yAxisID: "y1"
-        },
-        {
-          label: "Shading % With Backtracking",
-          data: data.map(r => r.shading_percent_with_backtracking),
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.25,
-          yAxisID: "y1"
-        }
+        { label: "Shadow Without Backtracking", data: data.map(r => r.shadow_length_without_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.25, yAxisID: "y" },
+        { label: "Shadow With Backtracking", data: data.map(r => r.shadow_length_with_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.25, yAxisID: "y" },
+        { label: "Shading % Without Backtracking", data: data.map(r => r.shading_percent_without_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.25, yAxisID: "y1" },
+        { label: "Shading % With Backtracking", data: data.map(r => r.shading_percent_with_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.25, yAxisID: "y1" }
       ]
     },
     options: {
@@ -261,29 +277,13 @@ function buildCharts(data) {
         legend: {
           position: "bottom",
           align: "start",
-          labels: {
-            boxWidth: 12,
-            boxHeight: 12,
-            padding: 8,
-            font: { size: 11 }
-          }
+          labels: { boxWidth: 12, boxHeight: 12, padding: 8, font: { size: 11 } }
         }
       },
       scales: {
-        x: {
-          ticks: { maxTicksLimit: 12 }
-        },
-        y: {
-          type: "linear",
-          position: "left",
-          title: { display: true, text: "Shadow Length (m)" }
-        },
-        y1: {
-          type: "linear",
-          position: "right",
-          title: { display: true, text: "Shading (%)" },
-          grid: { drawOnChartArea: false }
-        }
+        x: { ticks: { maxTicksLimit: 12 } },
+        y: { type: "linear", position: "left", title: { display: true, text: "Shadow Length (m)" } },
+        y1: { type: "linear", position: "right", title: { display: true, text: "Shading (%)" }, grid: { drawOnChartArea: false } }
       }
     }
   });
@@ -298,6 +298,194 @@ function buildCharts(data) {
       ]
     },
     options: chartBaseOptions("Power (W)")
+  });
+}
+
+function resizeTrackerCanvas() {
+  const wrap = document.querySelector(".tracker-canvas-wrap");
+  const dpr = window.devicePixelRatio || 1;
+  const rect = wrap.getBoundingClientRect();
+  trackerCanvas.width = Math.floor(rect.width * dpr);
+  trackerCanvas.height = Math.floor(rect.height * dpr);
+  trackerCanvas.style.width = `${rect.width}px`;
+  trackerCanvas.style.height = `${rect.height}px`;
+  tracker2dCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, mastHeightPx, groundY) {
+  const x1 = pivotX - Math.cos(angleRad) * panelLength / 2;
+  const y1 = pivotY - Math.sin(angleRad) * panelLength / 2;
+  const x2 = pivotX + Math.cos(angleRad) * panelLength / 2;
+  const y2 = pivotY + Math.sin(angleRad) * panelLength / 2;
+
+  ctx.strokeStyle = "#111827";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(pivotX, groundY);
+  ctx.lineTo(pivotX, pivotY);
+  ctx.stroke();
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+
+  ctx.fillStyle = "#0f172a";
+  ctx.fillText(label, pivotX - 22, pivotY - 12);
+}
+
+function draw2DScene(row) {
+  resizeTrackerCanvas();
+
+  const width = trackerCanvas.clientWidth;
+  const height = trackerCanvas.clientHeight;
+  const ctx = tracker2dCtx;
+  ctx.clearRect(0, 0, width, height);
+
+  const groundY = Math.floor(height * 0.78);
+
+  ctx.strokeStyle = "#444";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(20, groundY);
+  ctx.lineTo(width - 20, groundY);
+  ctx.stroke();
+  ctx.fillStyle = "#475569";
+  ctx.fillText("Ground", 24, groundY - 8);
+
+  const trackerHeightM = parseFloat(document.getElementById("tracker_height").value) || 1.5;
+  const rowSpacingM = parseFloat(document.getElementById("row_spacing").value) || 5.5;
+  const panelWidthM = parseFloat(document.getElementById("panel_width").value) || 2;
+
+  const mastHeightPx = trackerHeightM * 35;
+  const spacingPx = rowSpacingM * 22;
+  const panelLength = Math.min(150, Math.max(90, panelWidthM * 55));
+
+  const mast1X = Math.floor(width * 0.30);
+  const mast2X = Math.min(width - 90, mast1X + spacingPx);
+  const pivotY = groundY - mastHeightPx;
+
+  const useBacktracking = document.getElementById("backtracking").checked;
+  const trackerAngle = useBacktracking
+    ? (row?.backtracking_angle || 0)
+    : (row?.limited_tracker_angle || 0);
+  const angleRad = -(trackerAngle * Math.PI / 180);
+
+  drawPanelAt(ctx, mast1X, pivotY, angleRad, panelLength, "#2563eb", "Panel A", mastHeightPx, groundY);
+  drawPanelAt(ctx, mast2X, pivotY, angleRad, panelLength, "#1d4ed8", "Panel B", mastHeightPx, groundY);
+
+  const elevation = row?.sun_elevation || 0;
+  const hasSun = elevation > 0;
+
+  const currentTime = new Date(row?.timestamp || new Date().toISOString());
+  const hour = currentTime.getHours() + currentTime.getMinutes() / 60;
+  const isMorning = hour < 12;
+
+  if (hasSun) {
+    const t = Math.max(0, Math.min(1, elevation / 90));
+    const sunX = isMorning
+      ? (width * 0.12 + t * width * 0.30)
+      : (width * 0.88 - t * width * 0.30);
+    const sunY = groundY - 30 - t * 180;
+
+    ctx.fillStyle = "#f59e0b";
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 14, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#92400e";
+    ctx.fillText("Sun", sunX - 10, sunY - 20);
+
+    const leadPivotX = isMorning ? mast1X : mast2X;
+
+    ctx.strokeStyle = "orange";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sunX, sunY);
+    ctx.lineTo(leadPivotX, pivotY);
+    ctx.stroke();
+
+    const shadowLen = useBacktracking
+      ? (row?.shadow_length_with_backtracking || 0)
+      : (row?.shadow_length_without_backtracking || 0);
+    const shadowPx = shadowLen * 22;
+
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+
+    if (isMorning) {
+      ctx.moveTo(mast1X, groundY);
+      ctx.lineTo(mast1X + shadowPx, groundY);
+      if (mast1X + shadowPx > mast2X - panelLength / 2) {
+        ctx.fillStyle = "rgba(220, 38, 38, 0.12)";
+        ctx.fillRect(mast2X - panelLength / 2 - 8, pivotY - 18, panelLength + 16, 36);
+        ctx.fillStyle = "#b91c1c";
+        ctx.fillText("Shading Impact", mast2X - 42, pivotY - 26);
+      }
+    } else {
+      ctx.moveTo(mast2X, groundY);
+      ctx.lineTo(mast2X - shadowPx, groundY);
+      if (mast2X - shadowPx < mast1X + panelLength / 2) {
+        ctx.fillStyle = "rgba(220, 38, 38, 0.12)";
+        ctx.fillRect(mast1X - panelLength / 2 - 8, pivotY - 18, panelLength + 16, 36);
+        ctx.fillStyle = "#b91c1c";
+        ctx.fillText("Shading Impact", mast1X - 42, pivotY - 26);
+      }
+    }
+
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = "#475569";
+    ctx.fillText("Night / No Sun", width - 140, 30);
+  }
+
+  ctx.fillStyle = "#000";
+  ctx.fillText("Time: " + formatTimeLabel(row?.timestamp || new Date().toISOString()), 20, 25);
+  ctx.fillText("Sun Elevation: " + Number(elevation).toFixed(1) + "°", 20, 45);
+  ctx.fillText("Tracker Angle: " + Number(trackerAngle).toFixed(1) + "°", 20, 65);
+  const shownShadow = useBacktracking
+    ? (row?.shadow_length_with_backtracking || 0)
+    : (row?.shadow_length_without_backtracking || 0);
+  ctx.fillText("Shadow: " + Number(shownShadow).toFixed(2) + " m", 20, 85);
+  ctx.fillText("Tracker Height: " + trackerHeightM.toFixed(2) + " m", 20, 105);
+  ctx.fillText("Row Spacing: " + rowSpacingM.toFixed(2) + " m", 20, 125);
+}
+
+function update2DFrame(index) {
+  if (!latestSimulationData.length) return;
+  const clamped = Math.max(0, Math.min(index, latestSimulationData.length - 1));
+  timeSlider.value = clamped;
+  const row = latestSimulationData[clamped];
+  timeLabel.textContent = formatTimeLabel(row.timestamp);
+  draw2DScene(row);
+}
+
+function setup2DControls() {
+  timeSlider.addEventListener("input", () => {
+    update2DFrame(parseInt(timeSlider.value, 10));
+  });
+
+  play2dBtn.addEventListener("click", () => {
+    if (!latestSimulationData.length) return;
+    if (playTimer) clearInterval(playTimer);
+
+    playTimer = setInterval(() => {
+      let next = parseInt(timeSlider.value, 10) + 1;
+      if (next >= latestSimulationData.length) next = 0;
+      update2DFrame(next);
+    }, 150);
+  });
+
+  pause2dBtn.addEventListener("click", () => {
+    if (playTimer) clearInterval(playTimer);
+    playTimer = null;
+  });
+
+  window.addEventListener("resize", () => {
+    update2DFrame(parseInt(timeSlider.value, 10) || 0);
   });
 }
 
@@ -320,12 +508,13 @@ async function runSimulation() {
       if (response.status === 429) {
         showPopup("Server limit reached. Please try again later.", "error");
       } else if (response.status >= 500) {
-        showPopup("Simulation server error. Please try later.", "error");
+        showPopup("Simulation server error. Please check API URL in Settings or try again later.", "error");
       } else {
-        showPopup("API request failed. Check inputs or API URL.", "error");
+        showPopup("API connection failed. Please modify or update API URL in Settings.", "error");
       }
 
       preview.textContent = `API Error:\n${text}`;
+      openSettings();
       return;
     }
 
@@ -341,19 +530,23 @@ async function runSimulation() {
         daily_energy_without_backtracking: result.daily_energy_without_backtracking,
         daily_energy_with_backtracking: result.daily_energy_with_backtracking,
         daily_energy_gain_percent: result.daily_energy_gain_percent,
-        first_row: result.data[0],
-        midday_row: result.data[720]
+        first_row: result.data?.[0] || null,
+        midday_row: result.data?.[720] || null
       },
       null,
       2
     );
 
     updateSummary(result);
-    buildCharts(result.data);
+    buildCharts(result.data || []);
+    latestSimulationData = result.data || [];
+    timeSlider.max = Math.max(0, latestSimulationData.length - 1);
+    update2DFrame(Math.min(720, Math.max(0, latestSimulationData.length - 1)));
     showPopup("Simulation completed successfully.", "success");
   } catch (error) {
-    showPopup("Unable to connect to simulation server.", "error");
+    showPopup("Unable to connect to API. Please modify or update API URL in Settings.", "error");
     preview.textContent = `Request failed:\n${error.message}`;
+    openSettings();
   }
 }
 
@@ -368,12 +561,9 @@ async function downloadCsv() {
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        showPopup("CSV request limit reached. Please try later.", "error");
-      } else {
-        showPopup("CSV download failed.", "error");
-      }
+      showPopup("CSV download failed. Please verify API URL in Settings.", "error");
       preview.textContent = `CSV Error:\n${await response.text()}`;
+      openSettings();
       return;
     }
 
@@ -390,8 +580,9 @@ async function downloadCsv() {
     window.URL.revokeObjectURL(url);
     showPopup("CSV downloaded successfully.", "success");
   } catch (error) {
-    showPopup("CSV download failed. Server may be unavailable.", "error");
+    showPopup("CSV download failed. Please verify API URL in Settings.", "error");
     preview.textContent = `CSV download failed:\n${error.message}`;
+    openSettings();
   }
 }
 
@@ -425,7 +616,11 @@ downloadCsvBtn.addEventListener("click", async () => {
 });
 
 window.onload = function () {
+  initApiBase();
   loadTimezones();
   restoreSavedInputs();
+  setupSettingsButtons();
   setupLocationButton();
+  setup2DControls();
 };
+

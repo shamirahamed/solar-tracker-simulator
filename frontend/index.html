@@ -11,11 +11,29 @@
   <div class="container">
     <div id="statusPopup" class="status-popup hidden"></div>
 
-    <h1>Solar Tracker Simulator</h1>
+    <div class="top-bar">
+      <h1>Solar Tracker Simulator</h1>
+      <button type="button" id="settingsBtn" class="settings-btn" aria-label="Settings">⚙️</button>
+    </div>
+
+    <div id="settingsPanel" class="settings-panel hidden">
+      <h2>Settings</h2>
+      <div class="grid">
+        <div>
+          <label for="api_url">API Base URL</label>
+          <input type="text" id="api_url" placeholder="https://server/api/v1" />
+          <small class="helper-text">Update this if simulation or CSV fails.</small>
+        </div>
+      </div>
+      <div class="button-row">
+        <button type="button" id="save-api-url">Save API URL</button>
+        <button type="button" id="reset-api-url">Reset API URL</button>
+        <button type="button" id="close-settings">Close Settings</button>
+      </div>
+    </div>
 
     <div class="card">
       <h2>Simulation Inputs</h2>
-
       <form id="simulation-form">
         <div class="grid">
           <div>
@@ -46,6 +64,11 @@
           <div>
             <label for="panel_height">Panel Height (m)</label>
             <input type="number" step="any" id="panel_height" value="1.1" required />
+          </div>
+
+          <div>
+            <label for="tracker_height">Tracker Height (m)</label>
+            <input type="number" step="any" id="tracker_height" value="1.5" required />
           </div>
 
           <div>
@@ -96,31 +119,39 @@
     </div>
 
     <div class="card">
-      <h2>Tracker Angle Chart</h2>
-      <div class="chart-container">
-        <canvas id="anglesChart"></canvas>
+      <h2>2D Solar Tracker Simulation</h2>
+      <div class="tracker-canvas-wrap">
+        <canvas id="tracker2dCanvas"></canvas>
       </div>
+      <div class="slider-row">
+        <label for="timeSlider">Time</label>
+        <input type="range" id="timeSlider" min="0" max="1439" value="720" />
+        <strong id="timeLabel">--:--</strong>
+      </div>
+      <div class="button-row">
+        <button type="button" id="play2d">Play</button>
+        <button type="button" id="pause2d">Pause</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tracker Angle Chart</h2>
+      <div class="chart-container"><canvas id="anglesChart"></canvas></div>
     </div>
 
     <div class="card">
       <h2>Sun Chart</h2>
-      <div class="chart-container">
-        <canvas id="sunChart"></canvas>
-      </div>
+      <div class="chart-container"><canvas id="sunChart"></canvas></div>
     </div>
 
     <div class="card">
       <h2>Shadow / Shading Chart</h2>
-      <div class="chart-container">
-        <canvas id="shadingChart"></canvas>
-      </div>
+      <div class="chart-container"><canvas id="shadingChart"></canvas></div>
     </div>
 
     <div class="card">
       <h2>Power Chart</h2>
-      <div class="chart-container">
-        <canvas id="powerChart"></canvas>
-      </div>
+      <div class="chart-container"><canvas id="powerChart"></canvas></div>
     </div>
 
     <div class="card">
@@ -132,3 +163,5 @@
   <script src="app.js"></script>
 </body>
 </html>
+
+ 
