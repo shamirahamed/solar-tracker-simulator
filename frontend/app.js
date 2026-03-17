@@ -1,18 +1,114 @@
 const API_BASE = "https://organic-space-eureka-6rrg9vx496r2r5qx-8000.app.github.dev/api/v1";
 
-const form = document.getElementById("simulation-form");
-const downloadCsvBtn = document.getElementById("download-csv");
-const preview = document.getElementById("preview");
 
-const anglesCtx = document.getElementById("anglesChart").getContext("2d");
-const sunCtx = document.getElementById("sunChart").getContext("2d");
-const shadingCtx = document.getElementById("shadingChart").getContext("2d");
-const powerCtx = document.getElementById("powerChart").getContext("2d");
+let form;
+let downloadCsvBtn;
+let preview;
+
+let timezoneSelect;
+let locationBtn;
+let latitudeInput;
+let longitudeInput;
+
+let anglesCtx;
+let sunCtx;
+let shadingCtx;
+let powerCtx;
 
 let anglesChart = null;
 let sunChart = null;
 let shadingChart = null;
 let powerChart = null;
+
+function populateTimezoneDropdown() {
+  if (!timezoneSelect) return;
+
+  timezoneSelect.innerHTML = "";
+
+  let timezones = [];
+
+  if (typeof Intl.supportedValuesOf === "function") {
+    timezones = Intl.supportedValuesOf("timeZone");
+    timezones.sort();
+  } else {
+    timezones = [
+      "UTC",
+      "Africa/Cairo",
+      "Africa/Johannesburg",
+      "America/Chicago",
+      "America/Denver",
+      "America/Los_Angeles",
+      "America/New_York",
+      "Asia/Dubai",
+      "Asia/Kolkata",
+      "Asia/Singapore",
+      "Asia/Tokyo",
+      "Australia/Sydney",
+      "Europe/Berlin",
+      "Europe/Dublin",
+      "Europe/London",
+      "Europe/Paris",
+      "Pacific/Auckland"
+    ];
+  }
+
+  timezones.forEach((tz) => {
+    const option = document.createElement("option");
+    option.value = tz;
+    option.textContent = tz;
+    timezoneSelect.appendChild(option);
+  });
+}
+
+function setBrowserTimezone() {
+  if (!timezoneSelect) return;
+
+  const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const exists = Array.from(timezoneSelect.options).some(
+    (option) => option.value === browserTimezone
+  );
+
+  if (exists) {
+    timezoneSelect.value = browserTimezone;
+  }
+}
+
+function useMyLocation() {
+  if (!navigator.geolocation) {
+    if (preview) preview.textContent = "Geolocation is not supported by this browser.";
+    return;
+  }
+
+  if (preview) preview.textContent = "Getting location...";
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const lat = position.coords.latitude.toFixed(6);
+      const lon = position.coords.longitude.toFixed(6);
+
+      if (latitudeInput) latitudeInput.value = lat;
+      if (longitudeInput) longitudeInput.value = lon;
+
+      setBrowserTimezone();
+
+      if (preview) {
+        preview.textContent =
+          `Location detected successfully.\nLatitude: ${lat}\nLongitude: ${lon}\nTimezone: ${timezoneSelect ? timezoneSelect.value : ""}`;
+      }
+    },
+    (error) => {
+      if (preview) {
+        preview.textContent = `Location error:\n${error.message}`;
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  );
+}
 
 function getPayload() {
   return {
@@ -101,16 +197,14 @@ function buildCharts(data) {
     options: {
       responsive: true,
       plugins: {
-        legend:{
+        legend: {
           position: "bottom",
           align: "start",
           labels: {
             boxWidth: 12,
-            boxHeight:12,
+            boxHeight: 12,
             padding: 8,
-            font:{
-              size:8
-            }
+            font: { size: 8 }
           }
         }
       },
@@ -120,8 +214,7 @@ function buildCharts(data) {
         y: { title: { display: true, text: "Angle (deg)" } }
       }
     }
-  }
-);
+  });
 
   sunChart = new Chart(sunCtx, {
     type: "line",
@@ -135,16 +228,14 @@ function buildCharts(data) {
     options: {
       responsive: true,
       plugins: {
-        legend:{
+        legend: {
           position: "bottom",
           align: "start",
           labels: {
             boxWidth: 12,
-            boxHeight:12,
+            boxHeight: 12,
             padding: 8,
-            font:{
-              size:8
-            }
+            font: { size: 8 }
           }
         }
       },
@@ -194,16 +285,14 @@ function buildCharts(data) {
     options: {
       responsive: true,
       plugins: {
-        legend:{
+        legend: {
           position: "bottom",
           align: "start",
           labels: {
             boxWidth: 12,
-            boxHeight:12,
+            boxHeight: 12,
             padding: 8,
-            font:{
-              size:8
-            }
+            font: { size: 8 }
           }
         }
       },
@@ -237,16 +326,14 @@ function buildCharts(data) {
     options: {
       responsive: true,
       plugins: {
-        legend:{
+        legend: {
           position: "bottom",
           align: "start",
           labels: {
             boxWidth: 12,
-            boxHeight:12,
+            boxHeight: 12,
             padding: 8,
-            font:{
-              size:8
-            }
+            font: { size: 8 }
           }
         }
       },
@@ -332,12 +419,43 @@ async function downloadCsv() {
   }
 }
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await runSimulation();
-});
+window.addEventListener("DOMContentLoaded", () => {
+  form = document.getElementById("simulation-form");
+  downloadCsvBtn = document.getElementById("download-csv");
+  preview = document.getElementById("preview");
 
-downloadCsvBtn.addEventListener("click", async () => {
-  await downloadCsv();
-});
+  timezoneSelect = document.getElementById("timezone");
+  locationBtn = document.getElementById("locationBtn");
+  latitudeInput = document.getElementById("latitude");
+  longitudeInput = document.getElementById("longitude");
 
+  const anglesCanvas = document.getElementById("anglesChart");
+  const sunCanvas = document.getElementById("sunChart");
+  const shadingCanvas = document.getElementById("shadingChart");
+  const powerCanvas = document.getElementById("powerChart");
+
+  if (anglesCanvas) anglesCtx = anglesCanvas.getContext("2d");
+  if (sunCanvas) sunCtx = sunCanvas.getContext("2d");
+  if (shadingCanvas) shadingCtx = shadingCanvas.getContext("2d");
+  if (powerCanvas) powerCtx = powerCanvas.getContext("2d");
+
+  populateTimezoneDropdown();
+  setBrowserTimezone();
+
+  if (locationBtn) {
+    locationBtn.addEventListener("click", useMyLocation);
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await runSimulation();
+    });
+  }
+
+  if (downloadCsvBtn) {
+    downloadCsvBtn.addEventListener("click", async () => {
+      await downloadCsv();
+    });
+  }
+});
