@@ -1,3 +1,4 @@
+
 * {
   box-sizing: border-box;
 }
@@ -260,7 +261,7 @@ canvas {
   }
 
   .tracker-canvas-wrap {
-    height: 320px;
+    height: 280px;
   }
 
   .button-row {
@@ -281,5 +282,3 @@ canvas {
     grid-template-columns: 1fr;
   }
 }
-
- 
