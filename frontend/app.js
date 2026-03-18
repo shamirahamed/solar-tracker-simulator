@@ -26,6 +26,10 @@ const timeLabel = document.getElementById("timeLabel");
 const play2dBtn = document.getElementById("play2d");
 const pause2dBtn = document.getElementById("pause2d");
 
+const aboutBtn = document.getElementById("aboutBtn");
+const aboutPanel = document.getElementById("aboutPanel");
+const closeAboutBtn = document.getElementById("close-about");
+
 let anglesChart = null;
 let sunChart = null;
 let shadingChart = null;
@@ -33,6 +37,15 @@ let powerChart = null;
 
 let latestSimulationData = [];
 let playTimer = null;
+
+function openAbout() {
+  if (aboutPanel) aboutPanel.classList.remove("hidden");
+  if (settingsPanel) settingsPanel.classList.add("hidden");
+}
+
+function closeAbout() {
+  if (aboutPanel) aboutPanel.classList.add("hidden");
+}
 
 function showPopup(message, type = "info", timeout = 4500) {
   const el = document.getElementById("statusPopup");
@@ -42,6 +55,16 @@ function showPopup(message, type = "info", timeout = 4500) {
   setTimeout(() => {
     el.className = "status-popup hidden";
   }, timeout);
+}
+
+function calculateGcr() {
+  const panelWidth = parseFloat(document.getElementById("panel_width").value) || 0;
+  const rowSpacing = parseFloat(document.getElementById("row_spacing").value) || 1;
+  const gcr = panelWidth / rowSpacing;
+  return {
+    ratio: gcr,
+    percent: gcr * 100
+  };
 }
 
 function initApiBase() {
@@ -61,7 +84,8 @@ function closeSettings() {
 function setupSettingsButtons() {
   settingsBtn?.addEventListener("click", openSettings);
   closeSettingsBtn?.addEventListener("click", closeSettings);
-
+  if (aboutBtn) aboutBtn.addEventListener("click", openAbout);
+  if (closeAboutBtn) closeAboutBtn.addEventListener("click", closeAbout);
   saveApiBtn?.addEventListener("click", () => {
     const value = apiUrlInput?.value?.trim();
     if (!value) {
@@ -72,6 +96,7 @@ function setupSettingsButtons() {
     localStorage.setItem("api_url", value);
     showPopup("API URL saved successfully.", "success");
     closeSettings();
+
   });
 
   resetApiBtn?.addEventListener("click", () => {
@@ -176,6 +201,9 @@ function updateSummary(result) {
   const sunTimes = calculateSunTimes(data);
   document.getElementById("sunrise").textContent = sunTimes.sunrise ? formatTimeLabel(sunTimes.sunrise) : "--";
   document.getElementById("sunset").textContent = sunTimes.sunset ? formatTimeLabel(sunTimes.sunset) : "--";
+
+  const gcr = calculateGcr();
+  document.getElementById("gcrValue").textContent =`${gcr.ratio.toFixed(3)} (${gcr.percent.toFixed(1)}%)`;
 }
 
 function destroyCharts() {
