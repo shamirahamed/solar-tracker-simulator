@@ -116,6 +116,8 @@
         <div class="summary-item"><span>Daily Energy (No Backtracking)</span><strong id="energyNo">-</strong></div>
         <div class="summary-item"><span>Daily Energy (With Backtracking)</span><strong id="energyBt">-</strong></div>
         <div class="summary-item"><span>Energy Gain %</span><strong id="energyGain">-</strong></div>
+        <div class="summary-item"><span>Sunrise</span><strong id="sunrise">-</strong></div>
+        <div class="summary-item"><span>Sunset</span><strong id="sunset">-</strong></div>
       </div>
     </div>
 
@@ -161,8 +163,34 @@
     </div>
   </div>
 
+    <div class="card">
+      <h2>About</h2>
+      <p>
+        This solar tracker simulator models a single-axis solar tracker system using
+        location, date, and tracker configuration inputs.
+      </p>
+      <p><strong>Included calculations:</strong></p>
+      <ul>
+        <li>Solar position using latitude, longitude, date, and timezone</li>
+        <li>Ideal tracker angle, limited tracker angle, and backtracking angle</li>
+        <li>Shadow length and inter-row shading effect</li>
+        <li>Shading percentage with and without backtracking</li>
+        <li>Power output and daily energy comparison</li>
+        <li>Energy gain percentage due to backtracking</li>
+        <li>2D tracker visualization with sun path and shadow direction</li>
+      </ul>
+      <p>
+        Powered by pvlib for solar position and tracker calculations, with FastAPI backend
+        processing and frontend chart visualization.
+      </p>
+
+      <div class="powered-by">
+        <p>Powered by</p>
+        <img src="assets/pvlib_logo.webp" alt="Powered by pvlib" />
+      </div>
+    </div>
+
   <script src="app.js"></script>
 </body>
 </html>
-
 
