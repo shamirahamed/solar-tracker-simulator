@@ -17,6 +17,16 @@ const aboutBtn = document.getElementById("aboutBtn");
 const aboutPanel = document.getElementById("aboutPanel");
 const closeAboutBtn = document.getElementById("close-about");
 
+const locationPreview = document.getElementById("locationPreview");
+const locationText = document.getElementById("locationText");
+const mapLink = document.getElementById("mapLink");
+
+const scenarioText = document.getElementById("scenarioText");
+const badgeMode = document.getElementById("badgeMode");
+const badgeShading = document.getElementById("badgeShading");
+const badgeScale = document.getElementById("badgeScale");
+const badgeApi = document.getElementById("badgeApi");
+
 const anglesCtx = document.getElementById("anglesChart")?.getContext("2d");
 const sunCtx = document.getElementById("sunChart")?.getContext("2d");
 const shadingCtx = document.getElementById("shadingChart")?.getContext("2d");
@@ -36,6 +46,8 @@ let powerChart = null;
 
 let latestSimulationData = [];
 let playTimer = null;
+let latestVisualCompression = 1;
+let latestFrameIsShading = null;
 
 function showPopup(message, type = "info", timeout = 4500) {
   const el = document.getElementById("statusPopup");
@@ -45,6 +57,12 @@ function showPopup(message, type = "info", timeout = 4500) {
   setTimeout(() => {
     el.className = "status-popup hidden";
   }, timeout);
+}
+
+function setBadge(el, text, klass) {
+  if (!el) return;
+  el.textContent = text;
+  el.className = `badge ${klass}`;
 }
 
 function initApiBase() {
@@ -82,6 +100,7 @@ function setupTopButtons() {
     }
     API_BASE = value;
     localStorage.setItem("api_url", value);
+    setBadge(badgeApi, "API: Custom URL", "badge-blue");
     showPopup("API URL saved successfully.", "success");
     closeSettings();
   });
@@ -90,6 +109,7 @@ function setupTopButtons() {
     API_BASE = DEFAULT_API_BASE;
     if (apiUrlInput) apiUrlInput.value = DEFAULT_API_BASE;
     localStorage.removeItem("api_url");
+    setBadge(badgeApi, "API: Default URL", "badge-gray");
     showPopup("API URL reset to default.", "success");
   });
 }
@@ -100,7 +120,6 @@ function loadTimezones() {
 
   tzSelect.innerHTML = "";
   let timezones = [];
-
   if (typeof Intl.supportedValuesOf === "function") {
     timezones = Intl.supportedValuesOf("timeZone");
   } else {
@@ -172,7 +191,6 @@ function formatTimeLabel(timestamp) {
 function calculateSunTimes(data) {
   let sunrise = null;
   let sunset = null;
-
   for (let i = 0; i < data.length; i++) {
     const elev = Number(data[i].sun_elevation || 0);
     if (elev > 0 && !sunrise) sunrise = data[i].timestamp;
@@ -190,15 +208,17 @@ function calculateGcr() {
 
 function updateSummary(result) {
   const data = result.data || [];
-  document.getElementById("maxIdeal").textContent = Math.max(...data.map((d) => Number(d.ideal_tracker_angle || 0)), 0).toFixed(1) + "°";
-  document.getElementById("maxLimited").textContent = Math.max(...data.map((d) => Number(d.limited_tracker_angle || 0)), 0).toFixed(1) + "°";
-  document.getElementById("maxBacktracking").textContent = Math.max(...data.map((d) => Number(d.backtracking_angle || 0)), 0).toFixed(1) + "°";
-  document.getElementById("maxSun").textContent = Math.max(...data.map((d) => Number(d.sun_elevation || 0)), 0).toFixed(1) + "°";
-  document.getElementById("maxAzimuth").textContent = Math.max(...data.map((d) => Number(d.sun_azimuth || 0)), 0).toFixed(1) + "°";
-  document.getElementById("maxShadowWithout").textContent = Math.max(...data.map((d) => Number(d.shadow_length_without_backtracking || 0)), 0).toFixed(2) + " m";
-  document.getElementById("maxShadowWith").textContent = Math.max(...data.map((d) => Number(d.shadow_length_with_backtracking || 0)), 0).toFixed(2) + " m";
-  document.getElementById("maxPowerWithout").textContent = Math.max(...data.map((d) => Number(d.power_without_backtracking || 0)), 0).toFixed(1) + " W";
-  document.getElementById("maxPowerWith").textContent = Math.max(...data.map((d) => Number(d.power_with_backtracking || 0)), 0).toFixed(1) + " W";
+  const maxVal = (key) => Math.max(...data.map((d) => Number(d[key] || 0)), 0);
+
+  document.getElementById("maxIdeal").textContent = maxVal("ideal_tracker_angle").toFixed(1) + "°";
+  document.getElementById("maxLimited").textContent = maxVal("limited_tracker_angle").toFixed(1) + "°";
+  document.getElementById("maxBacktracking").textContent = maxVal("backtracking_angle").toFixed(1) + "°";
+  document.getElementById("maxSun").textContent = maxVal("sun_elevation").toFixed(1) + "°";
+  document.getElementById("maxAzimuth").textContent = maxVal("sun_azimuth").toFixed(1) + "°";
+  document.getElementById("maxShadowWithout").textContent = maxVal("shadow_length_without_backtracking").toFixed(2) + " m";
+  document.getElementById("maxShadowWith").textContent = maxVal("shadow_length_with_backtracking").toFixed(2) + " m";
+  document.getElementById("maxPowerWithout").textContent = maxVal("power_without_backtracking").toFixed(1) + " W";
+  document.getElementById("maxPowerWith").textContent = maxVal("power_with_backtracking").toFixed(1) + " W";
   document.getElementById("energyNo").textContent = Number(result.daily_energy_without_backtracking || 0).toFixed(3) + " kWh";
   document.getElementById("energyBt").textContent = Number(result.daily_energy_with_backtracking || 0).toFixed(3) + " kWh";
   document.getElementById("energyGain").textContent = Number(result.daily_energy_gain_percent || 0).toFixed(2) + "%";
@@ -385,10 +405,19 @@ function draw2DScene(row) {
 
   const scalePxPerM = width < 500 ? 16 : 22;
   const mastHeightPx = trackerHeightM * scalePxPerM;
+
   const rawSpacingPx = rowSpacingM * scalePxPerM;
   const maxVisualSpacing = width < 500 ? width * 0.58 : width * 0.62;
-  const spacingPx = Math.min(rawSpacingPx, maxVisualSpacing);
-  const panelLength = width < 500 ? Math.max(42, panelWidthM * scalePxPerM * 0.75) : Math.max(80, panelWidthM * scalePxPerM);
+
+  let visualCompression = 1;
+  if (rawSpacingPx > maxVisualSpacing) {
+    visualCompression = maxVisualSpacing / rawSpacingPx;
+  }
+  latestVisualCompression = visualCompression;
+
+  const spacingPx = rawSpacingPx * visualCompression;
+  const panelLengthBase = width < 500 ? Math.max(42, panelWidthM * scalePxPerM * 0.75) : Math.max(80, panelWidthM * scalePxPerM);
+  const panelLength = panelLengthBase * Math.max(0.75, visualCompression);
 
   const centerX = width / 2;
   let mast1X = centerX - spacingPx / 2;
@@ -420,6 +449,8 @@ function draw2DScene(row) {
   const azimuth = Number(row?.sun_azimuth || 180);
   const hasSun = elevation > 0;
 
+  let isShading = false;
+
   if (hasSun) {
     const azNorm = Math.max(0, Math.min(1, (azimuth - 90) / 180));
     const sunX = width * 0.14 + azNorm * (width * 0.72);
@@ -436,7 +467,7 @@ function draw2DScene(row) {
     ctx.fillText("Sun", sunX - 10, sunY - 14);
 
     const shadowLen = useBacktracking ? Number(row?.shadow_length_with_backtracking || 0) : Number(row?.shadow_length_without_backtracking || 0);
-    const shadowPx = shadowLen * scalePxPerM;
+    const shadowPx = (shadowLen * scalePxPerM) * visualCompression;
     const sunOnLeft = sunX < visualCenterX;
     const shadowStartX = sunOnLeft ? panelA.rightX : panelB.leftX;
     const shadowEndX = sunOnLeft ? shadowStartX + shadowPx : shadowStartX - shadowPx;
@@ -448,7 +479,6 @@ function draw2DScene(row) {
     ctx.lineTo(shadowEndX, groundY);
     ctx.stroke();
 
-    let isShading = false;
     if (sunOnLeft) {
       isShading = shadowEndX >= panelB.leftX;
       if (isShading) {
@@ -476,6 +506,8 @@ function draw2DScene(row) {
     ctx.fillText("Night / No Sun", width - 120, 28);
   }
 
+  latestFrameIsShading = isShading;
+
   ctx.fillStyle = "#000";
   ctx.font = width < 500 ? "11px Arial" : "13px Arial";
   ctx.fillText("Time: " + formatTimeLabel(row?.timestamp || new Date().toISOString()), 20, 24);
@@ -487,11 +519,30 @@ function draw2DScene(row) {
   ctx.fillText("GCR: " + gcr.ratio.toFixed(3), 20, 114);
   ctx.fillText("Mode: " + (useBacktracking ? "Backtracking ON" : "Backtracking OFF"), 20, 132);
 
-  if (width < 500 && rowSpacingM > 10) {
+  if (visualCompression < 1) {
     ctx.fillStyle = "#64748b";
     ctx.font = "10px Arial";
-    ctx.fillText("Mobile view: spacing visually compressed", 20, height - 10);
+    ctx.fillText("View compressed to fit screen", 20, height - 10);
   }
+
+  updateScenarioBadges(useBacktracking, isShading, visualCompression);
+}
+
+function updateScenarioBadges(useBacktracking, isShading, compression) {
+  setBadge(badgeMode, `Mode: ${useBacktracking ? "Backtracking ON" : "Backtracking OFF"}`, useBacktracking ? "badge-blue" : "badge-gray");
+  if (isShading === true) setBadge(badgeShading, "Shading: Yes", "badge-red");
+  else if (isShading === false) setBadge(badgeShading, "Shading: No", "badge-green");
+  else setBadge(badgeShading, "Shading: --", "badge-gray");
+
+  if (compression < 1) setBadge(badgeScale, "View: Compressed", "badge-amber");
+  else setBadge(badgeScale, "View: 1:1", "badge-gray");
+}
+
+function updateScenarioHeader(result) {
+  const payload = getPayload();
+  const mode = payload.backtracking ? "Backtracking ON" : "Backtracking OFF";
+  const scenario = `${payload.latitude.toFixed(4)}, ${payload.longitude.toFixed(4)} | ${payload.timezone} | ${payload.date} | ${mode}`;
+  if (scenarioText) scenarioText.textContent = scenario;
 }
 
 function update2DFrame(index) {
@@ -544,6 +595,7 @@ async function runSimulation() {
 
     if (!response.ok) {
       const text = await response.text();
+      setBadge(badgeApi, "API: Error", "badge-red");
       if (response.status === 429) showPopup("Server limit reached. Please try again later.", "error");
       else if (response.status >= 500) showPopup("Simulation server error. Please check API URL in Settings or try again later.", "error");
       else showPopup("API connection failed. Please modify or update API URL in Settings.", "error");
@@ -553,6 +605,7 @@ async function runSimulation() {
     }
 
     const result = await response.json();
+    setBadge(badgeApi, "API: Connected", "badge-green");
     preview.textContent = JSON.stringify({
       latitude: result.latitude,
       longitude: result.longitude,
@@ -567,12 +620,14 @@ async function runSimulation() {
     }, null, 2);
 
     updateSummary(result);
+    updateScenarioHeader(result);
     buildCharts(result.data || []);
     latestSimulationData = result.data || [];
     if (timeSlider) timeSlider.max = Math.max(0, latestSimulationData.length - 1);
     update2DFrame(Math.min(720, Math.max(0, latestSimulationData.length - 1)));
     showPopup("Simulation completed successfully.", "success");
   } catch (error) {
+    setBadge(badgeApi, "API: Error", "badge-red");
     showPopup("Unable to connect to API. Please modify or update API URL in Settings.", "error");
     preview.textContent = `Request failed:\n${error.message}`;
     openSettings();
@@ -621,8 +676,17 @@ function setupLocationButton() {
     }
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        document.getElementById("latitude").value = position.coords.latitude.toFixed(4);
-        document.getElementById("longitude").value = position.coords.longitude.toFixed(4);
+        const lat = position.coords.latitude.toFixed(4);
+        const lon = position.coords.longitude.toFixed(4);
+        document.getElementById("latitude").value = lat;
+        document.getElementById("longitude").value = lon;
+
+        if (locationPreview && locationText && mapLink) {
+          locationText.textContent = `📍 Location detected: ${lat}, ${lon}`;
+          mapLink.href = `https://maps.google.com/?q=${lat},${lon}`;
+          locationPreview.classList.remove("hidden");
+        }
+
         showPopup("Location detected successfully.", "success");
       },
       () => showPopup("Unable to retrieve location.", "error")
@@ -647,4 +711,5 @@ window.onload = function () {
   setupTopButtons();
   setupLocationButton();
   setup2DControls();
+  setBadge(badgeApi, "API: Not checked", "badge-gray");
 };

@@ -8,183 +8,273 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="container">
+  <div class="app-shell">
     <div id="statusPopup" class="status-popup hidden"></div>
 
-    <div class="top-bar">
-      <h1>Solar Tracker Simulator</h1>
-      <div class="top-bar-actions">
+    <header class="topbar">
+      <div>
+        <h1>Solar Tracker Simulator</h1>
+        <p class="subhead">Single-axis tracker visualization and daily performance simulation</p>
+      </div>
+      <div class="topbar-actions">
         <button type="button" id="aboutBtn" class="icon-btn" aria-label="About">ℹ️</button>
         <button type="button" id="settingsBtn" class="icon-btn" aria-label="Settings">⚙️</button>
       </div>
-    </div>
+    </header>
 
-    <div id="aboutPanel" class="panel-box hidden">
-      <h2>About</h2>
-      <p>
-        This solar tracker simulator models a single-axis solar tracker system using
-        location, date, and tracker configuration inputs.
-      </p>
-      <p><strong>Included calculations:</strong></p>
-      <ul class="about-list">
-        <li>Solar position using latitude, longitude, date, and timezone</li>
-        <li>Ideal tracker angle, limited tracker angle, and backtracking angle</li>
-        <li>Shadow length and inter-row shading effect</li>
-        <li>Shading percentage with and without backtracking</li>
-        <li>Power output and daily energy comparison</li>
-        <li>Energy gain percentage due to backtracking</li>
-        <li>Ground Coverage Ratio (GCR)</li>
-        <li>2D tracker visualization with sun path and shadow direction</li>
-      </ul>
-      <p>
-        Powered by pvlib for solar position and tracker calculations, with FastAPI backend
-        processing and frontend chart visualization.
-      </p>
-
-      <div class="powered-by">
-        <p>Powered by pvlib</p>
+    <section id="scenarioBar" class="scenario-bar">
+      <div class="scenario-title">Scenario</div>
+      <div id="scenarioText" class="scenario-text">Not run yet</div>
+      <div class="badge-row">
+        <span id="badgeMode" class="badge badge-blue">Mode: --</span>
+        <span id="badgeShading" class="badge badge-gray">Shading: --</span>
+        <span id="badgeScale" class="badge badge-gray">View: 1:1</span>
+        <span id="badgeApi" class="badge badge-gray">API: Not checked</span>
       </div>
+    </section>
 
-      <div class="button-row">
-        <button type="button" id="close-about">Close About</button>
+    <section id="aboutPanel" class="panel hidden">
+      <div class="panel-header">
+        <h2>About</h2>
+        <button type="button" id="close-about" class="secondary-btn">Close</button>
       </div>
-    </div>
+      <p>This dashboard estimates daily solar tracker behaviour using location, date, geometry, and backtracking inputs.</p>
+      <div class="about-grid">
+        <div class="about-card">
+          <h3>Core calculations</h3>
+          <ul>
+            <li>Solar position from latitude, longitude, date, and timezone</li>
+            <li>Ideal tracker angle, limited angle, and backtracking angle</li>
+            <li>Shadow length and inter-row shading indication</li>
+            <li>Power and daily energy comparison</li>
+            <li>Ground Coverage Ratio (GCR)</li>
+          </ul>
+        </div>
+        <div class="about-card">
+          <h3>Notes</h3>
+          <ul>
+            <li>2D view may be visually compressed to fit smaller screens</li>
+            <li>Displayed values always come from the simulation result</li>
+            <li>Mobile rendering is for readability, not absolute scale drawing</li>
+          </ul>
+        </div>
+      </div>
+      <div class="powered-by">Powered by pvlib-style solar calculations</div>
+    </section>
 
-    <div id="settingsPanel" class="panel-box hidden">
-      <h2>Settings</h2>
-      <div class="grid">
+    <section id="settingsPanel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Settings</h2>
+        <button type="button" id="close-settings" class="secondary-btn">Close</button>
+      </div>
+      <div class="input-grid single-grid">
         <div>
           <label for="api_url">API Base URL</label>
           <input type="text" id="api_url" placeholder="https://server/api/v1" />
-          <small class="helper-text">Update this if simulation or CSV fails.</small>
+          <small class="helper-text">Update this if simulation or CSV export fails.</small>
         </div>
       </div>
       <div class="button-row">
         <button type="button" id="save-api-url">Save API URL</button>
-        <button type="button" id="reset-api-url">Reset API URL</button>
-        <button type="button" id="close-settings">Close Settings</button>
+        <button type="button" id="reset-api-url" class="secondary-btn">Reset API URL</button>
       </div>
-    </div>
+    </section>
 
-    <div class="card">
-      <h2>Simulation Inputs</h2>
-      <form id="simulation-form">
-        <div class="grid">
-          <div>
-            <label for="latitude">Latitude</label>
-            <input type="number" step="any" id="latitude" value="53.3498" required />
+    <main class="layout-grid">
+      <section class="card">
+        <div class="section-head">
+          <h2>Inputs</h2>
+          <span class="section-note">Configure geometry, date, and simulation mode</span>
+        </div>
+
+        <form id="simulation-form">
+          <div class="input-grid">
+            <div>
+              <label for="latitude">Latitude</label>
+              <input type="number" step="any" id="latitude" value="53.3498" required />
+            </div>
+
+            <div>
+              <label for="longitude">Longitude</label>
+              <input type="number" step="any" id="longitude" value="-6.2603" required />
+            </div>
+
+            <div class="location-col">
+              <label>&nbsp;</label>
+              <button type="button" id="getLocation" class="secondary-btn">📍 Use Location</button>
+            </div>
+
+            <div class="full-span">
+              <div id="locationPreview" class="location-preview hidden">
+                <div id="locationText">📍 Location detected</div>
+                <a id="mapLink" href="#" target="_blank" rel="noopener noreferrer">View on Map</a>
+              </div>
+            </div>
+
+            <div>
+              <label for="timezone">Timezone</label>
+              <select id="timezone" required></select>
+            </div>
+
+            <div>
+              <label for="date">Date</label>
+              <input type="date" id="date" required />
+            </div>
+
+            <div>
+              <label for="panel_width">Panel Width (m)</label>
+              <input type="number" step="any" id="panel_width" value="2.0" required />
+            </div>
+
+            <div>
+              <label for="panel_height">Panel Height (m)</label>
+              <input type="number" step="any" id="panel_height" value="1.1" required />
+            </div>
+
+            <div>
+              <label for="tracker_height">Tracker Height (m)</label>
+              <input type="number" step="any" id="tracker_height" value="1.5" required />
+            </div>
+
+            <div>
+              <label for="row_spacing">Row Spacing (m)</label>
+              <input type="number" step="any" id="row_spacing" value="5.5" required />
+            </div>
+
+            <div>
+              <label for="panel_efficiency">Panel Efficiency</label>
+              <input type="number" step="any" id="panel_efficiency" value="0.20" required />
+            </div>
+
+            <div>
+              <label for="max_angle">Max Angle (deg)</label>
+              <input type="number" step="any" id="max_angle" value="60" required />
+            </div>
+
+            <div class="checkbox-row">
+              <label for="backtracking">Backtracking</label>
+              <input type="checkbox" id="backtracking" checked />
+            </div>
           </div>
-          <div>
-            <label for="longitude">Longitude</label>
-            <input type="number" step="any" id="longitude" value="-6.2603" required />
+
+          <div class="button-row">
+            <button type="submit">Run Simulation</button>
+            <button type="button" id="download-csv" class="secondary-btn">Download CSV</button>
           </div>
-          <div>
-            <label for="timezone">Timezone</label>
-            <select id="timezone" required></select>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Key Metrics</h2>
+          <span class="section-note">Most useful outputs for quick review</span>
+        </div>
+
+        <div class="kpi-grid primary-kpis">
+          <div class="kpi primary">
+            <span>Ground Coverage Ratio</span>
+            <strong id="gcrValue">-</strong>
           </div>
-          <div>
-            <label for="date">Date</label>
-            <input type="date" id="date" required />
+          <div class="kpi primary">
+            <span>Daily Energy (With BT)</span>
+            <strong id="energyBt">-</strong>
           </div>
-          <div>
-            <label for="panel_width">Panel Width (m)</label>
-            <input type="number" step="any" id="panel_width" value="2.0" required />
+          <div class="kpi primary">
+            <span>Energy Gain %</span>
+            <strong id="energyGain">-</strong>
           </div>
-          <div>
-            <label for="panel_height">Panel Height (m)</label>
-            <input type="number" step="any" id="panel_height" value="1.1" required />
+          <div class="kpi primary">
+            <span>Sunrise / Sunset</span>
+            <strong><span id="sunrise">-</span> / <span id="sunset">-</span></strong>
           </div>
-          <div>
-            <label for="tracker_height">Tracker Height (m)</label>
-            <input type="number" step="any" id="tracker_height" value="1.5" required />
-          </div>
-          <div>
-            <label for="row_spacing">Row Spacing (m)</label>
-            <input type="number" step="any" id="row_spacing" value="5.5" required />
-          </div>
-          <div>
-            <label for="panel_efficiency">Panel Efficiency</label>
-            <input type="number" step="any" id="panel_efficiency" value="0.20" required />
-          </div>
-          <div>
-            <label for="max_angle">Max Angle</label>
-            <input type="number" step="any" id="max_angle" value="60" required />
-          </div>
-          <div class="checkbox-row">
-            <label for="backtracking">Backtracking</label>
-            <input type="checkbox" id="backtracking" checked />
-          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi"><span>Max Ideal Angle</span><strong id="maxIdeal">-</strong></div>
+          <div class="kpi"><span>Max Limited Angle</span><strong id="maxLimited">-</strong></div>
+          <div class="kpi"><span>Max Backtracking Angle</span><strong id="maxBacktracking">-</strong></div>
+          <div class="kpi"><span>Max Sun Elevation</span><strong id="maxSun">-</strong></div>
+          <div class="kpi"><span>Max Sun Azimuth</span><strong id="maxAzimuth">-</strong></div>
+          <div class="kpi"><span>Max Shadow (No BT)</span><strong id="maxShadowWithout">-</strong></div>
+          <div class="kpi"><span>Max Shadow (With BT)</span><strong id="maxShadowWith">-</strong></div>
+          <div class="kpi"><span>Max Power (No BT)</span><strong id="maxPowerWithout">-</strong></div>
+          <div class="kpi"><span>Max Power (With BT)</span><strong id="maxPowerWith">-</strong></div>
+          <div class="kpi"><span>Daily Energy (No BT)</span><strong id="energyNo">-</strong></div>
+        </div>
+      </section>
+
+      <section class="card full-width">
+        <div class="section-head">
+          <h2>2D Tracker View</h2>
+          <span class="section-note">Engineering-style visual: panels, sun, shadow, and shading indication</span>
+        </div>
+
+        <div class="legend-row">
+          <span class="legend-item"><span class="legend-swatch blue"></span>Tracker rows</span>
+          <span class="legend-item"><span class="legend-swatch black"></span>Shadow</span>
+          <span class="legend-item"><span class="legend-swatch red"></span>Shading zone</span>
+          <span class="legend-item"><span class="legend-swatch green"></span>No shading</span>
+        </div>
+
+        <div class="assumption-note">
+          Assumption: when spacing is too large for the screen, the 2D view is visually compressed while preserving relative shadow-to-spacing scale.
+        </div>
+
+        <div class="tracker-canvas-wrap">
+          <canvas id="tracker2dCanvas"></canvas>
+        </div>
+
+        <div class="slider-row">
+          <label for="timeSlider">Time</label>
+          <input type="range" id="timeSlider" min="0" max="1439" value="720" />
+          <strong id="timeLabel">--:--</strong>
         </div>
 
         <div class="button-row">
-          <button type="submit">Run Simulation</button>
-          <button type="button" id="download-csv">Download CSV</button>
-          <button type="button" id="getLocation">Use My Location</button>
+          <button type="button" id="play2d">Play</button>
+          <button type="button" id="pause2d" class="secondary-btn">Pause</button>
         </div>
-      </form>
-    </div>
+      </section>
 
-    <div class="card">
-      <h2>Simulation Summary</h2>
-      <div class="summary-grid">
-        <div class="summary-item"><span>Max Ideal Angle</span><strong id="maxIdeal">-</strong></div>
-        <div class="summary-item"><span>Max Limited Angle</span><strong id="maxLimited">-</strong></div>
-        <div class="summary-item"><span>Max Backtracking Angle</span><strong id="maxBacktracking">-</strong></div>
-        <div class="summary-item"><span>Max Sun Elevation</span><strong id="maxSun">-</strong></div>
-        <div class="summary-item"><span>Max Sun Azimuth</span><strong id="maxAzimuth">-</strong></div>
-        <div class="summary-item"><span>Max Shadow (No Backtracking)</span><strong id="maxShadowWithout">-</strong></div>
-        <div class="summary-item"><span>Max Shadow (With Backtracking)</span><strong id="maxShadowWith">-</strong></div>
-        <div class="summary-item"><span>Max Power (No Backtracking)</span><strong id="maxPowerWithout">-</strong></div>
-        <div class="summary-item"><span>Max Power (With Backtracking)</span><strong id="maxPowerWith">-</strong></div>
-        <div class="summary-item"><span>Daily Energy (No Backtracking)</span><strong id="energyNo">-</strong></div>
-        <div class="summary-item"><span>Daily Energy (With Backtracking)</span><strong id="energyBt">-</strong></div>
-        <div class="summary-item"><span>Energy Gain %</span><strong id="energyGain">-</strong></div>
-        <div class="summary-item"><span>Sunrise</span><strong id="sunrise">-</strong></div>
-        <div class="summary-item"><span>Sunset</span><strong id="sunset">-</strong></div>
-        <div class="summary-item"><span>Ground Coverage Ratio (GCR)</span><strong id="gcrValue">-</strong></div>
-      </div>
-    </div>
+      <section class="card">
+        <div class="section-head">
+          <h2>Tracker Angle</h2>
+          <span class="section-note">Ideal, limited, and backtracking angles</span>
+        </div>
+        <div class="chart-container"><canvas id="anglesChart"></canvas></div>
+      </section>
 
-    <div class="card">
-      <h2>2D Solar Tracker Simulation</h2>
-      <div class="tracker-canvas-wrap">
-        <canvas id="tracker2dCanvas"></canvas>
-      </div>
-      <div class="slider-row">
-        <label for="timeSlider">Time</label>
-        <input type="range" id="timeSlider" min="0" max="1439" value="720" />
-        <strong id="timeLabel">--:--</strong>
-      </div>
-      <div class="button-row">
-        <button type="button" id="play2d">Play</button>
-        <button type="button" id="pause2d">Pause</button>
-      </div>
-    </div>
+      <section class="card">
+        <div class="section-head">
+          <h2>Solar Position</h2>
+          <span class="section-note">Elevation and azimuth through the day</span>
+        </div>
+        <div class="chart-container"><canvas id="sunChart"></canvas></div>
+      </section>
 
-    <div class="card">
-      <h2>Tracker Angle Chart</h2>
-      <div class="chart-container"><canvas id="anglesChart"></canvas></div>
-    </div>
+      <section class="card">
+        <div class="section-head">
+          <h2>Inter-row Shadowing</h2>
+          <span class="section-note">Shadow length and shading percentage</span>
+        </div>
+        <div class="chart-container"><canvas id="shadingChart"></canvas></div>
+      </section>
 
-    <div class="card">
-      <h2>Sun Chart</h2>
-      <div class="chart-container"><canvas id="sunChart"></canvas></div>
-    </div>
+      <section class="card">
+        <div class="section-head">
+          <h2>Power Output</h2>
+          <span class="section-note">Power with and without backtracking</span>
+        </div>
+        <div class="chart-container"><canvas id="powerChart"></canvas></div>
+      </section>
 
-    <div class="card">
-      <h2>Shadow / Shading Chart</h2>
-      <div class="chart-container"><canvas id="shadingChart"></canvas></div>
-    </div>
-
-    <div class="card">
-      <h2>Power Chart</h2>
-      <div class="chart-container"><canvas id="powerChart"></canvas></div>
-    </div>
-
-    <div class="card">
-      <h2>Response Preview</h2>
-      <pre id="preview">Run a simulation to view output...</pre>
-    </div>
+      <section class="card full-width">
+        <details>
+          <summary class="preview-summary">Response Preview (advanced)</summary>
+          <pre id="preview">Run a simulation to view output...</pre>
+        </details>
+      </section>
+    </main>
   </div>
 
   <script src="app.js"></script>
