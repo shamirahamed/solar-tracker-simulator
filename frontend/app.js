@@ -1,4 +1,3 @@
-
 const DEFAULT_API_BASE = "https://YOUR-8000-URL.app.github.dev/api/v1";
 let API_BASE = DEFAULT_API_BASE;
 
@@ -14,6 +13,10 @@ const saveApiBtn = document.getElementById("save-api-url");
 const resetApiBtn = document.getElementById("reset-api-url");
 const closeSettingsBtn = document.getElementById("close-settings");
 
+const aboutBtn = document.getElementById("aboutBtn");
+const aboutPanel = document.getElementById("aboutPanel");
+const closeAboutBtn = document.getElementById("close-about");
+
 const anglesCtx = document.getElementById("anglesChart")?.getContext("2d");
 const sunCtx = document.getElementById("sunChart")?.getContext("2d");
 const shadingCtx = document.getElementById("shadingChart")?.getContext("2d");
@@ -26,10 +29,6 @@ const timeLabel = document.getElementById("timeLabel");
 const play2dBtn = document.getElementById("play2d");
 const pause2dBtn = document.getElementById("pause2d");
 
-const aboutBtn = document.getElementById("aboutBtn");
-const aboutPanel = document.getElementById("aboutPanel");
-const closeAboutBtn = document.getElementById("close-about");
-
 let anglesChart = null;
 let sunChart = null;
 let shadingChart = null;
@@ -37,15 +36,6 @@ let powerChart = null;
 
 let latestSimulationData = [];
 let playTimer = null;
-
-function openAbout() {
-  if (aboutPanel) aboutPanel.classList.remove("hidden");
-  if (settingsPanel) settingsPanel.classList.add("hidden");
-}
-
-function closeAbout() {
-  if (aboutPanel) aboutPanel.classList.add("hidden");
-}
 
 function showPopup(message, type = "info", timeout = 4500) {
   const el = document.getElementById("statusPopup");
@@ -57,16 +47,6 @@ function showPopup(message, type = "info", timeout = 4500) {
   }, timeout);
 }
 
-function calculateGcr() {
-  const panelWidth = parseFloat(document.getElementById("panel_width").value) || 0;
-  const rowSpacing = parseFloat(document.getElementById("row_spacing").value) || 1;
-  const gcr = panelWidth / rowSpacing;
-  return {
-    ratio: gcr,
-    percent: gcr * 100
-  };
-}
-
 function initApiBase() {
   const savedApi = localStorage.getItem("api_url");
   API_BASE = savedApi || DEFAULT_API_BASE;
@@ -74,18 +54,26 @@ function initApiBase() {
 }
 
 function openSettings() {
-  if (settingsPanel) settingsPanel.classList.remove("hidden");
+  settingsPanel?.classList.remove("hidden");
+  aboutPanel?.classList.add("hidden");
 }
-
 function closeSettings() {
-  if (settingsPanel) settingsPanel.classList.add("hidden");
+  settingsPanel?.classList.add("hidden");
+}
+function openAbout() {
+  aboutPanel?.classList.remove("hidden");
+  settingsPanel?.classList.add("hidden");
+}
+function closeAbout() {
+  aboutPanel?.classList.add("hidden");
 }
 
-function setupSettingsButtons() {
+function setupTopButtons() {
   settingsBtn?.addEventListener("click", openSettings);
   closeSettingsBtn?.addEventListener("click", closeSettings);
-  if (aboutBtn) aboutBtn.addEventListener("click", openAbout);
-  if (closeAboutBtn) closeAboutBtn.addEventListener("click", closeAbout);
+  aboutBtn?.addEventListener("click", openAbout);
+  closeAboutBtn?.addEventListener("click", closeAbout);
+
   saveApiBtn?.addEventListener("click", () => {
     const value = apiUrlInput?.value?.trim();
     if (!value) {
@@ -96,7 +84,6 @@ function setupSettingsButtons() {
     localStorage.setItem("api_url", value);
     showPopup("API URL saved successfully.", "success");
     closeSettings();
-
   });
 
   resetApiBtn?.addEventListener("click", () => {
@@ -149,6 +136,15 @@ function restoreSavedInputs() {
   });
 }
 
+function setDefaultDate() {
+  const dateEl = document.getElementById("date");
+  if (!dateEl) return;
+  if (!dateEl.value) {
+    const now = new Date();
+    dateEl.value = now.toISOString().slice(0, 10);
+  }
+}
+
 function getPayload() {
   return {
     latitude: parseFloat(document.getElementById("latitude").value),
@@ -167,6 +163,7 @@ function getPayload() {
 
 function formatTimeLabel(timestamp) {
   const d = new Date(timestamp);
+  if (isNaN(d)) return "--:--";
   const hh = String(d.getHours()).padStart(2, "0");
   const mm = String(d.getMinutes()).padStart(2, "0");
   return `${hh}:${mm}`;
@@ -175,6 +172,7 @@ function formatTimeLabel(timestamp) {
 function calculateSunTimes(data) {
   let sunrise = null;
   let sunset = null;
+
   for (let i = 0; i < data.length; i++) {
     const elev = Number(data[i].sun_elevation || 0);
     if (elev > 0 && !sunrise) sunrise = data[i].timestamp;
@@ -183,17 +181,24 @@ function calculateSunTimes(data) {
   return { sunrise, sunset };
 }
 
+function calculateGcr() {
+  const panelWidth = parseFloat(document.getElementById("panel_width").value) || 0;
+  const rowSpacing = parseFloat(document.getElementById("row_spacing").value) || 1;
+  const gcr = rowSpacing > 0 ? panelWidth / rowSpacing : 0;
+  return { ratio: gcr, percent: gcr * 100 };
+}
+
 function updateSummary(result) {
   const data = result.data || [];
-  document.getElementById("maxIdeal").textContent = Math.max(...data.map((d) => d.ideal_tracker_angle), 0).toFixed(1) + "°";
-  document.getElementById("maxLimited").textContent = Math.max(...data.map((d) => d.limited_tracker_angle), 0).toFixed(1) + "°";
-  document.getElementById("maxBacktracking").textContent = Math.max(...data.map((d) => d.backtracking_angle), 0).toFixed(1) + "°";
-  document.getElementById("maxSun").textContent = Math.max(...data.map((d) => d.sun_elevation), 0).toFixed(1) + "°";
-  document.getElementById("maxAzimuth").textContent = Math.max(...data.map((d) => d.sun_azimuth), 0).toFixed(1) + "°";
-  document.getElementById("maxShadowWithout").textContent = Math.max(...data.map((d) => d.shadow_length_without_backtracking), 0).toFixed(2) + " m";
-  document.getElementById("maxShadowWith").textContent = Math.max(...data.map((d) => d.shadow_length_with_backtracking), 0).toFixed(2) + " m";
-  document.getElementById("maxPowerWithout").textContent = Math.max(...data.map((d) => d.power_without_backtracking), 0).toFixed(1) + " W";
-  document.getElementById("maxPowerWith").textContent = Math.max(...data.map((d) => d.power_with_backtracking), 0).toFixed(1) + " W";
+  document.getElementById("maxIdeal").textContent = Math.max(...data.map((d) => Number(d.ideal_tracker_angle || 0)), 0).toFixed(1) + "°";
+  document.getElementById("maxLimited").textContent = Math.max(...data.map((d) => Number(d.limited_tracker_angle || 0)), 0).toFixed(1) + "°";
+  document.getElementById("maxBacktracking").textContent = Math.max(...data.map((d) => Number(d.backtracking_angle || 0)), 0).toFixed(1) + "°";
+  document.getElementById("maxSun").textContent = Math.max(...data.map((d) => Number(d.sun_elevation || 0)), 0).toFixed(1) + "°";
+  document.getElementById("maxAzimuth").textContent = Math.max(...data.map((d) => Number(d.sun_azimuth || 0)), 0).toFixed(1) + "°";
+  document.getElementById("maxShadowWithout").textContent = Math.max(...data.map((d) => Number(d.shadow_length_without_backtracking || 0)), 0).toFixed(2) + " m";
+  document.getElementById("maxShadowWith").textContent = Math.max(...data.map((d) => Number(d.shadow_length_with_backtracking || 0)), 0).toFixed(2) + " m";
+  document.getElementById("maxPowerWithout").textContent = Math.max(...data.map((d) => Number(d.power_without_backtracking || 0)), 0).toFixed(1) + " W";
+  document.getElementById("maxPowerWith").textContent = Math.max(...data.map((d) => Number(d.power_with_backtracking || 0)), 0).toFixed(1) + " W";
   document.getElementById("energyNo").textContent = Number(result.daily_energy_without_backtracking || 0).toFixed(3) + " kWh";
   document.getElementById("energyBt").textContent = Number(result.daily_energy_with_backtracking || 0).toFixed(3) + " kWh";
   document.getElementById("energyGain").textContent = Number(result.daily_energy_gain_percent || 0).toFixed(2) + "%";
@@ -203,7 +208,7 @@ function updateSummary(result) {
   document.getElementById("sunset").textContent = sunTimes.sunset ? formatTimeLabel(sunTimes.sunset) : "--";
 
   const gcr = calculateGcr();
-  document.getElementById("gcrValue").textContent =`${gcr.ratio.toFixed(3)} (${gcr.percent.toFixed(1)}%)`;
+  document.getElementById("gcrValue").textContent = `${gcr.ratio.toFixed(3)} (${gcr.percent.toFixed(1)}%)`;
 }
 
 function destroyCharts() {
@@ -234,7 +239,6 @@ function chartBaseOptions(yText) {
 
 function buildCharts(data) {
   if (!anglesCtx || !sunCtx || !shadingCtx || !powerCtx) return;
-
   const labels = data.map((row) => formatTimeLabel(row.timestamp));
   destroyCharts();
 
@@ -313,7 +317,6 @@ function resizeTrackerCanvas() {
 
   const dpr = window.devicePixelRatio || 1;
   const rect = wrap.getBoundingClientRect();
-
   trackerCanvas.width = Math.floor(rect.width * dpr);
   trackerCanvas.height = Math.floor(rect.height * dpr);
   trackerCanvas.style.width = `${rect.width}px`;
@@ -321,7 +324,6 @@ function resizeTrackerCanvas() {
 
   tracker2dCtx.setTransform(1, 0, 0, 1, 0, 0);
   tracker2dCtx.scale(dpr, dpr);
-
   return { width: rect.width, height: rect.height };
 }
 
@@ -348,10 +350,7 @@ function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, g
   ctx.fillStyle = "#0f172a";
   ctx.fillText(label, pivotX - 22, pivotY - 10);
 
-  return {
-    leftX: Math.min(x1, x2),
-    rightX: Math.max(x1, x2)
-  };
+  return { leftX: Math.min(x1, x2), rightX: Math.max(x1, x2) };
 }
 
 function draw2DScene(row) {
@@ -362,12 +361,10 @@ function draw2DScene(row) {
   const width = size.width;
   const height = size.height;
   const ctx = tracker2dCtx;
-
   ctx.clearRect(0, 0, width, height);
   ctx.font = width < 500 ? "12px Arial" : "14px Arial";
 
   const groundY = Math.floor(height * 0.80);
-
   ctx.fillStyle = "#e5e7eb";
   ctx.fillRect(0, groundY, width, height - groundY);
 
@@ -384,16 +381,33 @@ function draw2DScene(row) {
   const trackerHeightM = parseFloat(document.getElementById("tracker_height").value) || 1.5;
   const rowSpacingM = parseFloat(document.getElementById("row_spacing").value) || 5.5;
   const panelWidthM = parseFloat(document.getElementById("panel_width").value) || 2;
+  const gcr = calculateGcr();
 
   const scalePxPerM = width < 500 ? 16 : 22;
   const mastHeightPx = trackerHeightM * scalePxPerM;
-  const spacingPx = rowSpacingM * scalePxPerM;
-  const panelLength = Math.max(panelWidthM * scalePxPerM, width < 500 ? 60 : 80);
+  const rawSpacingPx = rowSpacingM * scalePxPerM;
+  const maxVisualSpacing = width < 500 ? width * 0.58 : width * 0.62;
+  const spacingPx = Math.min(rawSpacingPx, maxVisualSpacing);
+  const panelLength = width < 500 ? Math.max(42, panelWidthM * scalePxPerM * 0.75) : Math.max(80, panelWidthM * scalePxPerM);
 
   const centerX = width / 2;
-  const mast1X = centerX - spacingPx / 2;
-  const mast2X = centerX + spacingPx / 2;
+  let mast1X = centerX - spacingPx / 2;
+  let mast2X = centerX + spacingPx / 2;
+
+  const margin = width < 500 ? 28 : 40;
+  if (mast1X < margin) {
+    const shift = margin - mast1X;
+    mast1X += shift;
+    mast2X += shift;
+  }
+  if (mast2X > width - margin) {
+    const shift = mast2X - (width - margin);
+    mast1X -= shift;
+    mast2X -= shift;
+  }
+
   const pivotY = groundY - mastHeightPx;
+  const visualCenterX = (mast1X + mast2X) / 2;
 
   const useBacktracking = document.getElementById("backtracking").checked;
   const trackerAngle = useBacktracking ? Number(row?.backtracking_angle || 0) : Number(row?.limited_tracker_angle || 0);
@@ -421,13 +435,9 @@ function draw2DScene(row) {
     ctx.fillStyle = "#92400e";
     ctx.fillText("Sun", sunX - 10, sunY - 14);
 
-    const shadowLen = useBacktracking
-      ? Number(row?.shadow_length_with_backtracking || 0)
-      : Number(row?.shadow_length_without_backtracking || 0);
-
+    const shadowLen = useBacktracking ? Number(row?.shadow_length_with_backtracking || 0) : Number(row?.shadow_length_without_backtracking || 0);
     const shadowPx = shadowLen * scalePxPerM;
-    const sunOnLeft = sunX < centerX;
-
+    const sunOnLeft = sunX < visualCenterX;
     const shadowStartX = sunOnLeft ? panelA.rightX : panelB.leftX;
     const shadowEndX = sunOnLeft ? shadowStartX + shadowPx : shadowStartX - shadowPx;
 
@@ -439,7 +449,6 @@ function draw2DScene(row) {
     ctx.stroke();
 
     let isShading = false;
-
     if (sunOnLeft) {
       isShading = shadowEndX >= panelB.leftX;
       if (isShading) {
@@ -460,7 +469,7 @@ function draw2DScene(row) {
 
     if (!isShading) {
       ctx.fillStyle = "#16a34a";
-      ctx.fillText("No Shading", centerX - 34, pivotY - 25);
+      ctx.fillText("No Shading", visualCenterX - 34, pivotY - 25);
     }
   } else {
     ctx.fillStyle = "#475569";
@@ -472,14 +481,17 @@ function draw2DScene(row) {
   ctx.fillText("Time: " + formatTimeLabel(row?.timestamp || new Date().toISOString()), 20, 24);
   ctx.fillText("Sun Elevation: " + elevation.toFixed(1) + "°", 20, 42);
   ctx.fillText("Tracker Angle: " + trackerAngle.toFixed(1) + "°", 20, 60);
-
-  const shownShadow = useBacktracking
-    ? Number(row?.shadow_length_with_backtracking || 0)
-    : Number(row?.shadow_length_without_backtracking || 0);
-
+  const shownShadow = useBacktracking ? Number(row?.shadow_length_with_backtracking || 0) : Number(row?.shadow_length_without_backtracking || 0);
   ctx.fillText("Shadow: " + shownShadow.toFixed(2) + " m", 20, 78);
-  ctx.fillText("Tracker Height: " + trackerHeightM.toFixed(2) + " m", 20, 96);
-  ctx.fillText("Row Spacing: " + rowSpacingM.toFixed(2) + " m", 20, 114);
+  ctx.fillText("Row Spacing: " + rowSpacingM.toFixed(2) + " m", 20, 96);
+  ctx.fillText("GCR: " + gcr.ratio.toFixed(3), 20, 114);
+  ctx.fillText("Mode: " + (useBacktracking ? "Backtracking ON" : "Backtracking OFF"), 20, 132);
+
+  if (width < 500 && rowSpacingM > 10) {
+    ctx.fillStyle = "#64748b";
+    ctx.font = "10px Arial";
+    ctx.fillText("Mobile view: spacing visually compressed", 20, height - 10);
+  }
 }
 
 function update2DFrame(index) {
@@ -493,7 +505,6 @@ function update2DFrame(index) {
 
 function setup2DControls() {
   if (!timeSlider || !play2dBtn || !pause2dBtn) return;
-
   timeSlider.addEventListener("input", () => {
     update2DFrame(parseInt(timeSlider.value, 10));
   });
@@ -603,12 +614,11 @@ async function downloadCsv() {
 
 function setupLocationButton() {
   if (!getLocationBtn) return;
-  getLocationBtn.addEventListener("click", function () {
+  getLocationBtn.addEventListener("click", () => {
     if (!navigator.geolocation) {
       showPopup("Geolocation is not supported on this browser.", "error");
       return;
     }
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
         document.getElementById("latitude").value = position.coords.latitude.toFixed(4);
@@ -633,9 +643,8 @@ window.onload = function () {
   initApiBase();
   loadTimezones();
   restoreSavedInputs();
-  setupSettingsButtons();
+  setDefaultDate();
+  setupTopButtons();
   setupLocationButton();
   setup2DControls();
 };
-
-
