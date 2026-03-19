@@ -1,3 +1,4 @@
+
 const DEFAULT_API_BASE = "https://YOUR-8000-URL.app.github.dev/api/v1";
 let API_BASE = DEFAULT_API_BASE;
 
@@ -46,8 +47,6 @@ let powerChart = null;
 
 let latestSimulationData = [];
 let playTimer = null;
-let latestVisualCompression = 1;
-let latestFrameIsShading = null;
 
 function showPopup(message, type = "info", timeout = 4500) {
   const el = document.getElementById("statusPopup");
@@ -224,8 +223,9 @@ function updateSummary(result) {
   document.getElementById("energyGain").textContent = Number(result.daily_energy_gain_percent || 0).toFixed(2) + "%";
 
   const sunTimes = calculateSunTimes(data);
-  document.getElementById("sunrise").textContent = sunTimes.sunrise ? formatTimeLabel(sunTimes.sunrise) : "--";
-  document.getElementById("sunset").textContent = sunTimes.sunset ? formatTimeLabel(sunTimes.sunset) : "--";
+  const sunriseText = sunTimes.sunrise ? formatTimeLabel(sunTimes.sunrise) : "--";
+  const sunsetText = sunTimes.sunset ? formatTimeLabel(sunTimes.sunset) : "--";
+  document.getElementById("sunCycle").textContent = `${sunriseText} / ${sunsetText}`;
 
   const gcr = calculateGcr();
   document.getElementById("gcrValue").textContent = `${gcr.ratio.toFixed(3)} (${gcr.percent.toFixed(1)}%)`;
@@ -287,15 +287,50 @@ function buildCharts(data) {
     options: chartBaseOptions("Sun Angle (deg)")
   });
 
+  const maxShadingPercent = Math.max(
+    ...data.map((r) => Number(r.shading_percent_without_backtracking || 0)),
+    ...data.map((r) => Number(r.shading_percent_with_backtracking || 0)),
+    1
+  );
+  const shadingAxisMax = Math.max(5, Math.ceil(maxShadingPercent + 1));
+
   shadingChart = new Chart(shadingCtx, {
     type: "line",
     data: {
       labels,
       datasets: [
-        { label: "Shadow Without Backtracking", data: data.map((r) => r.shadow_length_without_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.25, yAxisID: "y" },
-        { label: "Shadow With Backtracking", data: data.map((r) => r.shadow_length_with_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.25, yAxisID: "y" },
-        { label: "Shading % Without Backtracking", data: data.map((r) => r.shading_percent_without_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.25, yAxisID: "y1" },
-        { label: "Shading % With Backtracking", data: data.map((r) => r.shading_percent_with_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.25, yAxisID: "y1" }
+        {
+          label: "Shadow Without Backtracking",
+          data: data.map((r) => r.shadow_length_without_backtracking),
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.25,
+          yAxisID: "y"
+        },
+        {
+          label: "Shadow With Backtracking",
+          data: data.map((r) => r.shadow_length_with_backtracking),
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.25,
+          yAxisID: "y"
+        },
+        {
+          label: "Shading % Without Backtracking",
+          data: data.map((r) => r.shading_percent_without_backtracking),
+          borderWidth: 1.5,
+          pointRadius: 2,
+          tension: 0,
+          yAxisID: "y1"
+        },
+        {
+          label: "Shading % With Backtracking",
+          data: data.map((r) => r.shading_percent_with_backtracking),
+          borderWidth: 1.5,
+          pointRadius: 2,
+          tension: 0,
+          yAxisID: "y1"
+        }
       ]
     },
     options: {
@@ -311,8 +346,19 @@ function buildCharts(data) {
       },
       scales: {
         x: { ticks: { maxTicksLimit: 12 } },
-        y: { type: "linear", position: "left", title: { display: true, text: "Shadow Length (m)" } },
-        y1: { type: "linear", position: "right", title: { display: true, text: "Shading (%)" }, grid: { drawOnChartArea: false } }
+        y: {
+          type: "linear",
+          position: "left",
+          title: { display: true, text: "Shadow Length (m)" }
+        },
+        y1: {
+          type: "linear",
+          position: "right",
+          min: 0,
+          max: shadingAxisMax,
+          title: { display: true, text: "Shading (%)" },
+          grid: { drawOnChartArea: false }
+        }
       }
     }
   });
@@ -413,7 +459,6 @@ function draw2DScene(row) {
   if (rawSpacingPx > maxVisualSpacing) {
     visualCompression = maxVisualSpacing / rawSpacingPx;
   }
-  latestVisualCompression = visualCompression;
 
   const spacingPx = rawSpacingPx * visualCompression;
   const panelLengthBase = width < 500 ? Math.max(42, panelWidthM * scalePxPerM * 0.75) : Math.max(80, panelWidthM * scalePxPerM);
@@ -448,7 +493,6 @@ function draw2DScene(row) {
   const elevation = Math.max(0, Number(row?.sun_elevation || 0));
   const azimuth = Number(row?.sun_azimuth || 180);
   const hasSun = elevation > 0;
-
   let isShading = false;
 
   if (hasSun) {
@@ -506,26 +550,26 @@ function draw2DScene(row) {
     ctx.fillText("Night / No Sun", width - 120, 28);
   }
 
-  latestFrameIsShading = isShading;
+  updateScenarioBadges(useBacktracking, isShading, visualCompression);
+
+  const shownShadow = useBacktracking ? Number(row?.shadow_length_with_backtracking || 0) : Number(row?.shadow_length_without_backtracking || 0);
+  const shownShadingPct = useBacktracking ? Number(row?.shading_percent_with_backtracking || 0) : Number(row?.shading_percent_without_backtracking || 0);
 
   ctx.fillStyle = "#000";
   ctx.font = width < 500 ? "11px Arial" : "13px Arial";
   ctx.fillText("Time: " + formatTimeLabel(row?.timestamp || new Date().toISOString()), 20, 24);
   ctx.fillText("Sun Elevation: " + elevation.toFixed(1) + "°", 20, 42);
   ctx.fillText("Tracker Angle: " + trackerAngle.toFixed(1) + "°", 20, 60);
-  const shownShadow = useBacktracking ? Number(row?.shadow_length_with_backtracking || 0) : Number(row?.shadow_length_without_backtracking || 0);
   ctx.fillText("Shadow: " + shownShadow.toFixed(2) + " m", 20, 78);
-  ctx.fillText("Row Spacing: " + rowSpacingM.toFixed(2) + " m", 20, 96);
-  ctx.fillText("GCR: " + gcr.ratio.toFixed(3), 20, 114);
-  ctx.fillText("Mode: " + (useBacktracking ? "Backtracking ON" : "Backtracking OFF"), 20, 132);
+  ctx.fillText("Shading: " + shownShadingPct.toFixed(2) + "%", 20, 96);
+  ctx.fillText("Row Spacing: " + rowSpacingM.toFixed(2) + " m", 20, 114);
+  ctx.fillText("GCR: " + gcr.ratio.toFixed(3), 20, 132);
 
   if (visualCompression < 1) {
     ctx.fillStyle = "#64748b";
     ctx.font = "10px Arial";
     ctx.fillText("View compressed to fit screen", 20, height - 10);
   }
-
-  updateScenarioBadges(useBacktracking, isShading, visualCompression);
 }
 
 function updateScenarioBadges(useBacktracking, isShading, compression) {
@@ -538,7 +582,7 @@ function updateScenarioBadges(useBacktracking, isShading, compression) {
   else setBadge(badgeScale, "View: 1:1", "badge-gray");
 }
 
-function updateScenarioHeader(result) {
+function updateScenarioHeader() {
   const payload = getPayload();
   const mode = payload.backtracking ? "Backtracking ON" : "Backtracking OFF";
   const scenario = `${payload.latitude.toFixed(4)}, ${payload.longitude.toFixed(4)} | ${payload.timezone} | ${payload.date} | ${mode}`;
@@ -583,6 +627,7 @@ function setup2DControls() {
 async function runSimulation() {
   const payload = getPayload();
   localStorage.setItem("solarInputs", JSON.stringify(payload));
+  updateScenarioHeader();
   preview.textContent = "Loading simulation...";
   showPopup("Running simulation...", "info", 2000);
 
@@ -620,7 +665,6 @@ async function runSimulation() {
     }, null, 2);
 
     updateSummary(result);
-    updateScenarioHeader(result);
     buildCharts(result.data || []);
     latestSimulationData = result.data || [];
     if (timeSlider) timeSlider.max = Math.max(0, latestSimulationData.length - 1);
@@ -711,5 +755,6 @@ window.onload = function () {
   setupTopButtons();
   setupLocationButton();
   setup2DControls();
+  updateScenarioHeader();
   setBadge(badgeApi, "API: Not checked", "badge-gray");
 };

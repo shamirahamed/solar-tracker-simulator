@@ -38,28 +38,101 @@
         <h2>About</h2>
         <button type="button" id="close-about" class="secondary-btn">Close</button>
       </div>
-      <p>This dashboard estimates daily solar tracker behaviour using location, date, geometry, and backtracking inputs.</p>
+
       <div class="about-grid">
         <div class="about-card">
-          <h3>Core calculations</h3>
+          <h3>About this tool</h3>
+          <p>
+            This simulator models a single-axis solar tracker system using location, date,
+            panel geometry, row spacing, and operating mode. It combines summary KPIs,
+            charts, and a 2D engineering-style visual to help compare tracker behavior
+            with and without backtracking.
+          </p>
+        </div>
+
+        <div class="about-card">
+          <h3>Calculations included</h3>
           <ul>
             <li>Solar position from latitude, longitude, date, and timezone</li>
-            <li>Ideal tracker angle, limited angle, and backtracking angle</li>
-            <li>Shadow length and inter-row shading indication</li>
-            <li>Power and daily energy comparison</li>
+            <li>Ideal tracker angle</li>
+            <li>Limited tracker angle using max rotation limit</li>
+            <li>Backtracking angle</li>
+            <li>Shadow length</li>
+            <li>Inter-row shading indication</li>
             <li>Ground Coverage Ratio (GCR)</li>
+            <li>Power output and daily energy comparison</li>
+            <li>Sunrise and sunset extraction</li>
           </ul>
         </div>
+
+        <div class="about-card full-about">
+          <h3>Calculation formulas</h3>
+          <div class="formula-list">
+            <div class="formula-item">
+              <strong>Ground Coverage Ratio (GCR)</strong>
+              <code>GCR = panel width / row spacing</code>
+            </div>
+            <div class="formula-item">
+              <strong>Limited tracker angle</strong>
+              <code>θ_limited = clamp(θ_tracker, -θ_max, +θ_max)</code>
+            </div>
+            <div class="formula-item">
+              <strong>Shadow length</strong>
+              <code>Shadow Length = Height / tan(Solar Elevation)</code>
+            </div>
+            <div class="formula-item">
+              <strong>Shading condition</strong>
+              <code>Effective Shadow = max(0, Shadow Length − Row Spacing)</code>
+            </div>
+            <div class="formula-item">
+              <strong>Shading %</strong>
+              <code>Shading % = min(100, (Effective Shadow / Panel Width) × 100)</code>
+            </div>
+            <div class="formula-item">
+              <strong>Power</strong>
+              <code>Power = Irradiance × Area × Efficiency</code>
+            </div>
+            <div class="formula-item">
+              <strong>Daily energy</strong>
+              <code>Energy = Σ Power(t) × Δt</code>
+            </div>
+            <div class="formula-item">
+              <strong>Energy gain %</strong>
+              <code>Gain % = (With BT − Without BT) / Without BT × 100</code>
+            </div>
+            <div class="formula-item">
+              <strong>Sunrise / Sunset</strong>
+              <code>Elevation crossing above or below 0°</code>
+            </div>
+            <div class="formula-item">
+              <strong>Backtracking</strong>
+              <code>θ_backtracking = f(GCR, solar elevation, geometry)</code>
+            </div>
+          </div>
+        </div>
+
         <div class="about-card">
-          <h3>Notes</h3>
+          <h3>Assumptions</h3>
           <ul>
-            <li>2D view may be visually compressed to fit smaller screens</li>
-            <li>Displayed values always come from the simulation result</li>
-            <li>Mobile rendering is for readability, not absolute scale drawing</li>
+            <li>2D visualization may be compressed to fit smaller screens</li>
+            <li>Displayed numeric values come from simulation results</li>
+            <li>Visual panel spacing may be compressed, but relative shadow-to-spacing scale is preserved</li>
+            <li>This is a practical engineering dashboard, not a full PVsyst replacement</li>
           </ul>
+        </div>
+
+        <div class="about-card">
+          <h3>License & attribution</h3>
+          <p>
+            This interface uses pvlib-style solar calculations and includes pvlib attribution in the About section.
+            Please keep the pvlib logo and attribution when using the tool.
+          </p>
+          <div class="logo-wrap">
+            <img src="assets/pvlib_logo.webp" alt="Powered by pvlib" class="pvlib-logo" />
+            <div class="logo-caption">Powered by pvlib</div>
+          </div>
         </div>
       </div>
-      <div class="powered-by">Powered by pvlib-style solar calculations</div>
     </section>
 
     <section id="settingsPanel" class="panel hidden">
@@ -107,7 +180,7 @@
             <div class="full-span">
               <div id="locationPreview" class="location-preview hidden">
                 <div id="locationText">📍 Location detected</div>
-                <a id="mapLink" href="#" target="_blank" rel="noopener noreferrer">View on Map</a>
+                <a id="mapLink" href="#" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
               </div>
             </div>
 
@@ -185,7 +258,7 @@
           </div>
           <div class="kpi primary">
             <span>Sunrise / Sunset</span>
-            <strong><span id="sunrise">-</span> / <span id="sunset">-</span></strong>
+            <strong id="sunCycle">-- / --</strong>
           </div>
         </div>
 
@@ -280,3 +353,5 @@
   <script src="app.js"></script>
 </body>
 </html>
+
+
