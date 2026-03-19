@@ -1,99 +1,261 @@
+from __future__ import annotations
+
 import math
+from typing import Any, Dict, List, Tuple
+
+import pandas as pd
+import pvlib
+
+AXIS_TILT = 0.0
+AXIS_AZIMUTH = 0.0
+CROSS_AXIS_TILT = 0.0
+SURFACE_TO_AXIS_OFFSET = 0.0
+ALBEDO = 0.2
+TRANSPOSITION_MODEL = "haydavies"
 
 
-def _compute_shadow_and_shading(
+def _ground_shadow_length(
     sun_elevation: float,
     tracker_angle: float,
     panel_width: float,
+    tracker_height: float,
+) -> float:
+    if sun_elevation <= 0:
+        return 0.0
+
+    projected_half_height = 0.5 * panel_width * math.sin(math.radians(abs(tracker_angle)))
+    effective_top_height = max(0.0, tracker_height + projected_half_height)
+    tan_elev = math.tan(math.radians(sun_elevation))
+    if tan_elev <= 0:
+        return 0.0
+    return effective_top_height / tan_elev
+
+
+def _shaded_fraction(
+    solar_zenith: float,
+    solar_azimuth: float,
+    tracker_angle: float,
+    panel_width: float,
     row_spacing: float,
-):
-    # Ignore unrealistic near-horizon spikes
-    if sun_elevation <= 5:
-        return 0.0, False, 0.0
+) -> float:
+    if solar_zenith >= 90 or panel_width <= 0 or row_spacing <= 0:
+        return 0.0
 
-    # Simplified side-view geometry
-    effective_height = panel_width * math.sin(math.radians(abs(tracker_angle)))
+    try:
+        projected = pvlib.shading.projected_solar_zenith_angle(
+            solar_zenith=solar_zenith,
+            solar_azimuth=solar_azimuth,
+            axis_tilt=AXIS_TILT,
+            axis_azimuth=AXIS_AZIMUTH,
+        )
 
-    if effective_height <= 0:
-        return 0.0, False, 0.0
+        if pd.isna(projected):
+            return 0.0
 
-    shadow_length = effective_height / math.tan(math.radians(sun_elevation))
+        projected = float(projected)
 
-    if shadow_length > row_spacing:
-        overlap = shadow_length - row_spacing
-        shading_percent = min((overlap / panel_width) * 100, 100)
-        return shadow_length, True, shading_percent
+        if projected >= 0:
+            shaded_row_rotation = tracker_angle
+            shading_row_rotation = tracker_angle
+        else:
+            shaded_row_rotation = -tracker_angle
+            shading_row_rotation = -tracker_angle
 
-    return shadow_length, False, 0.0
+        shaded_fraction = pvlib.shading.shaded_fraction1d(
+            solar_zenith=solar_zenith,
+            solar_azimuth=solar_azimuth,
+            axis_azimuth=AXIS_AZIMUTH,
+            shaded_row_rotation=shaded_row_rotation,
+            shading_row_rotation=shading_row_rotation,
+            collector_width=panel_width,
+            pitch=row_spacing,
+            axis_tilt=AXIS_TILT,
+            surface_to_axis_offset=SURFACE_TO_AXIS_OFFSET,
+            cross_axis_slope=CROSS_AXIS_TILT,
+        )
+
+        if pd.isna(shaded_fraction):
+            return 0.0
+
+        return max(0.0, min(1.0, float(shaded_fraction)))
+    except Exception:
+        return 0.0
+
+
+def _poa_components(
+    surface_tilt: float,
+    surface_azimuth: float,
+    solar_zenith: float,
+    solar_azimuth: float,
+    dni: float,
+    ghi: float,
+    dhi: float,
+    dni_extra: float,
+    airmass: float,
+) -> Dict[str, float]:
+    poa = pvlib.irradiance.get_total_irradiance(
+        surface_tilt=surface_tilt,
+        surface_azimuth=surface_azimuth,
+        solar_zenith=solar_zenith,
+        solar_azimuth=solar_azimuth,
+        dni=dni,
+        ghi=ghi,
+        dhi=dhi,
+        dni_extra=dni_extra,
+        airmass=airmass if airmass > 0 else None,
+        albedo=ALBEDO,
+        model=TRANSPOSITION_MODEL,
+    )
+
+    result = {}
+    for key in [
+        "poa_global",
+        "poa_direct",
+        "poa_diffuse",
+        "poa_sky_diffuse",
+        "poa_ground_diffuse",
+    ]:
+        try:
+            result[key] = float(poa.get(key, 0.0))
+        except Exception:
+            result[key] = 0.0
+
+    return result
+
+
+def _mode_results(
+    row: Dict[str, Any],
+    tracker_angle_key: str,
+    surface_tilt_key: str,
+    surface_azimuth_key: str,
+    panel_width: float,
+    tracker_height: float,
+    row_spacing: float,
+    panel_area: float,
+    panel_efficiency: float,
+) -> Tuple[float, bool, float, float, float]:
+    solar_zenith = float(row["apparent_zenith"])
+    solar_azimuth = float(row["sun_azimuth"])
+    sun_elevation = float(row["sun_elevation"])
+
+    tracker_angle = float(row[tracker_angle_key])
+    surface_tilt = float(row[surface_tilt_key])
+    surface_azimuth = float(row[surface_azimuth_key])
+
+    shadow_length = _ground_shadow_length(
+        sun_elevation=sun_elevation,
+        tracker_angle=tracker_angle,
+        panel_width=panel_width,
+        tracker_height=tracker_height,
+    )
+
+    shaded_fraction = _shaded_fraction(
+        solar_zenith=solar_zenith,
+        solar_azimuth=solar_azimuth,
+        tracker_angle=tracker_angle,
+        panel_width=panel_width,
+        row_spacing=row_spacing,
+    )
+    shaded = shaded_fraction > 0.0001
+
+    try:
+        poa = _poa_components(
+            surface_tilt=surface_tilt,
+            surface_azimuth=surface_azimuth,
+            solar_zenith=solar_zenith,
+            solar_azimuth=solar_azimuth,
+            dni=float(row["dni"]),
+            ghi=float(row["ghi"]),
+            dhi=float(row["dhi"]),
+            dni_extra=float(row["dni_extra"]),
+            airmass=float(row["airmass"]),
+        )
+    except Exception:
+        poa = {
+            "poa_global": 0.0,
+            "poa_direct": 0.0,
+            "poa_sky_diffuse": 0.0,
+            "poa_ground_diffuse": 0.0,
+        }
+
+    poa_direct = max(0.0, poa.get("poa_direct", 0.0))
+    poa_diffuse = max(
+        0.0,
+        poa.get("poa_sky_diffuse", 0.0) + poa.get("poa_ground_diffuse", 0.0),
+    )
+    poa_global = max(0.0, poa.get("poa_global", 0.0))
+
+    # Reduce direct component only; keep diffuse contribution.
+    poa_after_shading = max(0.0, poa_direct * (1 - shaded_fraction) + poa_diffuse)
+    power = poa_after_shading * panel_area * panel_efficiency
+
+    return shadow_length, shaded, shaded_fraction * 100.0, poa_global, power
 
 
 def run_full_simulation(
-    tracker_data,
+    tracker_data: List[Dict[str, Any]],
     panel_width: float,
     panel_height: float,
+    tracker_height: float,
     row_spacing: float,
     panel_efficiency: float,
     backtracking_enabled: bool,
-):
+) -> List[Dict[str, Any]]:
     panel_area = panel_width * panel_height
-    results = []
+    results: List[Dict[str, Any]] = []
 
     for row in tracker_data:
-        elevation = row["sun_elevation"]
-        limited_angle = row["limited_tracker_angle"]
-        backtracking_angle = row["backtracking_angle"]
-
-        if elevation <= 0:
-            irradiance_raw = 0.0
-            irradiance_without_backtracking = 0.0
-            irradiance_with_backtracking = 0.0
-            power_without_backtracking = 0.0
-            power_with_backtracking = 0.0
-
+        if float(row["sun_elevation"]) <= 0:
             shadow_length_without = 0.0
-            shadow_length_with = 0.0
             shaded_without = False
-            shaded_with = False
             shading_percent_without = 0.0
+            irradiance_without_backtracking = 0.0
+            power_without_backtracking = 0.0
+
+            shadow_length_with = 0.0
+            shaded_with = False
             shading_percent_with = 0.0
+            irradiance_with_backtracking = 0.0
+            power_with_backtracking = 0.0
+            irradiance_raw = 0.0
         else:
-            shadow_length_without, shaded_without, shading_percent_without = _compute_shadow_and_shading(
-                sun_elevation=elevation,
-                tracker_angle=limited_angle,
+            (
+                shadow_length_without,
+                shaded_without,
+                shading_percent_without,
+                irradiance_without_backtracking,
+                power_without_backtracking,
+            ) = _mode_results(
+                row=row,
+                tracker_angle_key="limited_tracker_angle",
+                surface_tilt_key="limited_surface_tilt",
+                surface_azimuth_key="limited_surface_azimuth",
                 panel_width=panel_width,
+                tracker_height=tracker_height,
                 row_spacing=row_spacing,
+                panel_area=panel_area,
+                panel_efficiency=panel_efficiency,
             )
 
-            shadow_length_with, shaded_with, shading_percent_with = _compute_shadow_and_shading(
-                sun_elevation=elevation,
-                tracker_angle=backtracking_angle,
+            (
+                shadow_length_with,
+                shaded_with,
+                shading_percent_with,
+                irradiance_with_backtracking,
+                power_with_backtracking,
+            ) = _mode_results(
+                row=row,
+                tracker_angle_key="backtracking_angle",
+                surface_tilt_key="backtracking_surface_tilt",
+                surface_azimuth_key="backtracking_surface_azimuth",
                 panel_width=panel_width,
+                tracker_height=tracker_height,
                 row_spacing=row_spacing,
+                panel_area=panel_area,
+                panel_efficiency=panel_efficiency,
             )
 
-            irradiance_raw = max(0.0, 1000 * math.sin(math.radians(elevation)))
-
-            incidence_without = elevation - limited_angle
-            irradiance_without_backtracking = max(
-                0.0,
-                irradiance_raw * math.cos(math.radians(incidence_without)),
-            )
-
-            incidence_with = elevation - backtracking_angle
-            irradiance_with_backtracking = max(
-                0.0,
-                irradiance_raw * math.cos(math.radians(incidence_with)),
-            )
-
-            power_without_backtracking = (
-                irradiance_without_backtracking * panel_area * panel_efficiency
-            )
-            power_without_backtracking *= (1 - shading_percent_without / 100)
-
-            power_with_backtracking = (
-                irradiance_with_backtracking * panel_area * panel_efficiency
-            )
-            power_with_backtracking *= (1 - shading_percent_with / 100)
+            irradiance_raw = max(0.0, float(row["ghi"]))
 
         if backtracking_enabled:
             selected_shadow_length = shadow_length_with
@@ -108,7 +270,12 @@ def run_full_simulation(
 
         results.append(
             {
-                **row,
+                "timestamp": row["timestamp"],
+                "sun_elevation": round(float(row["sun_elevation"]), 4),
+                "sun_azimuth": round(float(row["sun_azimuth"]), 4),
+                "ideal_tracker_angle": round(float(row["ideal_tracker_angle"]), 4),
+                "limited_tracker_angle": round(float(row["limited_tracker_angle"]), 4),
+                "backtracking_angle": round(float(row["backtracking_angle"]), 4),
                 "shadow_length_without_backtracking": round(shadow_length_without, 3),
                 "shadow_length_with_backtracking": round(shadow_length_with, 3),
                 "shaded_without_backtracking": shaded_without,

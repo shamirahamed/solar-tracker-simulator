@@ -1,5 +1,6 @@
 from typing import List
-from pydantic import BaseModel
+
+from pydantic import BaseModel, Field
 
 
 class SimulationRequest(BaseModel):
@@ -8,13 +9,14 @@ class SimulationRequest(BaseModel):
     timezone: str
     date: str
 
-    panel_width: float
-    panel_height: float
-    row_spacing: float
-    panel_efficiency: float
+    panel_width: float = Field(..., gt=0)
+    panel_height: float = Field(..., gt=0)
+    tracker_height: float = Field(..., ge=0)
+    row_spacing: float = Field(..., gt=0)
+    panel_efficiency: float = Field(..., gt=0, le=1)
 
-    max_angle: float
-    backtracking: bool
+    max_angle: float = Field(..., gt=0, le=90)
+    backtracking: bool = True
 
 
 class SimulationPoint(BaseModel):

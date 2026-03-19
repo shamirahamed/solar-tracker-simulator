@@ -1,403 +1,266 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Solar Tracker Simulator</title>
-<link rel="stylesheet" href="styles.css" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solar Tracker Simulator</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
-<div class="app-shell">
-<div id="statusPopup" class="status-popup hidden"></div>
+  <div class="app-shell">
+    <div id="statusPopup" class="status-popup hidden"></div>
 
-<header class="topbar">
-<div>
-<h1>Solar Tracker Simulator</h1>
-<p class="subhead">Single-axis tracker visualization and daily performance simulation</p>
-</div>
-<div class="topbar-actions">
-<button type="button" id="aboutBtn" class="icon-btn" aria-label="About">ℹ️</button>
-<button type="button" id="settingsBtn" class="icon-btn" aria-label="Settings">⚙️</button>
-</div>
-</header>
+    <header class="topbar">
+      <div>
+        <h1>Solar Tracker Simulator</h1>
+        <p class="subhead">Single-axis tracker visualization and daily performance simulation</p>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" id="aboutBtn" class="icon-btn" aria-label="About">ℹ️</button>
+        <button type="button" id="settingsBtn" class="icon-btn" aria-label="Settings">⚙️</button>
+      </div>
+    </header>
 
-<section id="scenarioBar" class="scenario-bar">
-<div class="scenario-title">Scenario</div>
-<div id="scenarioText" class="scenario-text">Not run yet</div>
-<div class="badge-row">
-<span id="badgeMode" class="badge badge-blue">Mode: --</span>
-<span id="badgeShading" class="badge badge-gray">Shading: --</span>
-<span id="badgeScale" class="badge badge-gray">View: 1:1</span>
-<span id="badgeApi" class="badge badge-gray">API: Not checked</span>
-</div>
-</section>
+    <section id="scenarioBar" class="scenario-bar">
+      <div class="scenario-title">Scenario</div>
+      <div id="scenarioText" class="scenario-text">Not run yet</div>
+      <div class="badge-row">
+        <span id="badgeMode" class="badge badge-blue">Mode: --</span>
+        <span id="badgeShading" class="badge badge-gray">Shading: --</span>
+        <span id="badgeScale" class="badge badge-gray">View: --</span>
+        <span id="badgeApi" class="badge badge-gray">API: Not checked</span>
+      </div>
+    </section>
 
-<section id="aboutPanel" class="panel hidden">
-<div class="panel-header">
-<h2>About</h2>
-<button type="button" id="close-about" class="secondary-btn">Close</button>
-</div>
+    <section id="aboutPanel" class="panel hidden">
+      <div class="panel-header">
+        <h2>About</h2>
+        <button type="button" id="close-about" class="secondary-btn">Close</button>
+      </div>
+      <div class="about-grid">
+        <div class="about-card">
+          <h3>About this tool</h3>
+          <p>This simulator compares a single-axis tracker with and without backtracking using pvlib-based solar position, tracker angle, clear-sky irradiance, POA irradiance, and row shading logic.</p>
+        </div>
+        <div class="about-card">
+          <h3>What is visualized</h3>
+          <p>Black line = ground shadow. Red section = inter-row shading only. Shadow visuals may be display-scaled for readability when low-sun shadows become very long.</p>
+        </div>
+      </div>
+    </section>
 
-<div class="about-grid">
-<div class="about-card">
-<h3>About this tool</h3>
-<p>
-This simulator models a single-axis solar tracker system using location, date,
-panel geometry, row spacing, and operating mode. It combines summary KPIs,
-charts, and a 2D engineering-style visual to compare tracker behavior
-with and without backtracking.
-</p>
-</div>
+    <section id="settingsPanel" class="panel hidden">
+      <div class="panel-header">
+        <h2>Settings</h2>
+        <button type="button" id="close-settings" class="secondary-btn">Close</button>
+      </div>
+      <div class="input-grid compact-grid">
+        <div class="full-span">
+          <label for="api_url">API Base URL</label>
+          <input type="text" id="api_url" placeholder="https://server/api/v1" />
+          <small class="helper-text">Update this if simulation or CSV export fails.</small>
+        </div>
+      </div>
+      <div class="button-row">
+        <button type="button" id="save-api-url">Save API URL</button>
+        <button type="button" id="reset-api-url" class="secondary-btn">Reset API URL</button>
+      </div>
+    </section>
 
-<div class="about-card">
-<h3>Calculations included</h3>
-<ul>
-<li>Solar position from latitude, longitude, date, and timezone</li>
-<li>Ideal tracker angle</li>
-<li>Limited tracker angle using max rotation limit</li>
-<li>Backtracking angle</li>
-<li>Shadow length</li>
-<li>Inter-row shading indication</li>
-<li>Ground Coverage Ratio (GCR)</li>
-<li>Power output and daily energy comparison</li>
-<li>Sunrise and sunset extraction</li>
-</ul>
-</div>
+    <main class="layout-grid">
+      <section class="card">
+        <div class="section-head">
+          <h2>Inputs</h2>
+          <span class="section-note">Configure geometry, date, and simulation mode</span>
+        </div>
 
-<div class="about-card full-about">
-<h3>Calculation formulas</h3>
-<div class="formula-list">
-<div class="formula-item">
-<strong>Ground Coverage Ratio (GCR)</strong>
-<code>GCR = panel width / row spacing</code>
-</div>
-<div class="formula-item">
-<strong>Limited tracker angle</strong>
-<code>θ_limited = clamp(θ_tracker, -θ_max, +θ_max)</code>
-</div>
-<div class="formula-item">
-<strong>Shadow length</strong>
-<code>Shadow Length = Height / tan(Solar Elevation)</code>
-</div>
-<div class="formula-item">
-<strong>Effective shadow</strong>
-<code>Effective Shadow = max(0, Shadow Length − Row Spacing)</code>
-</div>
-<div class="formula-item">
-<strong>Shading %</strong>
-<code>Shading % = min(100, (Effective Shadow / Panel Width) × 100)</code>
-</div>
-<div class="formula-item">
-<strong>Power</strong>
-<code>Power = Irradiance × Area × Efficiency</code>
-</div>
-<div class="formula-item">
-<strong>Daily energy</strong>
-<code>Energy = Σ Power(t) × Δt</code>
-</div>
-<div class="formula-item">
-<strong>Energy gain %</strong>
-<code>Gain % = (With BT − Without BT) / Without BT × 100</code>
-</div>
-<div class="formula-item">
-<strong>Sunrise / Sunset</strong>
-<code>Elevation crossing above or below 0°</code>
-</div>
-<div class="formula-item">
-<strong>Backtracking</strong>
-<code>θ_backtracking = f(GCR, solar elevation, geometry)</code>
-</div>
-</div>
-</div>
+        <form id="simulation-form">
+          <div class="input-grid compact-grid">
+            <div>
+              <label for="latitude">Latitude</label>
+              <input type="number" step="any" id="latitude" value="53.3498" required />
+            </div>
 
-<div class="about-card">
-<h3>Assumptions</h3>
-<ul>
-<li>2D visualization may be compressed to fit smaller screens</li>
-<li>Displayed numeric values come from simulation results</li>
-<li>Visual panel spacing may be compressed, but relative shadow-to-spacing scale is preserved</li>
-<li>Ground shadow may be visible even when inter-row shading is 0%, if the shadow does not reach the next row.</li>
-<li>This is a practical engineering dashboard, not a full PVsyst replacement</li>
-</ul>
-</div>
+            <div>
+              <label for="longitude">Longitude</label>
+              <input type="number" step="any" id="longitude" value="-6.2603" required />
+            </div>
 
-<div class="about-card">
-<h3>License & attribution</h3>
-<p>
-This interface uses pvlib-style solar calculations and includes pvlib attribution in the About section.
-Please keep the pvlib logo and attribution when using the tool.
-</p>
-<div class="logo-wrap">
-<img src="assets/pvlib_logo.webp" alt="Powered by pvlib" class="pvlib-logo" />
-<div class="logo-caption">Powered by pvlib</div>
-</div>
-</div>
+            <div class="location-col">
+              <label>&nbsp;</label>
+              <button type="button" id="getLocation" class="secondary-btn">📍 Use Location</button>
+            </div>
 
-<div class="about-card full-about">
-<h3>References & Disclaimer</h3>
-<p>
-This simulator is based on standard solar geometry and tracking concepts inspired by
-open-source libraries such as <strong>pvlib</strong> and general photovoltaic system modeling practices.
-</p>
-<ul>
-<li>Solar position calculations are conceptually based on pvlib methodologies.</li>
-<li>Backtracking logic is derived from standard single-axis tracker principles using Ground Coverage Ratio (GCR) and sun position relationships.</li>
-<li>Shadow length and inter-row shading are estimated using simplified geometric relationships.</li>
-<li>Power calculations are based on simplified irradiance × area × efficiency assumptions.</li>
-</ul>
+            <div class="location-row full-span">
+              <div id="locationPreview" class="location-preview hidden">
+                <div id="locationText">📍 Location</div>
+                <a id="mapLink" href="#" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
+              </div>
+            </div>
 
-<h4>Important Notes</h4>
-<ul>
-<li>This tool is intended for <strong>visualization and conceptual understanding</strong> only.</li>
-<li>Results may not exactly match real-world tracker systems due to mechanical constraints, terrain slope, OEM controller differences, weather variability, and loss assumptions.</li>
-<li>Backtracking in this model is an approximation and may differ from commercial tools such as PVsyst or real tracker controller logic.</li>
-<li>Inter-row shading is calculated using geometric assumptions and does not include electrical mismatch or detailed shading loss modeling.</li>
-</ul>
+            <div class="timezone-search-wrap">
+              <label for="timezoneSearch">Timezone Search</label>
+              <input type="text" id="timezoneSearch" placeholder="Search timezone, e.g. Kolkata, Dublin, Dubai" />
+              <div class="timezone-helper-row">
+                <small class="helper-text">Search using timezone name or city.</small>
+                <a id="timezoneRef" href="#" target="_blank" rel="noopener noreferrer">Reference: Timezone list</a>
+              </div>
+            </div>
 
-<h4>Reference</h4>
-<p>
-pvlib Python library:
-<a href="https://pvlib-python.readthedocs.io/" target="_blank" rel="noopener noreferrer">https://pvlib-python.readthedocs.io/</a>
-</p>
-</div>
-</div>
-</section>
+            <div class="timezone-col">
+              <label for="timezone">Timezone</label>
+              <select id="timezone" required></select>
+            </div>
 
-<section id="settingsPanel" class="panel hidden">
-<div class="panel-header">
-<h2>Settings</h2>
-<button type="button" id="close-settings" class="secondary-btn">Close</button>
-</div>
-<div class="input-grid">
-<div class="full-span">
-<label for="api_url">API Base URL</label>
-<input type="text" id="api_url" placeholder="https://server/api/v1" />
-<small class="helper-text">Update this if simulation or CSV export fails.</small>
-</div>
-</div>
-<div class="button-row">
-<button type="button" id="save-api-url">Save API URL</button>
-<button type="button" id="reset-api-url" class="secondary-btn">Reset API URL</button>
-</div>
-</section>
+            <div class="date-col">
+              <label for="date">Date</label>
+              <input type="date" id="date" required />
+            </div>
 
-<main class="layout-grid">
-<section class="card">
-<div class="section-head">
-<h2>Inputs</h2>
-<span class="section-note">Configure geometry, date, and simulation mode</span>
-</div>
+            <div>
+              <label for="panel_width">Panel Width (m)</label>
+              <input type="number" step="any" id="panel_width" value="2.0" required />
+            </div>
 
-<form id="simulation-form">
-<div class="input-grid">
-<div>
-<label for="latitude">Latitude</label>
-<input type="number" step="any" id="latitude" value="53.3498" required />
-</div>
+            <div>
+              <label for="panel_height">Panel Height (m)</label>
+              <input type="number" step="any" id="panel_height" value="1.1" required />
+            </div>
 
-<div>
-<label for="longitude">Longitude</label>
-<input type="number" step="any" id="longitude" value="-6.2603" required />
-</div>
+            <div>
+              <label for="tracker_height">Tracker Height (m)</label>
+              <input type="number" step="any" id="tracker_height" value="1.5" required />
+            </div>
 
-<div class="location-col">
-<label>&nbsp;</label>
-<button type="button" id="getLocation" class="secondary-btn">📍 Use Location</button>
-</div>
+            <div>
+              <label for="row_spacing">Row Spacing (m)</label>
+              <input type="number" step="any" id="row_spacing" value="5.5" required />
+            </div>
 
-<div class="full-span">
-<div id="locationPreview" class="location-preview hidden">
-<div id="locationText">📍 Location</div>
-<a id="mapLink" href="#" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
-</div>
-</div>
+            <div>
+              <label for="panel_efficiency">Panel Efficiency</label>
+              <input type="number" step="any" id="panel_efficiency" value="0.20" required />
+            </div>
 
-<div class="timezone-search-block">
-<label for="timezoneSearch">Timezone Search</label>
-<input type="text" id="timezoneSearch"placeholder="Search timezone, e.g. Kolkata, Dublin, Dubai"/>
+            <div>
+              <label for="max_angle">Max Angle (deg)</label>
+              <input type="number" step="any" id="max_angle" value="60" required />
+            </div>
 
-<small class="helper-text">
-Search using timezone name or city (e.g. <strong>Kolkata</strong>, <strong>Dublin</strong>, <strong>Dubai</strong>).
-Reference:
-<a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones" target="_blank" rel="noopener noreferrer">
-Timezone list </a>
-</small>
-</div>
+            <div class="checkbox-row">
+              <label for="backtracking">Backtracking</label>
+              <input type="checkbox" id="backtracking" checked />
+            </div>
+          </div>
 
-<div class="timezone-search-block">
-<label for="timezone">Timezone</label>
-<select id="timezone" required></select>
-</div>
+          <div class="button-row">
+            <button type="submit">Run Simulation</button>
+            <button type="button" id="download-csv" class="secondary-btn">Download CSV</button>
+            <button type="button" id="download-pdf" class="secondary-btn">Download PDF</button>
+          </div>
+        </form>
+      </section>
 
-<div class="date-block">
-<label for="date">Date</label>
-<input type="date" id="date" required />
-</div>
+      <section class="card">
+        <div class="section-head">
+          <h2>Key Metrics</h2>
+          <span class="section-note">Most useful outputs for quick review</span>
+        </div>
 
-<div>
-<label for="panel_width">Panel Width (m)</label>
-<input type="number" step="any" id="panel_width" value="2.0" required />
-</div>
+        <div class="kpi-grid primary-kpis">
+          <div class="kpi primary"><span>Ground Coverage Ratio</span><strong id="gcrValue">-</strong></div>
+          <div class="kpi primary"><span>Daily Energy (With BT)</span><strong id="energyBt">-</strong></div>
+          <div class="kpi primary"><span>Daily Energy (No BT)</span><strong id="energyNo">-</strong></div>
+          <div class="kpi primary"><span>Energy Gain</span><strong id="energyGain">-</strong></div>
+        </div>
 
-<div>
-<label for="panel_height">Panel Height (m)</label>
-<input type="number" step="any" id="panel_height" value="1.1" required />
-</div>
+        <div class="kpi-grid">
+          <div class="kpi"><span>Max Ideal Angle</span><strong id="maxIdeal">-</strong></div>
+          <div class="kpi"><span>Max Limited Angle</span><strong id="maxLimited">-</strong></div>
+          <div class="kpi"><span>Max BT Angle</span><strong id="maxBacktracking">-</strong></div>
+          <div class="kpi"><span>Max Sun Elevation</span><strong id="maxSun">-</strong></div>
+          <div class="kpi"><span>Max Sun Azimuth</span><strong id="maxAzimuth">-</strong></div>
+          <div class="kpi"><span>Sunrise / Sunset</span><strong id="sunCycle">-</strong></div>
+          <div class="kpi"><span>Max Shadow (No BT)</span><strong id="maxShadowWithout">-</strong></div>
+          <div class="kpi"><span>Max Shadow (BT)</span><strong id="maxShadowWith">-</strong></div>
+          <div class="kpi"><span>Max Shading (No BT)</span><strong id="maxShadingNoBt">-</strong></div>
+          <div class="kpi"><span>Max Shading (BT)</span><strong id="maxShadingBt">-</strong></div>
+          <div class="kpi"><span>Max Power (No BT)</span><strong id="maxPowerWithout">-</strong></div>
+          <div class="kpi"><span>Max Power (BT)</span><strong id="maxPowerWith">-</strong></div>
+        </div>
+      </section>
 
-<div>
-<label for="tracker_height">Tracker Height (m)</label>
-<input type="number" step="any" id="tracker_height" value="1.5" required />
-</div>
+      <section class="card full-width">
+        <div class="section-head">
+          <h2>2D Tracker View</h2>
+          <span class="section-note">Ground shadow and inter-row shading only. Visual shadow may be display-scaled for readability.</span>
+        </div>
 
-<div>
-<label for="row_spacing">Row Spacing (m)</label>
-<input type="number" step="any" id="row_spacing" value="5.5" required />
-</div>
+        <div class="legend-row">
+          <span class="legend-item"><span class="legend-swatch black"></span>Ground Shadow</span>
+          <span class="legend-item"><span class="legend-swatch red"></span>Inter-row Shading</span>
+          <span class="legend-item"><span class="legend-swatch green"></span>No shading</span>
+        </div>
 
-<div>
-<label for="panel_efficiency">Panel Efficiency</label>
-<input type="number" step="any" id="panel_efficiency" value="0.20" required />
-</div>
+        <div class="tracker-canvas-wrap">
+          <canvas id="tracker2dCanvas"></canvas>
+        </div>
 
-<div>
-<label for="max_angle">Max Angle (deg)</label>
-<input type="number" step="any" id="max_angle" value="60" required />
-</div>
+        <div class="slider-row">
+          <label for="timeSlider">Time</label>
+          <input type="range" id="timeSlider" min="0" max="1439" value="720" />
+          <strong id="timeLabel">--:--</strong>
+        </div>
 
-<div class="checkbox-row">
-<label for="backtracking">Backtracking</label>
-<input type="checkbox" id="backtracking" checked />
-</div>
-</div>
+        <div class="button-row">
+          <button type="button" id="play2d">Play</button>
+          <button type="button" id="pause2d" class="secondary-btn">Pause</button>
+        </div>
+      </section>
 
-<div class="button-row">
-<button type="submit">Run Simulation</button>
-<button type="button" id="download-csv" class="secondary-btn">Download CSV</button>
-</div>
-</form>
-</section>
+      <section class="card">
+        <div class="section-head">
+          <h2>Tracker Angle</h2>
+          <span class="section-note">Ideal, limited, and backtracking angles</span>
+        </div>
+        <div class="chart-container"><canvas id="anglesChart"></canvas></div>
+      </section>
 
-<section class="card">
-<div class="section-head">
-<h2>Key Metrics</h2>
-<span class="section-note">Most useful outputs for quick review</span>
-</div>
+      <section class="card">
+        <div class="section-head">
+          <h2>Solar Position</h2>
+          <span class="section-note">Elevation and azimuth through the day</span>
+        </div>
+        <div class="chart-container"><canvas id="sunChart"></canvas></div>
+      </section>
 
-<div class="kpi-grid primary-kpis">
-<div class="kpi primary">
-<span>Ground Coverage Ratio</span>
-<strong id="gcrValue">-</strong>
-</div>
-<div class="kpi primary">
-<span>Daily Energy (With BT)</span>
-<strong id="energyBt">-</strong>
-</div>
-<div class="kpi primary">
-<span>Energy Gain %</span>
-<strong id="energyGain">-</strong>
-</div>
-<div class="kpi primary">
-<span>Sunrise / Sunset</span>
-<strong id="sunCycle">-- / --</strong>
-</div>
-</div>
+      <section class="card">
+        <div class="section-head">
+          <h2>Inter-row Shadowing</h2>
+          <span class="section-note">Display-capped shadow for readability and actual shading percentage</span>
+        </div>
+        <div class="chart-container"><canvas id="shadingChart"></canvas></div>
+      </section>
 
-<div class="kpi-grid">
-<div class="kpi"><span>Max Shading % (No BT)</span><strong id="maxShadingNoBt">-</strong></div>
-<div class="kpi"><span>Max Shading % (With BT)</span><strong id="maxShadingBt">-</strong></div>
-<div class="kpi"><span>Max Ideal Angle</span><strong id="maxIdeal">-</strong></div>
-<div class="kpi"><span>Max Limited Angle</span><strong id="maxLimited">-</strong></div>
-<div class="kpi"><span>Max Backtracking Angle</span><strong id="maxBacktracking">-</strong></div>
-<div class="kpi"><span>Max Sun Elevation</span><strong id="maxSun">-</strong></div>
-<div class="kpi"><span>Max Sun Azimuth</span><strong id="maxAzimuth">-</strong></div>
-<div class="kpi"><span>Max Shadow (No BT)</span><strong id="maxShadowWithout">-</strong></div>
-<div class="kpi"><span>Max Shadow (With BT)</span><strong id="maxShadowWith">-</strong></div>
-<div class="kpi"><span>Max Power (No BT)</span><strong id="maxPowerWithout">-</strong></div>
-<div class="kpi"><span>Max Power (With BT)</span><strong id="maxPowerWith">-</strong></div>
-<div class="kpi"><span>Daily Energy (No BT)</span><strong id="energyNo">-</strong></div>
-</div>
-</section>
+      <section class="card">
+        <div class="section-head">
+          <h2>Power Output</h2>
+          <span class="section-note">Power with and without backtracking</span>
+        </div>
+        <div class="chart-container"><canvas id="powerChart"></canvas></div>
+      </section>
 
-<section class="card full-width">
-<div class="section-head">
-<h2>2D Tracker View</h2>
-<span class="section-note">Engineering-style visual: panels, sun, ground shadow, and shading indication</span>
-</div>
+      <section class="card full-width">
+        <details>
+          <summary class="preview-summary">Response Preview (advanced)</summary>
+          <pre id="preview">Run a simulation to view output...</pre>
+        </details>
+      </section>
+    </main>
+  </div>
 
-<div class="legend-row">
-<span class="legend-item"><span class="legend-swatch blue"></span>Tracker rows</span>
-<span class="legend-item"><span class="legend-swatch black"></span>Ground Shadow</span>
-<span class="legend-item"><span class="legend-swatch red"></span>Inter-row Shading</span>
-<span class="legend-item"><span class="legend-swatch green"></span>No shading</span>
-</div>
-
-<div class="assumption-note">
-Assumption: when spacing is too large for the screen, the 2D view is visually compressed while preserving relative shadow-to-spacing scale.
-</div>
-
-<div class="clarity-note">
-Note: Ground shadow may still be visible while inter-row shading remains 0%. The red shading area is shown only when calculated shading percentage is greater than 0%.
-</div>
-
-<div class="tracker-canvas-wrap">
-<canvas id="tracker2dCanvas"></canvas>
-</div>
-
-<div class="slider-row">
-<label for="timeSlider">Time</label>
-<input type="range" id="timeSlider" min="0" max="1439" value="720" />
-<strong id="timeLabel">--:--</strong>
-</div>
-
-<div class="button-row">
-<button type="button" id="play2d">Play</button>
-<button type="button" id="pause2d" class="secondary-btn">Pause</button>
-</div>
-</section>
-
-<section class="card">
-<div class="section-head">
-<h2>Tracker Angle</h2>
-<span class="section-note">Ideal, limited, and backtracking angles</span>
-</div>
-<div class="chart-container"><canvas id="anglesChart"></canvas></div>
-</section>
-
-<section class="card">
-<div class="section-head">
-<h2>Solar Position</h2>
-<span class="section-note">Elevation and azimuth through the day</span>
-</div>
-<div class="chart-container"><canvas id="sunChart"></canvas></div>
-</section>
-
-<section class="card">
-<div class="section-head">
-<h2>Inter-row Shadowing</h2>
-<span class="section-note">Shadow length and shading percentage</span>
-</div>
-<div class="chart-container"><canvas id="shadingChart"></canvas></div>
-</section>
-
-<section class="card">
-<div class="section-head">
-<h2>Power Output</h2>
-<span class="section-note">Power with and without backtracking</span>
-</div>
-<div class="chart-container"><canvas id="powerChart"></canvas></div>
-</section>
-
-<section class="card full-width">
-<details>
-<summary class="preview-summary">Response Preview (advanced)</summary>
-<pre id="preview">Run a simulation to view output...</pre>
-</details>
-</section>
-</main>
-</div>
-
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
