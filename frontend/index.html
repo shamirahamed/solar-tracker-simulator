@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,7 +16,7 @@
     <header class="topbar">
       <div>
         <h1>Solar Tracker Simulator</h1>
-        <p class="subhead">Single-axis tracker visualization and daily performance simulation</p>
+        <p class="subhead">Single-axis tracker visualization and daily comparison</p>
       </div>
       <div class="topbar-actions">
         <button type="button" id="aboutBtn" class="icon-btn" aria-label="About">ℹ️</button>
@@ -23,7 +24,7 @@
       </div>
     </header>
 
-    <section id="scenarioBar" class="scenario-bar">
+    <section class="scenario-bar">
       <div class="scenario-title">Scenario</div>
       <div id="scenarioText" class="scenario-text">Not run yet</div>
       <div class="badge-row">
@@ -36,17 +37,47 @@
 
     <section id="aboutPanel" class="panel hidden">
       <div class="panel-header">
-        <h2>About</h2>
+        <h2>About / Notes</h2>
         <button type="button" id="close-about" class="secondary-btn">Close</button>
       </div>
+
       <div class="about-grid">
         <div class="about-card">
-          <h3>About this tool</h3>
-          <p>This simulator compares a single-axis tracker with and without backtracking using pvlib-based solar position, tracker angle, clear-sky irradiance, POA irradiance, and row shading logic.</p>
+          <h3>Model notes</h3>
+          <ul class="note-list">
+            <li>Solar position is calculated using <strong>pvlib</strong>.</li>
+            <li>Tracker angle and <strong>BT</strong> use <strong>pvlib single-axis tracking</strong>.</li>
+            <li>Irradiance / POA and power estimation follow a <strong>pvlib-based workflow</strong>.</li>
+            <li>Inter-row shading percentage uses <strong>pvlib row-shading logic</strong> where practical.</li>
+          </ul>
         </div>
+
         <div class="about-card">
-          <h3>What is visualized</h3>
-          <p>Black line = ground shadow. Red section = inter-row shading only. Shadow visuals may be display-scaled for readability when low-sun shadows become very long.</p>
+          <h3>How to read the visuals</h3>
+          <ul class="note-list">
+            <li><strong>Black line</strong> = displayed ground shadow helper.</li>
+            <li><strong>Red section</strong> = actual inter-row shading on the next panel.</li>
+            <li>Displayed shadow may be <strong>scaled / limited</strong> for readability.</li>
+            <li>Actual row-to-row impact is better understood from <strong>shading %</strong>.</li>
+          </ul>
+        </div>
+
+        <div class="about-card">
+          <h3>Legend notes</h3>
+          <ul class="note-list">
+            <li><strong>BT</strong> = Backtracking</li>
+            <li><strong>No BT</strong> = Without Backtracking</li>
+            <li><strong>Ideal</strong> = unconstrained tracker angle</li>
+            <li><strong>Limited</strong> = tracker limited by max rotation</li>
+          </ul>
+        </div>
+
+        <div class="about-card">
+          <h3>Disclaimer</h3>
+          <p class="about-text">
+            This is a <strong>tentative engineering simulation</strong> for practical comparison and visualization.
+            Actual values may change with final design, site conditions, weather inputs, controls, losses, and validation.
+          </p>
         </div>
       </div>
     </section>
@@ -56,13 +87,15 @@
         <h2>Settings</h2>
         <button type="button" id="close-settings" class="secondary-btn">Close</button>
       </div>
+
       <div class="input-grid compact-grid">
         <div class="full-span">
           <label for="api_url">API Base URL</label>
           <input type="text" id="api_url" placeholder="https://server/api/v1" />
-          <small class="helper-text">Update this if simulation or CSV export fails.</small>
+          <small class="helper-text">Used for simulation and CSV export.</small>
         </div>
       </div>
+
       <div class="button-row">
         <button type="button" id="save-api-url">Save API URL</button>
         <button type="button" id="reset-api-url" class="secondary-btn">Reset API URL</button>
@@ -73,7 +106,12 @@
       <section class="card">
         <div class="section-head">
           <h2>Inputs</h2>
-          <span class="section-note">Configure geometry, date, and simulation mode</span>
+          <span class="section-note">Compact inputs with quick presets</span>
+        </div>
+
+        <div class="preset-row">
+          <button type="button" id="detectTimezoneBtn" class="secondary-btn small-btn">Detect Browser TZ</button>
+          <button type="button" id="resetPresetBtn" class="secondary-btn small-btn">Reset</button>
         </div>
 
         <form id="simulation-form">
@@ -90,7 +128,7 @@
 
             <div class="location-col">
               <label>&nbsp;</label>
-              <button type="button" id="getLocation" class="secondary-btn">📍 Use Location</button>
+              <button type="button" id="getLocation" class="secondary-btn compact-btn">📍 Use Location</button>
             </div>
 
             <div class="location-row full-span">
@@ -101,12 +139,11 @@
             </div>
 
             <div class="timezone-search-wrap">
-              <label for="timezoneSearch">Timezone Search</label>
-              <input type="text" id="timezoneSearch" placeholder="Search timezone, e.g. Kolkata, Dublin, Dubai" />
-              <div class="timezone-helper-row">
-                <small class="helper-text">Search using timezone name or city.</small>
-                <a id="timezoneRef" href="#" target="_blank" rel="noopener noreferrer">Reference: Timezone list</a>
+              <div class="label-row">
+                <label for="timezoneSearch">Timezone Search</label>
+                <a id="timezoneRef" href="#" target="_blank" rel="noopener noreferrer">Reference</a>
               </div>
+              <input type="text" id="timezoneSearch" placeholder="Search timezone" />
             </div>
 
             <div class="timezone-col">
@@ -140,7 +177,7 @@
             </div>
 
             <div>
-              <label for="panel_efficiency">Panel Efficiency</label>
+              <label for="panel_efficiency">Panel Efficiency(e.g. 0.20)</label>
               <input type="number" step="any" id="panel_efficiency" value="0.20" required />
             </div>
 
@@ -150,10 +187,15 @@
             </div>
 
             <div class="checkbox-row">
-              <label for="backtracking">Backtracking</label>
-              <input type="checkbox" id="backtracking" checked />
+              <label class="checkbox-inline" for="backtracking">
+                <input type="checkbox" id="backtracking" checked />
+                <span>Backtracking</span>
+              </label>
+              <small class="helper-text">BT reduces inter-row shading, not necessarily all ground shadow.</small>
             </div>
           </div>
+          
+          <div id="validationHints" class="validation-hints hidden"></div>
 
           <div class="button-row">
             <button type="submit">Run Simulation</button>
@@ -166,46 +208,52 @@
       <section class="card">
         <div class="section-head">
           <h2>Key Metrics</h2>
-          <span class="section-note">Most useful outputs for quick review</span>
+          <span class="section-note">Compact dashboard cards</span>
         </div>
 
         <div class="kpi-grid primary-kpis">
-          <div class="kpi primary"><span>Ground Coverage Ratio</span><strong id="gcrValue">-</strong></div>
-          <div class="kpi primary"><span>Daily Energy (With BT)</span><strong id="energyBt">-</strong></div>
-          <div class="kpi primary"><span>Daily Energy (No BT)</span><strong id="energyNo">-</strong></div>
-          <div class="kpi primary"><span>Energy Gain</span><strong id="energyGain">-</strong></div>
+          <div class="kpi primary"><span>GCR</span><strong id="gcrValue">-</strong></div>
+          <div class="kpi primary"><span>Energy BT</span><strong id="energyBt">-</strong></div>
+          <div class="kpi primary"><span>Energy No BT</span><strong id="energyNo">-</strong></div>
+          <div class="kpi primary"><span>Gain</span><strong id="energyGain">-</strong></div>
         </div>
 
+        <div id="comparisonSummary" class="comparison-summary">Run simulation to see BT comparison summary.</div>
+
         <div class="kpi-grid">
-          <div class="kpi"><span>Max Ideal Angle</span><strong id="maxIdeal">-</strong></div>
-          <div class="kpi"><span>Max Limited Angle</span><strong id="maxLimited">-</strong></div>
-          <div class="kpi"><span>Max BT Angle</span><strong id="maxBacktracking">-</strong></div>
-          <div class="kpi"><span>Max Sun Elevation</span><strong id="maxSun">-</strong></div>
-          <div class="kpi"><span>Max Sun Azimuth</span><strong id="maxAzimuth">-</strong></div>
+          <div class="kpi"><span>Max Ideal</span><strong id="maxIdeal">-</strong></div>
+          <div class="kpi"><span>Max Limited</span><strong id="maxLimited">-</strong></div>
+          <div class="kpi"><span>Max BT</span><strong id="maxBacktracking">-</strong></div>
+          <div class="kpi"><span>Max Sun El.</span><strong id="maxSun">-</strong></div>
+          <div class="kpi"><span>Max Sun Azi.</span><strong id="maxAzimuth">-</strong></div>
           <div class="kpi"><span>Sunrise / Sunset</span><strong id="sunCycle">-</strong></div>
-          <div class="kpi"><span>Max Shadow (No BT)</span><strong id="maxShadowWithout">-</strong></div>
-          <div class="kpi"><span>Max Shadow (BT)</span><strong id="maxShadowWith">-</strong></div>
-          <div class="kpi"><span>Max Shading (No BT)</span><strong id="maxShadingNoBt">-</strong></div>
-          <div class="kpi"><span>Max Shading (BT)</span><strong id="maxShadingBt">-</strong></div>
-          <div class="kpi"><span>Max Power (No BT)</span><strong id="maxPowerWithout">-</strong></div>
-          <div class="kpi"><span>Max Power (BT)</span><strong id="maxPowerWith">-</strong></div>
+          <div class="kpi"><span>Disp. Shadow No BT</span><strong id="maxShadowWithout">-</strong></div>
+          <div class="kpi"><span>Disp. Shadow BT</span><strong id="maxShadowWith">-</strong></div>
+          <div class="kpi"><span>Shading No BT</span><strong id="maxShadingNoBt">-</strong></div>
+          <div class="kpi"><span>Shading BT</span><strong id="maxShadingBt">-</strong></div>
+          <div class="kpi"><span>Power No BT</span><strong id="maxPowerWithout">-</strong></div>
+          <div class="kpi"><span>Power BT</span><strong id="maxPowerWith">-</strong></div>
         </div>
       </section>
 
       <section class="card full-width">
         <div class="section-head">
           <h2>2D Tracker View</h2>
-          <span class="section-note">Ground shadow and inter-row shading only. Visual shadow may be display-scaled for readability.</span>
+          <span class="section-note">Displayed ground shadow is limited to row spacing for readability. Red shows actual panel shading.</span>
         </div>
 
         <div class="legend-row">
           <span class="legend-item"><span class="legend-swatch black"></span>Ground Shadow</span>
-          <span class="legend-item"><span class="legend-swatch red"></span>Inter-row Shading</span>
-          <span class="legend-item"><span class="legend-swatch green"></span>No shading</span>
+          <span class="legend-item"><span class="legend-swatch red"></span>Panel Shading</span>
+          <span class="legend-item"><span class="legend-swatch green"></span>No Shading</span>
         </div>
 
         <div class="tracker-canvas-wrap">
           <canvas id="tracker2dCanvas"></canvas>
+        </div>
+
+        <div class="canvas-note">
+          Black shadow is a displayed helper. Red shading and shading % are the main indicators of actual row-to-row shading.
         </div>
 
         <div class="slider-row">
@@ -214,41 +262,47 @@
           <strong id="timeLabel">--:--</strong>
         </div>
 
-        <div class="button-row">
-          <button type="button" id="play2d">Play</button>
-          <button type="button" id="pause2d" class="secondary-btn">Pause</button>
-        </div>
+      <div class="button-row tracker-controls-row">
+        <button type="button" id="play2d" class="secondary-btn compact-btn">Play</button>
+        <button type="button" id="pause2d" class="secondary-btn compact-btn">Pause</button>
+      </div>
       </section>
+
+
 
       <section class="card">
         <div class="section-head">
           <h2>Tracker Angle</h2>
-          <span class="section-note">Ideal, limited, and backtracking angles</span>
+          <span class="section-note">Ideal / Limited / BT from pvlib tracking</span>
         </div>
+        <div class="chart-legend-note">Ideal = unconstrained, Limited = max-angle limited, BT = backtracking.</div>
         <div class="chart-container"><canvas id="anglesChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
           <h2>Solar Position</h2>
-          <span class="section-note">Elevation and azimuth through the day</span>
+          <span class="section-note">Elevation and azimuth from pvlib</span>
         </div>
+        <div class="chart-legend-note">Shows solar movement through the day.</div>
         <div class="chart-container"><canvas id="sunChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
           <h2>Inter-row Shadowing</h2>
-          <span class="section-note">Display-capped shadow for readability and actual shading percentage</span>
+          <span class="section-note">Displayed shadow + actual shading %</span>
         </div>
+        <div class="chart-legend-note">Displayed shadow is scaled for readability. Shading % better represents actual panel-to-panel impact.</div>
         <div class="chart-container"><canvas id="shadingChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
           <h2>Power Output</h2>
-          <span class="section-note">Power with and without backtracking</span>
+          <span class="section-note">POA / power estimate based on pvlib workflow</span>
         </div>
+        <div class="chart-legend-note">BT and No BT power can be similar when shading is already low.</div>
         <div class="chart-container"><canvas id="powerChart"></canvas></div>
       </section>
 
@@ -260,7 +314,7 @@
       </section>
     </main>
   </div>
-
   <script src="app.js"></script>
 </body>
 </html>
+

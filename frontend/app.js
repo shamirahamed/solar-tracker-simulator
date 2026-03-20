@@ -440,19 +440,28 @@ function resizeTrackerCanvas() {
   return { width: rect.width, height: rect.height };
 }
 
+
 function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, groundY) {
   const x1 = pivotX - Math.cos(angleRad) * panelLength / 2;
   const y1 = pivotY - Math.sin(angleRad) * panelLength / 2;
   const x2 = pivotX + Math.cos(angleRad) * panelLength / 2;
   const y2 = pivotY + Math.sin(angleRad) * panelLength / 2;
 
-  ctx.strokeStyle = "#111827";
+  // mast
+  ctx.strokeStyle = "#1f2937";
   ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.moveTo(pivotX, groundY);
   ctx.lineTo(pivotX, pivotY);
   ctx.stroke();
 
+  // pivot
+  ctx.fillStyle = "#111827";
+  ctx.beginPath();
+  ctx.arc(pivotX, pivotY, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // panel
   ctx.strokeStyle = color;
   ctx.lineWidth = 6;
   ctx.beginPath();
@@ -464,8 +473,15 @@ function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, g
   ctx.font = "12px Arial";
   ctx.fillText(label, pivotX - 18, pivotY - 12);
 
-  return { leftX: Math.min(x1, x2), rightX: Math.max(x1, x2) };
+  return {
+    leftX: Math.min(x1, x2),
+    rightX: Math.max(x1, x2),
+    topY: Math.min(y1, y2),
+    bottomY: Math.max(y1, y2)
+  };
 }
+
+
 
 function drawSunIcon(ctx, x, y, r) {
   ctx.save();
@@ -473,17 +489,25 @@ function drawSunIcon(ctx, x, y, r) {
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = "rgba(245,158,11,0.60)";
-  ctx.lineWidth = 1.25;
+
+  ctx.strokeStyle = "rgba(245,158,11,0.65)";
+  ctx.lineWidth = 1.2;
   for (let i = 0; i < 8; i++) {
     const a = (Math.PI * 2 * i) / 8;
+    const x1 = x + Math.cos(a) * (r + 2);
+    const y1 = y + Math.sin(a) * (r + 2);
+    const x2 = x + Math.cos(a) * (r + 7);
+    const y2 = y + Math.sin(a) * (r + 7);
     ctx.beginPath();
-    ctx.moveTo(x + Math.cos(a) * (r + 2), y + Math.sin(a) * (r + 2));
-    ctx.lineTo(x + Math.cos(a) * (r + 7), y + Math.sin(a) * (r + 7));
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
     ctx.stroke();
   }
   ctx.restore();
 }
+
+
+
 
 function draw2DScene(row) {
   if (!tracker2dCtx || !row) return;
@@ -495,32 +519,41 @@ function draw2DScene(row) {
   ctx.clearRect(0, 0, width, height);
 
   const payload = getPayload();
-  const groundY = height * 0.79;
-  const skyTop = 18;
-  const skyHeight = groundY - skyTop - 36;
 
-  const bg = ctx.createLinearGradient(0, 0, 0, groundY);
-  bg.addColorStop(0, "#edf6ff");
-  bg.addColorStop(0.65, "#ffffff");
-  bg.addColorStop(1, "#f1f5f9");
-  ctx.fillStyle = bg;
+  const groundY = height * 0.80;
+  const skyTop = 18;
+  const skyHeight = groundY - skyTop - 40;
+
+  // background
+  const sky = ctx.createLinearGradient(0, 0, 0, groundY);
+  sky.addColorStop(0, "#eaf4ff");
+  sky.addColorStop(0.70, "#ffffff");
+  sky.addColorStop(1, "#f8fafc");
+  ctx.fillStyle = sky;
   ctx.fillRect(0, 0, width, groundY);
+
   ctx.fillStyle = "#eef2f7";
   ctx.fillRect(0, groundY, width, height - groundY);
 
-  const visualRowSpacingM = Math.min(Math.max(payload.row_spacing, payload.panel_width * 1.6), 10);
-  const visualMeters = Math.max(visualRowSpacingM * 1.25, MAX_SHADOW_2D_DISPLAY_M, payload.panel_width * 3.2, 7);
-  const ppm = Math.min(95, (width - 120) / visualMeters);
+  // visual scaling
+  const visualRowSpacingM = Math.min(Math.max(payload.row_spacing, payload.panel_width * 1.8), 10);
+  const visualMeters = Math.max(visualRowSpacingM * 1.2, payload.panel_width * 3.2, MAX_SHADOW_2D_DISPLAY_M, 7);
+  const ppm = Math.min(92, (width - 120) / visualMeters);
 
-  const rowSpacingPx = Math.max(84, Math.min(width * 0.42, payload.row_spacing * ppm));
-  const panelLengthPx = Math.max(80, Math.min(width * 0.24, payload.panel_width * ppm));
-  const trackerHeightPx = Math.max(width < 640 ? 22 : 26, Math.min(height * (width < 640 ? 0.18 : 0.20), payload.tracker_height * ppm * 0.78));
+  const rowSpacingPx = Math.max(88, Math.min(width * 0.42, payload.row_spacing * ppm));
+  const panelLengthPx = Math.max(58, Math.min(width < 640 ? width * 0.17 : width * 0.24, payload.panel_width * ppm));
+
+  const trackerHeightPx = Math.max(
+  width < 640 ? 22 : 26,
+  Math.min(height * (width < 640 ? 0.18 : 0.19), payload.tracker_height * ppm * 0.76)
+);
 
   const centerX = width / 2;
   const mast1X = centerX - rowSpacingPx / 2;
   const mast2X = centerX + rowSpacingPx / 2;
   const pivotY = groundY - trackerHeightPx;
 
+  // ground
   ctx.strokeStyle = "#94a3b8";
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -532,43 +565,53 @@ function draw2DScene(row) {
   const azimuth = Number(row.sun_azimuth || 180);
   const useBacktracking = document.getElementById("backtracking").checked;
   const trackerAngle = Number(useBacktracking ? row.backtracking_angle : row.limited_tracker_angle);
+
   const shadingNoBt = Number(row.shading_percent_without_backtracking || 0);
   const shadingBt = Number(row.shading_percent_with_backtracking || 0);
-  const shadingPercentSelected = Number(useBacktracking ? row.shading_percent_with_backtracking : row.shading_percent_without_backtracking);
-  const shownShadowRaw = Number(useBacktracking ? row.shadow_length_with_backtracking : row.shadow_length_without_backtracking);
+  const shadingPercentSelected = Number(
+    useBacktracking ? row.shading_percent_with_backtracking : row.shading_percent_without_backtracking
+  );
+
+  const shownShadowRaw = Number(
+    useBacktracking ? row.shadow_length_with_backtracking : row.shadow_length_without_backtracking
+  );
   const shownShadowDisplay = clampShadowForDisplay(shownShadowRaw, MAX_SHADOW_2D_DISPLAY_M);
 
+  // east side = left, west side = right
   const sunOnLeft = azimuth < 180;
+
+  // visual tracker should face the sun
   const visualAngle = sunOnLeft ? -Math.abs(trackerAngle) : Math.abs(trackerAngle);
   const angleRad = visualAngle * Math.PI / 180;
 
   const panelA = drawPanelAt(ctx, mast1X, pivotY, angleRad, panelLengthPx, "#2563eb", "Row A", groundY);
-  const panelB = drawPanelAt(ctx, mast2X, pivotY, angleRad, panelLengthPx, "#1d4ed8", "Row B", groundY);
+  const panelB = drawPanelAt(ctx, mast2X, pivotY, angleRad, panelLengthPx, "#2563eb", "Row B", groundY);
 
   if (elevation > 0) {
+    // smooth arc from east(90) to west(270)
     const azClamped = Math.max(90, Math.min(270, azimuth));
     const azNorm = (azClamped - 90) / 180;
-    const sunX = 42 + azNorm * (width - 84);
-    const sunY = groundY - 14 - Math.max(0, Math.min(1, elevation / 90)) * skyHeight;
+    const sunX = 44 + azNorm * (width - 88);
+    const elevNorm = Math.max(0, Math.min(1, elevation / 90));
 
-    ctx.strokeStyle = "rgba(148,163,184,0.22)";
+
+    const sunYOffset = width < 640 ? 16 : 30;
+    const sunHeightBoost = width < 640 ? 0 : 18;
+    const sunY = groundY - sunYOffset - elevNorm * (skyHeight + sunHeightBoost);
+
+    // guide arc
+    ctx.strokeStyle = "rgba(148,163,184,0.20)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(width / 2, groundY + 12, Math.min(width * 0.42, 250), Math.PI, 2 * Math.PI);
+    ctx.arc(width / 2, groundY + 16, Math.min(width * 0.42, 250), Math.PI, 2 * Math.PI);
     ctx.stroke();
 
     drawSunIcon(ctx, sunX, sunY, 11);
 
+    // shadow opposite to sun
     const shadowPx = shownShadowDisplay * ppm;
     const shadowSourceX = sunOnLeft ? mast1X : mast2X;
     const shadowEndX = sunOnLeft ? shadowSourceX + shadowPx : shadowSourceX - shadowPx;
-
-    ctx.strokeStyle = "rgba(0,0,0,0.70)";
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(shadowSourceX, groundY);
-    ctx.lineTo(shadowEndX, groundY);
-    ctx.stroke();
 
     ctx.strokeStyle = "rgba(0,0,0,0.12)";
     ctx.lineWidth = 7;
@@ -577,15 +620,24 @@ function draw2DScene(row) {
     ctx.lineTo(shadowEndX, groundY);
     ctx.stroke();
 
+    ctx.strokeStyle = "rgba(0,0,0,0.68)";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(shadowSourceX, groundY);
+    ctx.lineTo(shadowEndX, groundY);
+    ctx.stroke();
+
+    // downstream row shading only
     if (shadingPercentSelected > MIN_SHADING_VISUAL_PERCENT) {
       const targetPanel = sunOnLeft ? panelB : panelA;
       const panelWidthPx = Math.max(1, targetPanel.rightX - targetPanel.leftX);
       const shadeWidth = Math.max(5, Math.min(panelWidthPx, panelWidthPx * (shadingPercentSelected / 100)));
       const shadeX = sunOnLeft ? targetPanel.leftX : targetPanel.rightX - shadeWidth;
 
-      ctx.fillStyle = "rgba(220,38,38,0.24)";
+      ctx.fillStyle = "rgba(220,38,38,0.26)";
       ctx.fillRect(shadeX, pivotY - 13, shadeWidth, 26);
-      ctx.strokeStyle = "rgba(185,28,28,0.55)";
+
+      ctx.strokeStyle = "rgba(185,28,28,0.58)";
       ctx.lineWidth = 1;
       ctx.strokeRect(shadeX, pivotY - 13, shadeWidth, 26);
 
@@ -607,9 +659,18 @@ function draw2DScene(row) {
   }
 
   const compressed = payload.row_spacing > 10 || shownShadowRaw > MAX_SHADOW_2D_DISPLAY_M;
-  setBadge(badgeMode, `Mode: ${useBacktracking ? "Backtracking ON" : "Backtracking OFF"}`, useBacktracking ? "badge-blue" : "badge-gray");
-  setBadge(badgeScale, compressed ? "View: Display scaled" : "View: 1:1", compressed ? "badge-gray" : "badge-green");
+  setBadge(
+    badgeMode,
+    `Mode: ${useBacktracking ? "Backtracking ON" : "Backtracking OFF"}`,
+    useBacktracking ? "badge-blue" : "badge-gray"
+  );
+  setBadge(
+    badgeScale,
+    compressed ? "View: Display scaled" : "View: 1:1",
+    compressed ? "badge-gray" : "badge-green"
+  );
 
+  // top info
   ctx.fillStyle = "#0f172a";
   ctx.font = width < 500 ? "11px Arial" : "12px Arial";
   ctx.fillText(`Time: ${formatTimeLabel(row.timestamp)}`, 16, 18);
@@ -618,6 +679,7 @@ function draw2DScene(row) {
   ctx.fillText(`Tracker Angle: ${trackerAngle.toFixed(1)}°`, 16, 60);
   ctx.fillText(`Shadow: ${formatShadowMetric(shownShadowRaw)}`, 16, 74);
 
+  // bottom info
   ctx.fillStyle = "#475569";
   ctx.font = "11px Arial";
   ctx.fillText(`Shading (No BT): ${shadingNoBt.toFixed(2)}%`, 16, height - 26);
@@ -629,6 +691,7 @@ function draw2DScene(row) {
     ctx.fillText(`Visual shadow capped at ${MAX_SHADOW_2D_DISPLAY_M} m`, 16, height - 10);
   }
 }
+
 
 function update2DFrame(index) {
   if (!latestSimulationData.length) return;
@@ -764,33 +827,130 @@ function addMetricBox(doc, x, y, w, h, title, value) {
   doc.text(String(value), x + 3, y + 12);
 }
 
+function setupPresetButtons() {
+const presetDublin = document.getElementById("presetDublin");
+const presetDubai = document.getElementById("presetDubai");
+const detectTimezoneBtn = document.getElementById("detectTimezoneBtn");
+const resetPresetBtn = document.getElementById("resetPresetBtn");
+
+presetDublin?.addEventListener("click", () => {
+document.getElementById("latitude").value = "53.3498";
+document.getElementById("longitude").value = "-6.2603";
+document.getElementById("timezone").value = "Europe/Dublin";
+updateLocationPreviewFromInputs();
+updateScenarioHeader();
+});
+
+presetDubai?.addEventListener("click", () => {
+document.getElementById("latitude").value = "25.2048";
+document.getElementById("longitude").value = "55.2708";
+document.getElementById("timezone").value = "Asia/Dubai";
+updateLocationPreviewFromInputs();
+updateScenarioHeader();
+});
+
+detectTimezoneBtn?.addEventListener("click", () => {
+const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const tzEl = document.getElementById("timezone");
+if (tzEl && browserTz) {
+tzEl.value = browserTz;
+updateScenarioHeader();
+showPopup(`Detected timezone: ${browserTz}`, "success");
+}
+});
+
+resetPresetBtn?.addEventListener("click", () => {
+document.getElementById("latitude").value = "53.3498";
+document.getElementById("longitude").value = "-6.2603";
+document.getElementById("timezone").value = "Europe/Dublin";
+document.getElementById("panel_width").value = "2.0";
+document.getElementById("panel_height").value = "1.1";
+document.getElementById("tracker_height").value = "1.5";
+document.getElementById("row_spacing").value = "5.5";
+document.getElementById("panel_efficiency").value = "0.20";
+document.getElementById("max_angle").value = "60";
+document.getElementById("backtracking").checked = true;
+updateLocationPreviewFromInputs();
+updateScenarioHeader();
+showPopup("Inputs reset.", "success");
+});
+}
+
+
 function buildDimensionDiagramDataUrl(payload) {
   const canvas = document.createElement("canvas");
-  canvas.width = 1000;
-  canvas.height = 360;
+  canvas.width = 1400;
+  canvas.height = 520;
   const ctx = canvas.getContext("2d");
-  const margin = 70;
-  const groundY = 280;
+
+  const margin = 90;
+  const groundY = 390;
   const usableWidth = canvas.width - margin * 2;
-  const maxMeters = Math.max(payload.row_spacing * 1.1, payload.panel_width * 2.5, 6);
+
+  const maxMeters = Math.max(payload.row_spacing * 1.15, payload.panel_width * 2.8, 7);
   const scale = usableWidth / maxMeters;
-  const mast1X = 260;
+
+  const mast1X = 360;
   const mast2X = mast1X + payload.row_spacing * scale;
   const panelLength = payload.panel_width * scale;
   const trackerHeight = payload.tracker_height * scale;
   const pivotY = groundY - trackerHeight;
 
+  function drawArrowLine(x1, y1, x2, y2, label, labelX, labelY) {
+    ctx.strokeStyle = "#ef4444";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    const arrowSize = 10;
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(
+      x1 + arrowSize * Math.cos(angle + Math.PI / 6),
+      y1 + arrowSize * Math.sin(angle + Math.PI / 6)
+    );
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(
+      x1 + arrowSize * Math.cos(angle - Math.PI / 6),
+      y1 + arrowSize * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(
+      x2 - arrowSize * Math.cos(angle + Math.PI / 6),
+      y2 - arrowSize * Math.sin(angle + Math.PI / 6)
+    );
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(
+      x2 - arrowSize * Math.cos(angle - Math.PI / 6),
+      y2 - arrowSize * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.stroke();
+
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "24px Arial";
+    ctx.fillText(label, labelX, labelY);
+  }
+
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "30px Arial";
+  ctx.fillText("Tracker Dimensions", margin, 48);
+
   ctx.strokeStyle = "#cbd5e1";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(margin, groundY);
   ctx.lineTo(canvas.width - margin, groundY);
   ctx.stroke();
 
   ctx.strokeStyle = "#111827";
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 6;
   ctx.beginPath();
   ctx.moveTo(mast1X, groundY);
   ctx.lineTo(mast1X, pivotY);
@@ -799,7 +959,7 @@ function buildDimensionDiagramDataUrl(payload) {
   ctx.stroke();
 
   ctx.strokeStyle = "#2563eb";
-  ctx.lineWidth = 8;
+  ctx.lineWidth = 12;
   ctx.beginPath();
   ctx.moveTo(mast1X - panelLength / 2, pivotY);
   ctx.lineTo(mast1X + panelLength / 2, pivotY);
@@ -807,30 +967,44 @@ function buildDimensionDiagramDataUrl(payload) {
   ctx.lineTo(mast2X + panelLength / 2, pivotY);
   ctx.stroke();
 
-  ctx.strokeStyle = "#ef4444";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(mast1X, groundY + 24);
-  ctx.lineTo(mast2X, groundY + 24);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(mast1X + 14, pivotY - 36);
-  ctx.lineTo(mast1X + 14, groundY);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(mast1X - panelLength / 2, pivotY - 20);
-  ctx.lineTo(mast1X + panelLength / 2, pivotY - 20);
-  ctx.stroke();
+  drawArrowLine(
+    mast1X,
+    groundY + 38,
+    mast2X,
+    groundY + 38,
+    `Row spacing: ${payload.row_spacing.toFixed(2)} m`,
+    (mast1X + mast2X) / 2 - 120,
+    groundY + 78
+  );
 
-  ctx.fillStyle = "#0f172a";
-  ctx.font = "22px Arial";
-  ctx.fillText("Tracker Dimensions", margin, 40);
-  ctx.font = "18px Arial";
-  ctx.fillText(`Panel width: ${payload.panel_width.toFixed(2)} m`, mast1X - 70, pivotY - 34);
-  ctx.fillText(`Tracker height: ${payload.tracker_height.toFixed(2)} m`, mast1X + 24, (pivotY + groundY) / 2);
-  ctx.fillText(`Row spacing: ${payload.row_spacing.toFixed(2)} m`, (mast1X + mast2X) / 2 - 80, groundY + 52);
+  drawArrowLine(
+    mast1X + 34,
+    groundY,
+    mast1X + 34,
+    pivotY,
+    `Tracker height: ${payload.tracker_height.toFixed(2)} m`,
+    mast1X + 54,
+    (groundY + pivotY) / 2 + 6
+  );
+
+  drawArrowLine(
+    mast1X - panelLength / 2,
+    pivotY - 42,
+    mast1X + panelLength / 2,
+    pivotY - 42,
+    `Panel width: ${payload.panel_width.toFixed(2)} m`,
+    mast1X - 100,
+    pivotY - 56
+  );
+
+  ctx.fillStyle = "#475569";
+  ctx.font = "20px Arial";
+  ctx.fillText("Row A", mast1X - 28, pivotY - 12);
+  ctx.fillText("Row B", mast2X - 28, pivotY - 12);
+
   return canvas.toDataURL("image/png");
 }
+
 
 async function downloadPdf() {
   if (!latestSimulationResult || !latestSimulationData.length) {
@@ -842,6 +1016,7 @@ async function downloadPdf() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const payload = getPayload();
+
     const metrics = {
       gcr: calculateGcr(),
       sunriseSunset: calculateSunTimes(latestSimulationData),
@@ -857,23 +1032,29 @@ async function downloadPdf() {
     const anglesCanvas = document.getElementById("anglesChart");
     const sunCanvas = document.getElementById("sunChart");
     const shadingCanvas = document.getElementById("shadingChart");
+
     const trackerImage = trackerCanvas.toDataURL("image/png");
     const dimensionDiagram = buildDimensionDiagramDataUrl(payload);
 
+    // PAGE 1 - SUMMARY
     doc.setFillColor(248, 250, 252);
     doc.rect(0, 0, 210, 297, "F");
+
     doc.setTextColor(15, 23, 42);
     doc.setFontSize(18);
     doc.text("Solar Tracker Simulator", 14, 16);
+
     doc.setFontSize(10);
     doc.setTextColor(71, 85, 105);
-    doc.text("Single-axis tracker simulation report", 14, 22);
+    doc.text("Single-axis tracker practical comparison report", 14, 22);
+
     doc.setDrawColor(226, 232, 240);
     doc.line(14, 26, 196, 26);
 
     doc.setFontSize(11);
     doc.setTextColor(15, 23, 42);
     doc.text("Scenario", 14, 34);
+
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
     addTextBlock(doc, [
@@ -887,9 +1068,18 @@ async function downloadPdf() {
     addMetricBox(doc, 106, 56, 42, 18, "Energy Gain", `${Number(latestSimulationResult.daily_energy_gain_percent || 0).toFixed(2)} %`);
     addMetricBox(doc, 152, 56, 42, 18, "GCR", `${metrics.gcr.ratio.toFixed(3)}`);
 
+    doc.setFontSize(10);
+    doc.setTextColor(51, 65, 85);
+    doc.text(
+      `BT reduced max shading from ${metrics.maxShadingNoBt.toFixed(2)}% to ${metrics.maxShadingBt.toFixed(2)}%, while daily energy changed by ${Number(latestSimulationResult.daily_energy_gain_percent || 0).toFixed(2)}%.`,
+      14,
+      82
+    );
+
     doc.setFontSize(11);
     doc.setTextColor(15, 23, 42);
-    doc.text("Inputs", 14, 84);
+    doc.text("Selected inputs", 14, 96);
+
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
     addTextBlock(doc, [
@@ -900,114 +1090,179 @@ async function downloadPdf() {
       `Efficiency: ${payload.panel_efficiency.toFixed(3)}`,
       `Max angle: ${payload.max_angle.toFixed(1)}°`,
       `Sunrise / Sunset: ${metrics.sunriseSunset.sunrise ? formatTimeLabel(metrics.sunriseSunset.sunrise) : "--"} / ${metrics.sunriseSunset.sunset ? formatTimeLabel(metrics.sunriseSunset.sunset) : "--"}`
-    ], 14, 90, 5.2);
+    ], 14, 102, 5.4);
 
     doc.setFontSize(11);
     doc.setTextColor(15, 23, 42);
-    doc.text("Key metrics", 14, 132);
+    doc.text("Key findings", 108, 96);
+
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
     addTextBlock(doc, [
-      `Max shading without backtracking: ${metrics.maxShadingNoBt.toFixed(2)}%`,
-      `Max shading with backtracking: ${metrics.maxShadingBt.toFixed(2)}%`,
-      `Max shadow without backtracking: ${formatShadowMetric(metrics.maxShadowNoBt)}`,
-      `Max shadow with backtracking: ${formatShadowMetric(metrics.maxShadowBt)}`,
-      `Display caps used: charts ${MAX_SHADOW_CHART_DISPLAY_M} m, 2D ${MAX_SHADOW_2D_DISPLAY_M} m`,
-      `Max power without backtracking: ${metrics.maxPowerNoBt.toFixed(1)} W`,
-      `Max power with backtracking: ${metrics.maxPowerBt.toFixed(1)} W`
-    ], 14, 138, 5.2);
+      `Max shading No BT: ${metrics.maxShadingNoBt.toFixed(2)}%`,
+      `Max shading BT: ${metrics.maxShadingBt.toFixed(2)}%`,
+      `Max power No BT: ${metrics.maxPowerNoBt.toFixed(1)} W`,
+      `Max power BT: ${metrics.maxPowerBt.toFixed(1)} W`,
+      `Displayed shadow in UI may be capped for readability.`,
+      `Raw shadow can become very large at low solar elevation.`
+    ], 108, 102, 5.4);
 
-    doc.addImage(dimensionDiagram, "PNG", 108, 82, 86, 48);
-    doc.addImage(trackerImage, "PNG", 104, 134, 90, 68);
-
+    // PAGE 2 - TRACKER DIMENSIONS
     doc.addPage();
     doc.setFillColor(248, 250, 252);
     doc.rect(0, 0, 210, 297, "F");
+
     doc.setFontSize(16);
     doc.setTextColor(15, 23, 42);
-    doc.text("Charts", 14, 16);
+    doc.text("Tracker Dimensions", 14, 16);
 
-    const charts = [
-      { title: "Tracker Angle", canvas: anglesCanvas, x: 14, y: 22 },
-      { title: "Solar Position", canvas: sunCanvas, x: 110, y: 22 },
-      { title: "Inter-row Shadowing", canvas: shadingCanvas, x: 14, y: 114 },
-      { title: "Power Output", canvas: powerCanvas, x: 110, y: 114 }
-    ];
+    doc.setFontSize(9.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text("Geometry reference used for the current simulation inputs.", 14, 22);
 
-    charts.forEach((c) => {
-      if (!c.canvas) return;
-      doc.setFontSize(10);
-      doc.setTextColor(15, 23, 42);
-      doc.text(c.title, c.x, c.y);
-      doc.addImage(c.canvas.toDataURL("image/png"), "PNG", c.x, c.y + 4, 86, 60);
-    });
-
-    doc.addPage();
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 297, "F");
-    doc.setFontSize(16);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Formulas and notes", 14, 16);
+    doc.addImage(dimensionDiagram, "PNG", 12, 30, 186, 110);
 
     doc.setFontSize(10);
-    doc.text("Formulas", 14, 30);
+    doc.setTextColor(51, 65, 85);
+    addTextBlock(doc, [
+      "This diagram is a simplified engineering-style layout for readability.",
+      "It shows panel width, tracker height, and row spacing based on the current inputs."
+    ], 14, 150, 5.8);
+
+    // PAGE 3 - 2D TRACKER VIEW
+    doc.addPage();
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, 210, 297, "F");
+
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("2D Tracker View", 14, 16);
+
+    doc.setFontSize(9.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text("Snapshot of the current tracker scene from the frontend.", 14, 22);
+
+    doc.addImage(trackerImage, "PNG", 12, 30, 186, 118);
+
+    doc.setFontSize(10);
+    doc.setTextColor(51, 65, 85);
+    addTextBlock(doc, [
+      "Black shadow is a displayed helper and may be capped for readability.",
+      "Red shading is the visual indicator of actual panel-to-panel shading.",
+      "Shading % is the better indicator of actual row-to-row shading impact."
+    ], 14, 158, 5.8);
+
+    // PAGE 4 - TRACKER ANGLE CHART
+    doc.addPage();
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, 210, 297, "F");
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Tracker Angle", 14, 16);
+    if (anglesCanvas) {
+      doc.addImage(anglesCanvas.toDataURL("image/png"), "PNG", 12, 24, 186, 120);
+    }
+
+    // PAGE 5 - SOLAR POSITION CHART
+    doc.addPage();
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, 210, 297, "F");
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Solar Position", 14, 16);
+    if (sunCanvas) {
+      doc.addImage(sunCanvas.toDataURL("image/png"), "PNG", 12, 24, 186, 120);
+    }
+
+    // PAGE 6 - INTER-ROW SHADOWING CHART
+    doc.addPage();
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, 210, 297, "F");
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Inter-row Shadowing", 14, 16);
+    if (shadingCanvas) {
+      doc.addImage(shadingCanvas.toDataURL("image/png"), "PNG", 12, 24, 186, 120);
+    }
+    doc.setFontSize(10);
+    doc.setTextColor(51, 65, 85);
+    addTextBlock(doc, [
+      "Displayed shadow may be scaled or limited for readability in the UI.",
+      "Shading % is the more meaningful indicator of actual row-to-row panel shading."
+    ], 14, 156, 5.8);
+
+    // PAGE 7 - POWER OUTPUT CHART
+    doc.addPage();
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, 210, 297, "F");
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Power Output", 14, 16);
+    if (powerCanvas) {
+      doc.addImage(powerCanvas.toDataURL("image/png"), "PNG", 12, 24, 186, 120);
+    }
+
+    // PAGE 8 - METHODS / NOTES / DISCLAIMER
+    doc.addPage();
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, 210, 297, "F");
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Methods, Notes, and Disclaimer", 14, 16);
+
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Methods", 14, 30);
     doc.setDrawColor(220, 226, 232);
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(12, 34, 186, 44, 2, 2, "FD");
+    doc.roundedRect(12, 34, 186, 50, 2, 2, "FD");
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
     addTextBlock(doc, [
-      "GCR = panel width / row spacing",
-      "Tracker angle and backtracking are calculated using pvlib single-axis tracker logic.",
-      "POA irradiance is based on pvlib clear-sky irradiance and transposition.",
-      "Shaded fraction is based on pvlib row-shading logic using shaded_fraction1d.",
-      "Applied irradiance = direct POA × (1 − shaded fraction) + diffuse POA.",
-      "Power = applied POA × panel area × panel efficiency."
+      "Solar position is calculated using pvlib.",
+      "Tracker angle and BT are calculated using pvlib single-axis tracking.",
+      "Irradiance / POA and power estimation follow a pvlib-based workflow.",
+      "Inter-row shading % is based on pvlib row-shading logic where practical.",
+      "Applied irradiance = direct POA x (1 - shaded fraction) + diffuse POA.",
+      "Power = applied POA x panel area x panel efficiency.",
+      "Ground shadow shown in the UI is a displayed helper and may be scaled or limited for readability."
     ], 18, 42, 5.6);
 
     doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
-    doc.text("Notes / disclaimer", 14, 84);
+    doc.text("Disclaimer", 14, 96);
     doc.setDrawColor(220, 226, 232);
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(12, 88, 186, 40, 2, 2, "FD");
+    doc.roundedRect(12, 100, 186, 36, 2, 2, "FD");
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
     addTextBlock(doc, [
-      "This report reflects the current UI inputs and the latest simulation loaded in the browser.",
-      "It is intended for practical engineering analysis and comparison, not a full bankable performance model.",
-      "Clear-sky irradiance is used in this practical version unless measured weather data is added later.",
-      "Very large shadow values can occur at low solar elevation. UI and chart display scaling is used for readability."
-    ], 18, 96, 5.6);
+      "This is a tentative engineering simulation for comparison and visualization only.",
+      "Actual values may change with site conditions, weather inputs, geometry, controls, losses, and final design validation.",
+      "BT and No BT power may look similar when spacing is already wide and row shading is low."
+    ], 18, 108, 5.6);
 
     doc.setFontSize(10);
     doc.setTextColor(15, 23, 42);
-    doc.text("Readable shadow summary", 14, 134);
+    doc.text("Legend note", 14, 148);
     doc.setDrawColor(220, 226, 232);
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(12, 138, 186, 28, 2, 2, "FD");
+    doc.roundedRect(12, 152, 186, 22, 2, 2, "FD");
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
     addTextBlock(doc, [
-      `Raw max shadow (No BT): ${formatShadowMetric(metrics.maxShadowNoBt)}`,
-      `Raw max shadow (BT): ${formatShadowMetric(metrics.maxShadowBt)}`,
-      `Display caps: charts ${MAX_SHADOW_CHART_DISPLAY_M} m, 2D ${MAX_SHADOW_2D_DISPLAY_M} m`
-    ], 18, 146, 5.6);
-
-    doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
-    doc.text("pvlib reference", 14, 182);
-    doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85);
-    doc.text("https://pvlib-python.readthedocs.io/", 14, 188);
+      "BT = Backtracking | No BT = Without Backtracking"
+    ], 18, 160, 5.6);
 
     doc.save(`solar_tracker_report_${payload.date}.pdf`);
     showPopup("PDF downloaded successfully.", "success");
   } catch (error) {
-    preview.textContent = `PDF export failed:\n${error.message}`;
+    preview.textContent = `PDF export failed:
+${error.message}`;
     showPopup("PDF export failed.", "error");
   }
 }
+
 
 function setupLocationButton() {
   if (!getLocationBtn) return;
@@ -1054,6 +1309,7 @@ window.onload = function () {
   setupTopButtons();
   setupLocationButton();
   setup2DControls();
+  setupPresetButtons();
   updateScenarioHeader();
   updateLocationPreviewFromInputs();
 
