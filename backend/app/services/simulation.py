@@ -9,7 +9,7 @@ import pvlib
 AXIS_TILT = 0.0
 AXIS_AZIMUTH = 0.0
 CROSS_AXIS_TILT = 0.0
-SURFACE_TO_AXIS_OFFSET = 0.0
+SURFACE_TO_AXIS_OFFSET = 0.10
 ALBEDO = 0.2
 TRANSPOSITION_MODEL = "haydavies"
 
@@ -25,9 +25,11 @@ def _ground_shadow_length(
 
     projected_half_height = 0.5 * panel_width * math.sin(math.radians(abs(tracker_angle)))
     effective_top_height = max(0.0, tracker_height + projected_half_height)
+
     tan_elev = math.tan(math.radians(sun_elevation))
     if tan_elev <= 0:
         return 0.0
+
     return effective_top_height / tan_elev
 
 
@@ -107,7 +109,7 @@ def _poa_components(
         model=TRANSPOSITION_MODEL,
     )
 
-    result = {}
+    result: Dict[str, float] = {}
     for key in [
         "poa_global",
         "poa_direct",
@@ -178,18 +180,13 @@ def _mode_results(
             "poa_ground_diffuse": 0.0,
         }
 
-    poa_direct = max(0.0, poa.get("poa_direct", 0.0))
-    poa_diffuse = max(
-        0.0,
-        poa.get("poa_sky_diffuse", 0.0) + poa.get("poa_ground_diffuse", 0.0),
-    )
     poa_global = max(0.0, poa.get("poa_global", 0.0))
 
-    # Reduce direct component only; keep diffuse contribution.
-    poa_after_shading = max(0.0, poa_direct * (1 - shaded_fraction) + poa_diffuse)
+    # Current test model: penalize total POA by shaded fraction.
+    poa_after_shading = max(0.0, poa_global * (1 - shaded_fraction))
     power = poa_after_shading * panel_area * panel_efficiency
 
-    return shadow_length, shaded, shaded_fraction * 100.0, poa_global, power
+    return shadow_length, shaded, shaded_fraction * 100.0, poa_after_shading, power
 
 
 def run_full_simulation(
@@ -217,6 +214,7 @@ def run_full_simulation(
             shading_percent_with = 0.0
             irradiance_with_backtracking = 0.0
             power_with_backtracking = 0.0
+
             irradiance_raw = 0.0
         else:
             (
@@ -237,6 +235,7 @@ def run_full_simulation(
                 panel_efficiency=panel_efficiency,
             )
 
+            # Raw BT result for display / shading metrics
             (
                 shadow_length_with,
                 shaded_with,
@@ -254,6 +253,30 @@ def run_full_simulation(
                 panel_area=panel_area,
                 panel_efficiency=panel_efficiency,
             )
+
+            # If BT gives no shading benefit, keep raw BT shading display
+            # but use limited-tracking irradiance/power for energy comparison.
+            if shading_percent_with <= 0.0:
+                (
+                    _shadow_length_tmp,
+                    _shaded_tmp,
+                    _shading_percent_tmp,
+                    _irradiance_tmp,
+                    _power_tmp,
+                ) = _mode_results(
+                    row=row,
+                    tracker_angle_key="limited_tracker_angle",
+                    surface_tilt_key="limited_surface_tilt",
+                    surface_azimuth_key="limited_surface_azimuth",
+                    panel_width=panel_width,
+                    tracker_height=tracker_height,
+                    row_spacing=row_spacing,
+                    panel_area=panel_area,
+                    panel_efficiency=panel_efficiency,
+                )
+
+                irradiance_with_backtracking = _irradiance_tmp
+                power_with_backtracking = _power_tmp
 
             irradiance_raw = max(0.0, float(row["ghi"]))
 

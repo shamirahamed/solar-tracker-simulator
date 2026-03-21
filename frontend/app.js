@@ -801,18 +801,23 @@ async function runSimulation() {
     latestSimulationData = result.data || [];
     setBadge(badgeApi, "API: Connected", "badge-green");
 
-    preview.textContent = JSON.stringify({
-      latitude: result.latitude,
-      longitude: result.longitude,
-      timezone: result.timezone,
-      date: result.date,
-      total_points: result.total_points,
-      daily_energy_without_backtracking: result.daily_energy_without_backtracking,
-      daily_energy_with_backtracking: result.daily_energy_with_backtracking,
-      daily_energy_gain_percent: result.daily_energy_gain_percent,
-      first_row: result.data?.[0] || null,
-      midday_row: result.data?.[720] || null
-    }, null, 2);
+preview.textContent = JSON.stringify(
+  {
+    latitude: result.latitude,
+    longitude: result.longitude,
+    timezone: result.timezone,
+    date: result.date,
+    total_points: result.total_points,
+    daily_energy_without_backtracking: result.daily_energy_without_backtracking,
+    daily_energy_with_backtracking: result.daily_energy_with_backtracking,
+    daily_energy_gain_percent: result.daily_energy_gain_percent,
+    row_540: result.data[540],
+    row_720: result.data[720],
+    row_900: result.data[900]
+  },
+  null,
+  2
+);
 
     updateSummary(result);
     buildCharts(latestSimulationData);
