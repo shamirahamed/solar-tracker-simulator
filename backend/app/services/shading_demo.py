@@ -182,7 +182,8 @@ def _mode_results(
 
     poa_global = max(0.0, poa.get("poa_global", 0.0))
 
-    # Current test model: penalize total POA by shaded fraction.
+    # Practical current model:
+    # apply shading penalty to total POA
     poa_after_shading = max(0.0, poa_global * (1 - shaded_fraction))
     power = poa_after_shading * panel_area * panel_efficiency
 
@@ -235,7 +236,7 @@ def run_full_simulation(
                 panel_efficiency=panel_efficiency,
             )
 
-            # Raw BT result for display / shading metrics
+            # Raw BT result (keep these for display / charts)
             (
                 shadow_length_with,
                 shaded_with,
@@ -254,7 +255,8 @@ def run_full_simulation(
                 panel_efficiency=panel_efficiency,
             )
 
-            # If BT gives no shading benefit, keep raw BT shading display
+            # If BT gives no actual shading benefit,
+            # keep raw BT shading values for display,
             # but use limited-tracking irradiance/power for energy comparison.
             if shading_percent_with <= 0.0:
                 (
