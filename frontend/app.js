@@ -701,23 +701,76 @@ function update2DFrame(index) {
   draw2DScene(latestSimulationData[safeIndex]);
 }
 
+function setPlaybackState(isPlaying) {
+  if (!play2dBtn || !pause2dBtn) return;
+
+  play2dBtn.classList.toggle("active", isPlaying);
+  pause2dBtn.classList.toggle("active", !isPlaying);
+
+  play2dBtn.setAttribute("aria-pressed", isPlaying ? "true" : "false");
+  pause2dBtn.setAttribute("aria-pressed", isPlaying ? "false" : "true");
+}
+
+function stop2DPlayback() {
+  if (playTimer) {
+    clearInterval(playTimer);
+    playTimer = null;
+  }
+  setPlaybackState(false);
+}
+
+function start2DPlayback() {
+  if (!latestSimulationData.length || !timeSlider) {
+    showPopup("Run simulation first.", "error");
+    return;
+  }
+
+  if (playTimer) {
+    clearInterval(playTimer);
+    playTimer = null;
+  }
+
+  setPlaybackState(true);
+
+  playTimer = setInterval(() => {
+    if (!latestSimulationData.length) {
+      stop2DPlayback();
+      return;
+    }
+
+    let current = parseInt(timeSlider.value || "0", 10);
+    let next = current + 1;
+
+    if (next >= latestSimulationData.length) {
+      next = 0;
+    }
+
+    update2DFrame(next);
+  }, 140);
+}
+
 function setup2DControls() {
   if (!timeSlider || !play2dBtn || !pause2dBtn) return;
-  timeSlider.addEventListener("input", () => update2DFrame(parseInt(timeSlider.value, 10)));
+
+  setPlaybackState(false);
+
+  timeSlider.addEventListener("input", () => {
+    stop2DPlayback();
+    update2DFrame(parseInt(timeSlider.value, 10));
+  });
+
   play2dBtn.addEventListener("click", () => {
-    if (!latestSimulationData.length) return;
-    if (playTimer) clearInterval(playTimer);
-    playTimer = setInterval(() => {
-      let next = parseInt(timeSlider.value, 10) + 1;
-      if (next >= latestSimulationData.length) next = 0;
-      update2DFrame(next);
-    }, 120);
+    start2DPlayback();
   });
+
   pause2dBtn.addEventListener("click", () => {
-    if (playTimer) clearInterval(playTimer);
-    playTimer = null;
+    stop2DPlayback();
   });
-  window.addEventListener("resize", () => update2DFrame(parseInt(timeSlider?.value || "0", 10)));
+
+  window.addEventListener("resize", () => {
+    if (!latestSimulationData.length) return;
+    update2DFrame(parseInt(timeSlider?.value || "0", 10));
+  });
 }
 
 async function runSimulation() {
@@ -765,7 +818,8 @@ async function runSimulation() {
     buildCharts(latestSimulationData);
     if (timeSlider) timeSlider.max = String(Math.max(0, latestSimulationData.length - 1));
     update2DFrame(Math.min(720, Math.max(0, latestSimulationData.length - 1)));
-    showPopup("Simulation completed successfully.", "success");
+    stop2DPlayback();
+    showPopup("Simulation completed.", "success");
   } catch (error) {
     setBadge(badgeApi, "API: Error", "badge-red");
     preview.textContent = `Request failed:\n${error.message}`;
@@ -876,77 +930,138 @@ showPopup("Inputs reset.", "success");
 });
 }
 
+function pdfIsMobileView() {
+  return window.innerWidth <= 768;
+}
 
-function buildDimensionDiagramDataUrl(payload) {
+function pdfPageBackground(doc) {
+  doc.setFillColor(248, 250, 252);
+  doc.rect(0, 0, 210, 297, "F");
+}
+
+function pdfSectionTitle(doc, title, x, y) {
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
+  doc.text(title, x, y);
+}
+
+function pdfSectionBox(doc, x, y, w, h) {
+  doc.setDrawColor(220, 226, 232);
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(x, y, w, h, 2, 2, "FD");
+}
+
+function pdfTextBlock(doc, lines, x, y, lineHeight = 5.6) {
+  lines.forEach((line) => {
+    doc.text(String(line), x, y);
+    y += lineHeight;
+  });
+  return y;
+}
+
+function pdfMetricBox(doc, x, y, w, h, title, value) {
+  doc.setDrawColor(220, 226, 232);
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(x, y, w, h, 2, 2, "FD");
+  doc.setFontSize(8.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text(title, x + 3, y + 5);
+  doc.setFontSize(12);
+  doc.setTextColor(15, 23, 42);
+  doc.text(String(value), x + 3, y + 12);
+}
+
+function pdfSafeCanvasData(canvas, mobileView = false) {
+  if (!canvas) return null;
+
+  try {
+    if (!mobileView) {
+      return canvas.toDataURL("image/png", 1.0);
+    }
+
+    const scale = 0.68;
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = Math.max(600, Math.floor(canvas.width * scale));
+    exportCanvas.height = Math.max(320, Math.floor(canvas.height * scale));
+
+    const ctx = exportCanvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    ctx.drawImage(canvas, 0, 0, exportCanvas.width, exportCanvas.height);
+
+    return exportCanvas.toDataURL("image/jpeg", 0.82);
+  } catch (e) {
+    return null;
+  }
+}
+
+function pdfSafeTrackerData() {
+  try {
+    if (typeof update2DFrame === "function") {
+      update2DFrame(parseInt(timeSlider?.value || "0", 10));
+    }
+    return trackerCanvas?.toDataURL("image/png", 1.0) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function pdfFormatShadowMetric(value) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return "--";
+  if (n > 9999) return `${n.toExponential(2)} m`;
+  if (n > 999) return `${Math.round(n)} m`;
+  return `${n.toFixed(2)} m`;
+}
+
+function pdfBuildSummarySentence(result) {
+  const gain = Number(result?.daily_energy_gain_percent || 0);
+  if (gain > 0.5) {
+    return `Backtracking improves daily energy by ${gain.toFixed(2)}% in this case.`;
+  }
+  if (gain < -0.5) {
+    return `Backtracking reduces daily energy by ${Math.abs(gain).toFixed(2)}% in this case.`;
+  }
+  return "Backtracking and non-backtracking energy are nearly similar in this case.";
+}
+
+function pdfBuildDimensionDiagramDataUrl(payload, mobileView = false) {
   const canvas = document.createElement("canvas");
-  canvas.width = 1400;
-  canvas.height = 520;
+  canvas.width = mobileView ? 1200 : 1600;
+  canvas.height = mobileView ? 620 : 760;
   const ctx = canvas.getContext("2d");
 
-  const margin = 90;
-  const groundY = 390;
-  const usableWidth = canvas.width - margin * 2;
-
-  const maxMeters = Math.max(payload.row_spacing * 1.15, payload.panel_width * 2.8, 7);
-  const scale = usableWidth / maxMeters;
-
-  const mast1X = 360;
-  const mast2X = mast1X + payload.row_spacing * scale;
-  const panelLength = payload.panel_width * scale;
-  const trackerHeight = payload.tracker_height * scale;
-  const pivotY = groundY - trackerHeight;
-
-  function drawArrowLine(x1, y1, x2, y2, label, labelX, labelY) {
-    ctx.strokeStyle = "#ef4444";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-
-    const arrowSize = 10;
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(
-      x1 + arrowSize * Math.cos(angle + Math.PI / 6),
-      y1 + arrowSize * Math.sin(angle + Math.PI / 6)
-    );
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(
-      x1 + arrowSize * Math.cos(angle - Math.PI / 6),
-      y1 + arrowSize * Math.sin(angle - Math.PI / 6)
-    );
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(
-      x2 - arrowSize * Math.cos(angle + Math.PI / 6),
-      y2 - arrowSize * Math.sin(angle + Math.PI / 6)
-    );
-    ctx.moveTo(x2, y2);
-    ctx.lineTo(
-      x2 - arrowSize * Math.cos(angle - Math.PI / 6),
-      y2 - arrowSize * Math.sin(angle - Math.PI / 6)
-    );
-    ctx.stroke();
-
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "24px Arial";
-    ctx.fillText(label, labelX, labelY);
-  }
+  const W = canvas.width;
+  const H = canvas.height;
 
   ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, W, H);
+
+  const marginX = 120;
+  const groundY = 500;
+
+  const rowSpacingValue = Math.max(Number(payload.row_spacing || 5.5), 0.1);
+  const panelWidthValue = Math.max(Number(payload.panel_width || 2.0), 0.1);
+  const trackerHeightValue = Math.max(Number(payload.tracker_height || 1.5), 0.1);
+
+  const usableWidth = W - marginX * 2;
+  const metersToPxX = usableWidth / (rowSpacingValue * 1.55);
+  const metersToPxY = 210 / trackerHeightValue;
+
+  const mast1X = 420;
+  const mast2X = mast1X + rowSpacingValue * metersToPxX;
+  const pivotY = groundY - trackerHeightValue * metersToPxY;
+  const panelLength = panelWidthValue * metersToPxX;
 
   ctx.fillStyle = "#0f172a";
-  ctx.font = "30px Arial";
-  ctx.fillText("Tracker Dimensions", margin, 48);
+  ctx.font = "bold 32px Arial";
+  ctx.fillText("Tracker Dimensions", marginX, 56);
 
   ctx.strokeStyle = "#cbd5e1";
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(margin, groundY);
-  ctx.lineTo(canvas.width - margin, groundY);
+  ctx.moveTo(marginX, groundY);
+  ctx.lineTo(W - marginX, groundY);
   ctx.stroke();
 
   ctx.strokeStyle = "#111827";
@@ -967,44 +1082,108 @@ function buildDimensionDiagramDataUrl(payload) {
   ctx.lineTo(mast2X + panelLength / 2, pivotY);
   ctx.stroke();
 
-  drawArrowLine(
-    mast1X,
-    groundY + 38,
-    mast2X,
-    groundY + 38,
-    `Row spacing: ${payload.row_spacing.toFixed(2)} m`,
-    (mast1X + mast2X) / 2 - 120,
-    groundY + 78
-  );
+  const dimY = groundY + 72;
+  ctx.strokeStyle = "#ef4444";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(mast1X, dimY);
+  ctx.lineTo(mast2X, dimY);
+  ctx.stroke();
 
-  drawArrowLine(
-    mast1X + 34,
-    groundY,
-    mast1X + 34,
-    pivotY,
-    `Tracker height: ${payload.tracker_height.toFixed(2)} m`,
-    mast1X + 54,
-    (groundY + pivotY) / 2 + 6
-  );
+  ctx.beginPath();
+  ctx.moveTo(mast1X, dimY - 12);
+  ctx.lineTo(mast1X, dimY + 12);
+  ctx.moveTo(mast2X, dimY - 12);
+  ctx.lineTo(mast2X, dimY + 12);
+  ctx.stroke();
 
-  drawArrowLine(
-    mast1X - panelLength / 2,
-    pivotY - 42,
-    mast1X + panelLength / 2,
-    pivotY - 42,
-    `Panel width: ${payload.panel_width.toFixed(2)} m`,
-    mast1X - 100,
-    pivotY - 56
-  );
+  const heightDimX = mast1X - 135;
+  ctx.beginPath();
+  ctx.moveTo(heightDimX, pivotY);
+  ctx.lineTo(heightDimX, groundY);
+  ctx.stroke();
 
-  ctx.fillStyle = "#475569";
-  ctx.font = "20px Arial";
-  ctx.fillText("Row A", mast1X - 28, pivotY - 12);
-  ctx.fillText("Row B", mast2X - 28, pivotY - 12);
+  ctx.strokeStyle = "#94a3b8";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(heightDimX + 10, pivotY);
+  ctx.lineTo(mast1X - 6, pivotY);
+  ctx.moveTo(heightDimX + 10, groundY);
+  ctx.lineTo(mast1X - 6, groundY);
+  ctx.stroke();
+
+  const panelDimY = pivotY - 60;
+  ctx.strokeStyle = "#ef4444";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(mast1X - panelLength / 2, panelDimY);
+  ctx.lineTo(mast1X + panelLength / 2, panelDimY);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(mast1X - panelLength / 2, panelDimY - 12);
+  ctx.lineTo(mast1X - panelLength / 2, panelDimY + 12);
+  ctx.moveTo(mast1X + panelLength / 2, panelDimY - 12);
+  ctx.lineTo(mast1X + panelLength / 2, panelDimY + 12);
+  ctx.stroke();
+
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "24px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(`Panel width: ${panelWidthValue.toFixed(2)} m`, mast1X, panelDimY - 18);
+  ctx.fillText(`Row spacing: ${rowSpacingValue.toFixed(2)} m`, (mast1X + mast2X) / 2, dimY + 42);
+
+  ctx.save();
+  ctx.translate(heightDimX - 38, (pivotY + groundY) / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.font = "24px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(`Tracker height: ${trackerHeightValue.toFixed(2)} m`, 0, 0);
+  ctx.restore();
 
   return canvas.toDataURL("image/png");
 }
 
+function pdfAddSingleChartPage(doc, title, img, note = "") {
+  doc.addPage();
+  pdfPageBackground(doc);
+  doc.setFontSize(16);
+  doc.setTextColor(15, 23, 42);
+  doc.text(title, 14, 16);
+
+  if (img) {
+    doc.addImage(img, "PNG", 14, 24, 182, 88);
+  }
+
+  if (note) {
+    doc.setFontSize(9.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(note, 14, 120, { maxWidth: 182 });
+  }
+}
+
+function pdfAddTwoChartsPage(doc, title, chartA, chartB) {
+  doc.addPage();
+  pdfPageBackground(doc);
+
+  doc.setFontSize(16);
+  doc.setTextColor(15, 23, 42);
+  doc.text(title, 14, 16);
+
+  if (chartA?.img) {
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text(chartA.title, 15, 24);
+    doc.addImage(chartA.img, "JPEG", 15, 28, 160, 120);
+  }
+
+  if (chartB?.img) {
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);
+    doc.text(chartB.title, 15, 156);
+    doc.addImage(chartB.img, "JPEG", 15, 160, 160, 120);
+  }
+}
 
 async function downloadPdf() {
   if (!latestSimulationResult || !latestSimulationData.length) {
@@ -1014,8 +1193,11 @@ async function downloadPdf() {
 
   try {
     const { jsPDF } = window.jspdf;
+    const mobileView = pdfIsMobileView();
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
     const payload = getPayload();
+    const result = latestSimulationResult;
 
     const metrics = {
       gcr: calculateGcr(),
@@ -1028,241 +1210,165 @@ async function downloadPdf() {
       maxPowerBt: Math.max(...latestSimulationData.map((r) => Number(r.power_with_backtracking || 0)), 0)
     };
 
-    const powerCanvas = document.getElementById("powerChart");
-    const anglesCanvas = document.getElementById("anglesChart");
-    const sunCanvas = document.getElementById("sunChart");
-    const shadingCanvas = document.getElementById("shadingChart");
-
-    const trackerImage = trackerCanvas.toDataURL("image/png");
-    const dimensionDiagram = buildDimensionDiagramDataUrl(payload);
+    const anglesImg = pdfSafeCanvasData(document.getElementById("anglesChart"), mobileView);
+    const sunImg = pdfSafeCanvasData(document.getElementById("sunChart"), mobileView);
+    const shadingImg = pdfSafeCanvasData(document.getElementById("shadingChart"), mobileView);
+    const powerImg = pdfSafeCanvasData(document.getElementById("powerChart"), mobileView);
+    const dimensionImg = pdfBuildDimensionDiagramDataUrl(payload, mobileView);
+    const summarySentence = pdfBuildSummarySentence(result);
 
     // PAGE 1 - SUMMARY
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 297, "F");
+    pdfPageBackground(doc);
 
     doc.setTextColor(15, 23, 42);
     doc.setFontSize(18);
     doc.text("Solar Tracker Simulator", 14, 16);
-
     doc.setFontSize(10);
     doc.setTextColor(71, 85, 105);
-    doc.text("Single-axis tracker practical comparison report", 14, 22);
-
+    doc.text("Single-axis tracker simulation report", 14, 22);
     doc.setDrawColor(226, 232, 240);
     doc.line(14, 26, 196, 26);
 
-    doc.setFontSize(11);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Scenario", 14, 34);
-
+    pdfSectionTitle(doc, "Scenario", 14, 34);
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
-    addTextBlock(doc, [
+    pdfTextBlock(doc, [
       `${payload.latitude.toFixed(4)}, ${payload.longitude.toFixed(4)}`,
       `${payload.timezone} | ${payload.date}`,
       `${payload.backtracking ? "Backtracking ON" : "Backtracking OFF"}`
     ], 14, 40, 5);
 
-    addMetricBox(doc, 14, 56, 42, 18, "Energy No BT", `${Number(latestSimulationResult.daily_energy_without_backtracking || 0).toFixed(3)} kWh`);
-    addMetricBox(doc, 60, 56, 42, 18, "Energy BT", `${Number(latestSimulationResult.daily_energy_with_backtracking || 0).toFixed(3)} kWh`);
-    addMetricBox(doc, 106, 56, 42, 18, "Energy Gain", `${Number(latestSimulationResult.daily_energy_gain_percent || 0).toFixed(2)} %`);
-    addMetricBox(doc, 152, 56, 42, 18, "GCR", `${metrics.gcr.ratio.toFixed(3)}`);
+    pdfMetricBox(doc, 14, 56, 42, 18, "Energy No BT", `${Number(result.daily_energy_without_backtracking || 0).toFixed(3)} kWh`);
+    pdfMetricBox(doc, 60, 56, 42, 18, "Energy BT", `${Number(result.daily_energy_with_backtracking || 0).toFixed(3)} kWh`);
+    pdfMetricBox(doc, 106, 56, 42, 18, "Energy Gain", `${Number(result.daily_energy_gain_percent || 0).toFixed(2)} %`);
+    pdfMetricBox(doc, 152, 56, 42, 18, "GCR", `${metrics.gcr.ratio.toFixed(3)}`);
 
-    doc.setFontSize(10);
-    doc.setTextColor(51, 65, 85);
-    doc.text(
-      `BT reduced max shading from ${metrics.maxShadingNoBt.toFixed(2)}% to ${metrics.maxShadingBt.toFixed(2)}%, while daily energy changed by ${Number(latestSimulationResult.daily_energy_gain_percent || 0).toFixed(2)}%.`,
-      14,
-      82
-    );
-
-    doc.setFontSize(11);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Selected inputs", 14, 96);
-
+    pdfSectionTitle(doc, "Selected inputs", 14, 84);
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
-    addTextBlock(doc, [
+    pdfTextBlock(doc, [
       `Panel width: ${payload.panel_width.toFixed(2)} m`,
       `Panel height: ${payload.panel_height.toFixed(2)} m`,
       `Tracker height: ${payload.tracker_height.toFixed(2)} m`,
       `Row spacing: ${payload.row_spacing.toFixed(2)} m`,
-      `Efficiency: ${payload.panel_efficiency.toFixed(3)}`,
+      `Panel efficiency: ${payload.panel_efficiency.toFixed(3)}`,
       `Max angle: ${payload.max_angle.toFixed(1)}°`,
       `Sunrise / Sunset: ${metrics.sunriseSunset.sunrise ? formatTimeLabel(metrics.sunriseSunset.sunrise) : "--"} / ${metrics.sunriseSunset.sunset ? formatTimeLabel(metrics.sunriseSunset.sunset) : "--"}`
-    ], 14, 102, 5.4);
+    ], 14, 90, mobileView ? 5.0 : 5.2);
 
-    doc.setFontSize(11);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Key findings", 108, 96);
-
+    pdfSectionTitle(doc, "Key metrics", 14, 132);
     doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
-    addTextBlock(doc, [
-      `Max shading No BT: ${metrics.maxShadingNoBt.toFixed(2)}%`,
-      `Max shading BT: ${metrics.maxShadingBt.toFixed(2)}%`,
-      `Max power No BT: ${metrics.maxPowerNoBt.toFixed(1)} W`,
-      `Max power BT: ${metrics.maxPowerBt.toFixed(1)} W`,
-      `Displayed shadow in UI may be capped for readability.`,
-      `Raw shadow can become very large at low solar elevation.`
-    ], 108, 102, 5.4);
+    pdfTextBlock(doc, [
+      `Max shading without backtracking: ${metrics.maxShadingNoBt.toFixed(2)}%`,
+      `Max shading with backtracking: ${metrics.maxShadingBt.toFixed(2)}%`,
+      `Max shadow without backtracking: ${pdfFormatShadowMetric(metrics.maxShadowNoBt)}`,
+      `Max shadow with backtracking: ${pdfFormatShadowMetric(metrics.maxShadowBt)}`,
+      `Max power without backtracking: ${metrics.maxPowerNoBt.toFixed(1)} W`,
+      `Max power with backtracking: ${metrics.maxPowerBt.toFixed(1)} W`
+    ], 14, 138, mobileView ? 5.0 : 5.2);
+
+    pdfSectionTitle(doc, "Comparison summary", 14, 178);
+    pdfSectionBox(doc, 12, 182, 186, 18);
+    doc.setFontSize(9.5);
+    doc.setTextColor(51, 65, 85);
+    doc.text(summarySentence, 16, 192, { maxWidth: 178 });
 
     // PAGE 2 - TRACKER DIMENSIONS
     doc.addPage();
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 297, "F");
-
+    pdfPageBackground(doc);
     doc.setFontSize(16);
     doc.setTextColor(15, 23, 42);
     doc.text("Tracker Dimensions", 14, 16);
 
-    doc.setFontSize(9.5);
-    doc.setTextColor(71, 85, 105);
-    doc.text("Geometry reference used for the current simulation inputs.", 14, 22);
-
-    doc.addImage(dimensionDiagram, "PNG", 12, 30, 186, 110);
-
-    doc.setFontSize(10);
-    doc.setTextColor(51, 65, 85);
-    addTextBlock(doc, [
-      "This diagram is a simplified engineering-style layout for readability.",
-      "It shows panel width, tracker height, and row spacing based on the current inputs."
-    ], 14, 150, 5.8);
-
-    // PAGE 3 - 2D TRACKER VIEW
-    doc.addPage();
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 297, "F");
-
-    doc.setFontSize(16);
-    doc.setTextColor(15, 23, 42);
-    doc.text("2D Tracker View", 14, 16);
+    if (dimensionImg) {
+      doc.addImage(dimensionImg, "PNG", 10, 24, 190, 92);
+    }
 
     doc.setFontSize(9.5);
     doc.setTextColor(71, 85, 105);
-    doc.text("Snapshot of the current tracker scene from the frontend.", 14, 22);
+    doc.text("Geometry reference used for the current simulation inputs.", 14, 122, { maxWidth: 182 });
 
-    doc.addImage(trackerImage, "PNG", 12, 30, 186, 118);
+    if (!mobileView) {
+      // DESKTOP - 4 CHARTS ON ONE PAGE
+      doc.addPage();
+      pdfPageBackground(doc);
+      doc.setFontSize(16);
+      doc.setTextColor(15, 23, 42);
+      doc.text("Charts", 14, 16);
 
+      const charts = [
+        { title: "Tracker Angle", img: anglesImg, x: 14, y: 22 },
+        { title: "Solar Position", img: sunImg, x: 110, y: 22 },
+        { title: "Inter-row Shadowing", img: shadingImg, x: 14, y: 114 },
+        { title: "Power Output", img: powerImg, x: 110, y: 114 }
+      ];
+
+      charts.forEach((c) => {
+        if (!c.img) return;
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.text(c.title, c.x, c.y);
+        doc.addImage(c.img, "PNG", c.x, c.y + 4, 90, 65);
+      });
+    } else {
+      // MOBILE - 2 CHARTS PER PAGE
+      pdfAddTwoChartsPage(doc, "Charts 1 / 2",
+        { title: "Tracker Angle", img: anglesImg },
+        { title: "Solar Position", img: sunImg }
+      );
+
+      pdfAddTwoChartsPage(doc, "Charts 3 / 4",
+        { title: "Inter-row Shadowing", img: shadingImg },
+        { title: "Power Output", img: powerImg }
+      );
+    }
+
+    // FINAL PAGE - NOTES
+    doc.addPage();
+    pdfPageBackground(doc);
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Formulas and notes", 14, 16);
+
+    pdfSectionTitle(doc, "Formulas", 14, 28);
+    pdfSectionBox(doc, 12, 32, 186, 48);
     doc.setFontSize(10);
     doc.setTextColor(51, 65, 85);
-    addTextBlock(doc, [
-      "Black shadow is a displayed helper and may be capped for readability.",
-      "Red shading is the visual indicator of actual panel-to-panel shading.",
-      "Shading % is the better indicator of actual row-to-row shading impact."
-    ], 14, 158, 5.8);
-
-    // PAGE 4 - TRACKER ANGLE CHART
-    doc.addPage();
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 297, "F");
-    doc.setFontSize(16);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Tracker Angle", 14, 16);
-    if (anglesCanvas) {
-      doc.addImage(anglesCanvas.toDataURL("image/png"), "PNG", 12, 24, 186, 120);
-    }
-
-    // PAGE 5 - SOLAR POSITION CHART
-    doc.addPage();
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 297, "F");
-    doc.setFontSize(16);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Solar Position", 14, 16);
-    if (sunCanvas) {
-      doc.addImage(sunCanvas.toDataURL("image/png"), "PNG", 12, 24, 186, 120);
-    }
-
-    // PAGE 6 - INTER-ROW SHADOWING CHART
-    doc.addPage();
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 297, "F");
-    doc.setFontSize(16);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Inter-row Shadowing", 14, 16);
-    if (shadingCanvas) {
-      doc.addImage(shadingCanvas.toDataURL("image/png"), "PNG", 12, 24, 186, 120);
-    }
-    doc.setFontSize(10);
-    doc.setTextColor(51, 65, 85);
-    addTextBlock(doc, [
-      "Displayed shadow may be scaled or limited for readability in the UI.",
-      "Shading % is the more meaningful indicator of actual row-to-row panel shading."
-    ], 14, 156, 5.8);
-
-    // PAGE 7 - POWER OUTPUT CHART
-    doc.addPage();
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 297, "F");
-    doc.setFontSize(16);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Power Output", 14, 16);
-    if (powerCanvas) {
-      doc.addImage(powerCanvas.toDataURL("image/png"), "PNG", 12, 24, 186, 120);
-    }
-
-    // PAGE 8 - METHODS / NOTES / DISCLAIMER
-    doc.addPage();
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 297, "F");
-    doc.setFontSize(16);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Methods, Notes, and Disclaimer", 14, 16);
-
-    doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Methods", 14, 30);
-    doc.setDrawColor(220, 226, 232);
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(12, 34, 186, 50, 2, 2, "FD");
-    doc.setFontSize(9.5);
-    doc.setTextColor(51, 65, 85);
-    addTextBlock(doc, [
-      "Solar position is calculated using pvlib.",
-      "Tracker angle and BT are calculated using pvlib single-axis tracking.",
-      "Irradiance / POA and power estimation follow a pvlib-based workflow.",
-      "Inter-row shading % is based on pvlib row-shading logic where practical.",
+    pdfTextBlock(doc, [
+      "GCR = panel width / row spacing",
+      "Tracker angle and backtracking are calculated using pvlib single-axis tracker logic.",
+      "POA irradiance is based on pvlib clear-sky irradiance and transposition.",
+      "Shaded fraction is based on pvlib row-shading logic using shaded_fraction1d.",
       "Applied irradiance = direct POA x (1 - shaded fraction) + diffuse POA.",
-      "Power = applied POA x panel area x panel efficiency.",
-      "Ground shadow shown in the UI is a displayed helper and may be scaled or limited for readability."
-    ], 18, 42, 5.6);
+      "Power = applied POA x panel area x panel efficiency."
+    ], 18, 40, 6);
 
+    pdfSectionTitle(doc, "Notes / disclaimer", 14, 92);
+    pdfSectionBox(doc, 12, 96, 186, 42);
     doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Disclaimer", 14, 96);
-    doc.setDrawColor(220, 226, 232);
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(12, 100, 186, 36, 2, 2, "FD");
-    doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
-    addTextBlock(doc, [
-      "This is a tentative engineering simulation for comparison and visualization only.",
-      "Actual values may change with site conditions, weather inputs, geometry, controls, losses, and final design validation.",
-      "BT and No BT power may look similar when spacing is already wide and row shading is low."
-    ], 18, 108, 5.6);
+    pdfTextBlock(doc, [
+      "This report reflects the current UI inputs and the latest simulation loaded in the browser.",
+      "It is intended for practical engineering analysis and comparison, not a full bankable performance model.",
+      "Clear-sky irradiance is used in this practical version unless measured weather data is added later.",
+      "Very large shadow values can occur at low solar elevation, so display scaling may be applied for readability."
+    ], 18, 104, 6);
 
+    pdfSectionTitle(doc, "pvlib reference", 14, 152);
+    pdfSectionBox(doc, 12, 156, 186, 16);
     doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Legend note", 14, 148);
-    doc.setDrawColor(220, 226, 232);
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(12, 152, 186, 22, 2, 2, "FD");
-    doc.setFontSize(9.5);
     doc.setTextColor(51, 65, 85);
-    addTextBlock(doc, [
-      "BT = Backtracking | No BT = Without Backtracking"
-    ], 18, 160, 5.6);
+    doc.text("https://pvlib-python.readthedocs.io/", 18, 166);
 
     doc.save(`solar_tracker_report_${payload.date}.pdf`);
     showPopup("PDF downloaded successfully.", "success");
   } catch (error) {
-    preview.textContent = `PDF export failed:
-${error.message}`;
+    console.error("PDF export failed:", error);
+    preview.textContent = `PDF export failed:\n${error.message}\n${error.stack || ""}`;
     showPopup("PDF export failed.", "error");
   }
 }
-
 
 function setupLocationButton() {
   if (!getLocationBtn) return;
