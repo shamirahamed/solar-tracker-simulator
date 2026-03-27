@@ -5,9 +5,9 @@ from typing import Dict, List
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
-from backend.app.models import SimulationRequest, SimulationResponse
-from backend.app.services.shading_demo import run_full_simulation
-from backend.app.services.tracker import get_tracker_day_profile
+from app.models import SimulationRequest, SimulationResponse
+from app.services.shading_demo import run_full_simulation
+from app.services.tracker import get_tracker_day_profile
 
 router = APIRouter(prefix="/api/v1")
 
