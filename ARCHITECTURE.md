@@ -1,220 +1,149 @@
-# Solar Tracker Simulator Architecture
+# Architecture
 
-## Overview
-The Solar Tracker Simulator is a web-based tool that simulates the behavior of a single-axis solar tracker over one day with minute-level resolution.
+## Stack
 
-The simulator calculates solar position, tracker rotation, backtracking, shading, and estimated power output.
-
----
-
-## System Components
-
-### Backend
-Technology:
-- Python
-- FastAPI
-- pvlib
-- pandas
-- numpy
-
-Responsibilities:
-- Solar position calculation
-- Tracker rotation calculation
-- Backtracking using GCR
-- Shading estimation
-- Irradiance calculation
-- Power estimation
-- API responses for simulation results
-
-Project structure:
-
-backend/app/
-
-main.py  
-Entry point for FastAPI server
-
-models.py  
-Data models for API requests and responses
-
-api/routes.py  
-API endpoints
-
-services/
-
-solar.py  
-Solar position calculations
-
-tracker.py  
-Single-axis tracking calculations
-
-shading.py  
-Row shading and shadow calculations
-
-power.py  
-Power estimation logic
+| Layer | Technology |
+|---|---|
+| Backend | Python, FastAPI, pvlib, pandas, pydantic |
+| Frontend | HTML, CSS, JavaScript, Chart.js, jsPDF |
+| Deployment | Render (backend), static file (frontend) |
 
 ---
 
-### Frontend
-Technology:
-- HTML
-- CSS
-- JavaScript
-- Canvas (2D animation)
-- Chart.js
+## Project Structure
 
-Responsibilities:
-- Input parameters
-- Send simulation requests to backend
-- Animate tracker behavior
-- Display simulation data
-- Show charts and timeline
-
-Project structure:
+```
+backend/
+  requirements.txt
+  app/
+    main.py               FastAPI app entry point, CORS config
+    models.py             SimulationRequest, SimulationPoint, SimulationResponse
+    api/
+      routes.py           POST /simulate/day, POST /simulate/day.csv, GET /health
+    services/
+      solar.py            Solar position (pvlib solarposition)
+      tracker.py          Single-axis tracking angles + fixed-panel POA irradiance
+      shading.py          Ground shadow geometry, row shading fraction
+      shading_demo.py     Full simulation loop: combines tracker + shading + POA
 
 frontend/
-
-index.html  
-Main user interface
-
-styles.css  
-Layout and responsive design
-
-app.js  
-API calls, animation logic, charts
+  index.html              UI layout, form inputs, chart canvases, KPI cards
+  styles.css              Responsive layout, light theme, mobile breakpoints
+  app.js                  Simulation fetch, Chart.js charts, 2D canvas animation,
+                          PDF export (jsPDF), CSV download, timezone search
+```
 
 ---
 
-## Simulation Type
+## Simulation Flow
 
-Single-axis solar tracker
-
-Simulation resolution:
-1 minute
-
-Total data points per simulation:
-1440
-
----
-
-## Input Parameters
-
-Latitude  
-Longitude  
-Date  
-GCR (Ground Coverage Ratio)  
-Maximum tracker rotation angle  
-Backtracking enabled / disabled
-
----
-
-## Calculation Flow
-
-Location + Time  
-→ Solar position (elevation, azimuth)
-
-Solar angles  
-→ Tracker rotation angle
-
-Tracker rotation + GCR  
-→ Backtracking adjustment
-
-Tracker geometry  
-→ Shadow length and shading
-
-Irradiance on panel  
-→ Estimated power output
-
-## Ground Coverage Ratio (GCR)
-
-Ground Coverage Ratio (GCR) is a key parameter used in solar tracker simulations to represent the spacing between rows of solar panels.
-
-Definition:
-
-GCR = Panel Width / Row Spacing
-
-Where:
-
-Panel Width  
-The width of the solar panel row measured perpendicular to the tracker axis.
-
-Row Spacing  
-The distance between two adjacent tracker rows.
-
-Example:
-
-Panel width = 2.2 m  
-Row spacing = 6 m  
-
-GCR = 2.2 / 6 = 0.37
-
-Typical GCR values in solar plants:
-
-0.30 – 0.45
-
-Lower GCR
-→ Larger spacing between rows  
-→ Less shading  
-→ Higher land usage
-
-Higher GCR
-→ Rows closer together  
-→ More shading risk  
-→ Better land utilization
-
-In this simulator, GCR is used for:
-
-- Backtracking calculations
-- Row shading estimation
-- Tracker angle adjustment to avoid inter-row shading
----
-
-## Main API
-
-POST /api/v1/simulate/day
-
-Request example:
-
-{
-  "latitude": 53.3498,
-  "longitude": -6.2603,
-  "date": "2026-03-09",
-  "gcr": 0.4,
-  "max_angle": 60,
-  "backtracking": true
-}
-
-Response:
-
-1440 rows of simulation data including:
-
-timestamp  
-sun_elevation  
-sun_azimuth  
-tracker_angle  
-backtracking_angle  
-shadow_length  
-shaded  
-power
+```
+SimulationRequest (latitude, longitude, timezone, date, panel geometry, max_angle, backtracking)
+    │
+    ▼
+tracker.py — get_tracker_day_profile()
+    ├── pvlib solarposition (1440 minutes)
+    ├── pvlib clear-sky irradiance (Ineichen)
+    ├── pvlib singleaxis tracking: Ideal, Limited, Backtracking
+    └── pvlib get_total_irradiance: fixed panel at latitude tilt (Hay-Davies)
+    │
+    ▼  List[Dict] — 1440 rows with angles, GHI/DNI/DHI, irradiance_fixed
+    │
+    ▼
+shading_demo.py — run_full_simulation()
+    ├── Ground shadow length per tracker angle
+    ├── Row shading fraction (pvlib shaded_fraction1d)
+    ├── POA irradiance per mode (Hay-Davies transposition)
+    │     ├── No BT: limited tracker angle + shading penalty
+    │     └── BT: backtracking angle + shading penalty
+    └── Pass-through irradiance_fixed from tracker data
+    │
+    ▼  List[Dict] — 1440 rows with full simulation fields
+    │
+    ▼
+routes.py — _build_response()
+    ├── Daily irradiance totals (Wh/m²): fixed, no_bt, bt
+    ├── Gain %: bt vs fixed, bt vs no_bt
+    └── SimulationResponse (Pydantic validated)
+```
 
 ---
 
-## Frontend Workflow
+## Key Models
 
-User inputs parameters  
-→ Frontend sends API request  
-→ Backend runs simulation  
-→ Frontend receives daily dataset  
-→ Canvas animation visualizes tracker motion  
-→ Charts display simulation trends  
-→ Time slider allows timeline navigation
+### SimulationRequest
+```
+latitude, longitude, timezone, date
+panel_width, panel_height, tracker_height, row_spacing
+panel_efficiency, max_angle, backtracking
+```
+
+### SimulationPoint (per-minute)
+```
+timestamp, sun_elevation, sun_azimuth
+ideal_tracker_angle, limited_tracker_angle, backtracking_angle
+shadow_length_without_backtracking, shadow_length_with_backtracking
+shaded_without_backtracking, shaded_with_backtracking
+shading_percent_without_backtracking, shading_percent_with_backtracking
+irradiance_fixed
+irradiance_raw, irradiance_without_backtracking, irradiance_with_backtracking
+power_without_backtracking, power_with_backtracking
+selected_shadow_length, selected_shaded, selected_shading_percent, selected_power
+```
+
+### SimulationResponse (summary)
+```
+latitude, longitude, timezone, date, interval_minutes, total_points
+daily_energy_without_backtracking, daily_energy_with_backtracking, daily_energy_gain_percent
+daily_irradiance_fixed, daily_irradiance_no_bt, daily_irradiance_bt
+irradiance_gain_bt_vs_fixed, irradiance_gain_bt_vs_no_bt
+data: List[SimulationPoint]
+```
 
 ---
 
-## Future Enhancements
+## API Endpoints
 
-Multi-day simulation  
-Weather data integration  
-3D visualization  
-CSV / PDF export  
-ESP32 hardware integration for real tracker control
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/v1/health` | Health check |
+| POST | `/api/v1/simulate/day` | Full day simulation (JSON) |
+| POST | `/api/v1/simulate/day.csv` | Full day simulation (CSV download) |
+
+---
+
+## Frontend Modules (app.js)
+
+| Function | Purpose |
+|---|---|
+| `runSimulation()` | POST to API, update all UI |
+| `buildCharts()` | Render 4 Chart.js charts |
+| `draw2DScene()` | Canvas tracker animation frame |
+| `updateSummary()` | Populate KPI cards |
+| `downloadPdf()` | Generate and save PDF report |
+| `downloadCsv()` | Trigger CSV download |
+
+---
+
+## GCR
+
+```
+GCR = panel_width / row_spacing
+```
+
+Used for: backtracking angle calculation, row shading fraction.  
+Typical values: 0.30 – 0.45
+
+---
+
+## Irradiance Comparison (v1.1)
+
+Three series compared on the chart and in daily summary:
+
+| Series | Description |
+|---|---|
+| Fixed panel | Panel at latitude tilt, south-facing. No tracking. |
+| Tracker No BT | POA after shading, limited tracker angle (no backtracking) |
+| Tracker BT | POA after shading, backtracking tracker angle |
+
+Fixed panel irradiance is computed vectorized in `tracker.py` using pvlib `get_total_irradiance` with `model="haydavies"`.
