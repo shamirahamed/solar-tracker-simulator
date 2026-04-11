@@ -3,8 +3,7 @@ const AUTO_API_BASE =
     ? `${window.location.protocol}//${window.location.hostname.replace(/-\d+\./, "-8000.")}/api/v1`
     : "http://localhost:8000/api/v1";
 
-const DEFAULT_API_BASE = "https://organic-space-eureka-6rrg9vx496r2r5qx-8000.app.github.dev/api/v1";
-let API_BASE = localStorage.getItem("api_url") || AUTO_API_BASE || DEFAULT_API_BASE;
+let API_BASE = localStorage.getItem("api_url") || AUTO_API_BASE;
 let allTimezones = [];
 
 const form = document.getElementById("simulation-form");
@@ -76,7 +75,7 @@ function setBadge(el, text, klass) {
 
 function initApiBase() {
   const savedApi = localStorage.getItem("api_url");
-  API_BASE = savedApi || AUTO_API_BASE || DEFAULT_API_BASE;
+  API_BASE = savedApi || AUTO_API_BASE;
   if (apiUrlInput) apiUrlInput.value = API_BASE;
 }
 
@@ -118,7 +117,7 @@ function setupTopButtons() {
   });
 
   resetApiBtn?.addEventListener("click", () => {
-    API_BASE = AUTO_API_BASE || DEFAULT_API_BASE;
+    API_BASE = AUTO_API_BASE;
     if (apiUrlInput) apiUrlInput.value = API_BASE;
     localStorage.removeItem("api_url");
     setBadge(badgeApi, "API: Default URL", "badge-gray");
