@@ -213,9 +213,9 @@
 
         <div class="kpi-grid primary-kpis">
           <div class="kpi primary"><span>GCR</span><strong id="gcrValue">-</strong></div>
-          <div class="kpi primary"><span>Energy BT</span><strong id="energyBt">-</strong></div>
-          <div class="kpi primary"><span>Energy No BT</span><strong id="energyNo">-</strong></div>
-          <div class="kpi primary"><span>Gain</span><strong id="energyGain">-</strong></div>
+          <div class="kpi primary"><span>Irr. BT (Wh/m²)</span><strong id="energyBt">-</strong></div>
+          <div class="kpi primary"><span>Irr. No BT (Wh/m²)</span><strong id="energyNo">-</strong></div>
+          <div class="kpi primary"><span>BT Gain vs Fixed</span><strong id="energyGain">-</strong></div>
         </div>
 
         <div id="comparisonSummary" class="comparison-summary">Run simulation to see BT comparison summary.</div>
@@ -301,10 +301,10 @@
 
       <section class="card">
         <div class="section-head">
-          <h2>Power Output</h2>
-          <span class="section-note">POA / power estimate based on pvlib workflow</span>
+          <h2>Irradiance Comparison</h2>
+          <span class="section-note">Fixed panel vs Tracker No BT vs Tracker BT (W/m²)</span>
         </div>
-        <div class="chart-legend-note">BT and No BT power can be similar when shading is already low.</div>
+        <div class="chart-legend-note">Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading.</div>
         <div class="chart-container"><canvas id="powerChart"></canvas></div>
       </section>
 

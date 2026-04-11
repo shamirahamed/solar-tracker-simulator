@@ -37,6 +37,7 @@ class SimulationPoint(BaseModel):
     shading_percent_without_backtracking: float
     shading_percent_with_backtracking: float
 
+    irradiance_fixed: float
     irradiance_raw: float
     irradiance_without_backtracking: float
     irradiance_with_backtracking: float
@@ -61,5 +62,11 @@ class SimulationResponse(BaseModel):
     daily_energy_without_backtracking: float
     daily_energy_with_backtracking: float
     daily_energy_gain_percent: float
+
+    daily_irradiance_fixed: float
+    daily_irradiance_no_bt: float
+    daily_irradiance_bt: float
+    irradiance_gain_bt_vs_fixed: float
+    irradiance_gain_bt_vs_no_bt: float
 
     data: List[SimulationPoint]

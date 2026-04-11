@@ -82,6 +82,19 @@ def _build_response(payload: SimulationRequest) -> Dict:
     else:
         daily_energy_gain_percent = 0.0
 
+    daily_irr_fixed = sum(row.get("irradiance_fixed", 0.0) for row in simulation_data) * interval_hours
+    daily_irr_no_bt = sum(row.get("irradiance_without_backtracking", 0.0) for row in simulation_data) * interval_hours
+    daily_irr_bt    = sum(row.get("irradiance_with_backtracking", 0.0) for row in simulation_data) * interval_hours
+
+    gain_bt_vs_fixed = (
+        (daily_irr_bt - daily_irr_fixed) / daily_irr_fixed * 100.0
+        if daily_irr_fixed > 0 else 0.0
+    )
+    gain_bt_vs_no_bt = (
+        (daily_irr_bt - daily_irr_no_bt) / daily_irr_no_bt * 100.0
+        if daily_irr_no_bt > 0 else 0.0
+    )
+
     return {
         "latitude": payload.latitude,
         "longitude": payload.longitude,
@@ -92,6 +105,11 @@ def _build_response(payload: SimulationRequest) -> Dict:
         "daily_energy_without_backtracking": round(daily_energy_without_backtracking, 3),
         "daily_energy_with_backtracking": round(daily_energy_with_backtracking, 3),
         "daily_energy_gain_percent": round(daily_energy_gain_percent, 2),
+        "daily_irradiance_fixed":      round(daily_irr_fixed, 1),
+        "daily_irradiance_no_bt":      round(daily_irr_no_bt, 1),
+        "daily_irradiance_bt":         round(daily_irr_bt, 1),
+        "irradiance_gain_bt_vs_fixed": round(gain_bt_vs_fixed, 2),
+        "irradiance_gain_bt_vs_no_bt": round(gain_bt_vs_no_bt, 2),
         "data": simulation_data,
     }
 
@@ -118,14 +136,3 @@ def simulate_day_csv(payload: SimulationRequest):
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
-@router.post("/simulate/day")
-def simulate_day(request: SimulationRequest):
-    try:
-        profile = get_tracker_day_profile(request)
-        result = run_full_simulation(profile, request)
-        return result
-    except Exception as e:
-        import traceback
-        print("SIMULATE ERROR:", repr(e))
-        traceback.print_exc()
-        raise

@@ -217,6 +217,7 @@ def run_full_simulation(
             power_with_backtracking = 0.0
 
             irradiance_raw = 0.0
+            irradiance_fixed = 0.0
         else:
             (
                 shadow_length_without,
@@ -281,6 +282,7 @@ def run_full_simulation(
                 power_with_backtracking = _power_tmp
 
             irradiance_raw = max(0.0, float(row["ghi"]))
+            irradiance_fixed = max(0.0, float(row.get("irradiance_fixed", 0.0)))
 
         if backtracking_enabled:
             selected_shadow_length = shadow_length_with
@@ -307,6 +309,7 @@ def run_full_simulation(
                 "shaded_with_backtracking": shaded_with,
                 "shading_percent_without_backtracking": round(shading_percent_without, 2),
                 "shading_percent_with_backtracking": round(shading_percent_with, 2),
+                "irradiance_fixed": round(irradiance_fixed, 2),
                 "irradiance_raw": round(irradiance_raw, 2),
                 "irradiance_without_backtracking": round(irradiance_without_backtracking, 2),
                 "irradiance_with_backtracking": round(irradiance_with_backtracking, 2),

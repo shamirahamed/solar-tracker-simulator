@@ -283,9 +283,9 @@ function updateSummary(result) {
   document.getElementById("maxPowerWith").textContent = `${maxVal("power_with_backtracking").toFixed(1)} W`;
   document.getElementById("maxShadingNoBt").textContent = `${maxVal("shading_percent_without_backtracking").toFixed(2)}%`;
   document.getElementById("maxShadingBt").textContent = `${maxVal("shading_percent_with_backtracking").toFixed(2)}%`;
-  document.getElementById("energyNo").textContent = `${Number(result.daily_energy_without_backtracking || 0).toFixed(3)} kWh`;
-  document.getElementById("energyBt").textContent = `${Number(result.daily_energy_with_backtracking || 0).toFixed(3)} kWh`;
-  document.getElementById("energyGain").textContent = `${Number(result.daily_energy_gain_percent || 0).toFixed(2)}%`;
+  document.getElementById("energyNo").textContent = `${Number(result.daily_irradiance_no_bt || 0).toFixed(0)} Wh/m²`;
+  document.getElementById("energyBt").textContent = `${Number(result.daily_irradiance_bt || 0).toFixed(0)} Wh/m²`;
+  document.getElementById("energyGain").textContent = `+${Number(result.irradiance_gain_bt_vs_fixed || 0).toFixed(2)}%`;
 
   const sunTimes = calculateSunTimes(data);
   document.getElementById("sunCycle").textContent = `${sunTimes.sunrise ? formatTimeLabel(sunTimes.sunrise) : "--"} / ${sunTimes.sunset ? formatTimeLabel(sunTimes.sunset) : "--"}`;
@@ -416,11 +416,36 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Power No BT", data: data.map((r) => r.power_without_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
-        { label: "Power BT", data: data.map((r) => r.power_with_backtracking), borderWidth: 1.5, pointRadius: 0, tension: 0.22 }
+        {
+          label: "Fixed Panel",
+          data: data.map((r) => r.irradiance_fixed),
+          borderColor: "#22c55e",
+          backgroundColor: "rgba(34,197,94,0.07)",
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.22
+        },
+        {
+          label: "Tracker – No BT",
+          data: data.map((r) => r.irradiance_without_backtracking),
+          borderColor: "#f59e0b",
+          backgroundColor: "rgba(245,158,11,0.07)",
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.22
+        },
+        {
+          label: "Tracker – BT",
+          data: data.map((r) => r.irradiance_with_backtracking),
+          borderColor: "#00e5ff",
+          backgroundColor: "rgba(0,229,255,0.07)",
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.22
+        }
       ]
     },
-    options: chartBaseOptions("Power (W)")
+    options: chartBaseOptions("Irradiance (W/m²)")
   });
 }
 
@@ -808,9 +833,11 @@ preview.textContent = JSON.stringify(
     timezone: result.timezone,
     date: result.date,
     total_points: result.total_points,
-    daily_energy_without_backtracking: result.daily_energy_without_backtracking,
-    daily_energy_with_backtracking: result.daily_energy_with_backtracking,
-    daily_energy_gain_percent: result.daily_energy_gain_percent,
+    daily_irradiance_fixed: result.daily_irradiance_fixed,
+    daily_irradiance_no_bt: result.daily_irradiance_no_bt,
+    daily_irradiance_bt: result.daily_irradiance_bt,
+    irradiance_gain_bt_vs_fixed: result.irradiance_gain_bt_vs_fixed,
+    irradiance_gain_bt_vs_no_bt: result.irradiance_gain_bt_vs_no_bt,
     row_540: result.data[540],
     row_720: result.data[720],
     row_900: result.data[900]
@@ -1020,14 +1047,10 @@ function pdfFormatShadowMetric(value) {
 }
 
 function pdfBuildSummarySentence(result) {
-  const gain = Number(result?.daily_energy_gain_percent || 0);
-  if (gain > 0.5) {
-    return `Backtracking improves daily energy by ${gain.toFixed(2)}% in this case.`;
-  }
-  if (gain < -0.5) {
-    return `Backtracking reduces daily energy by ${Math.abs(gain).toFixed(2)}% in this case.`;
-  }
-  return "Backtracking and non-backtracking energy are nearly similar in this case.";
+  const gainVsFixed = Number(result?.irradiance_gain_bt_vs_fixed || 0);
+  const gainVsNoBt  = Number(result?.irradiance_gain_bt_vs_no_bt || 0);
+  return `BT tracker vs fixed panel: ${gainVsFixed >= 0 ? "+" : ""}${gainVsFixed.toFixed(2)}% irradiance. ` +
+         `BT vs No-BT tracker: ${gainVsNoBt >= 0 ? "+" : ""}${gainVsNoBt.toFixed(2)}%.`;
 }
 
 function pdfBuildDimensionDiagramDataUrl(payload, mobileView = false) {
@@ -1212,7 +1235,10 @@ async function downloadPdf() {
       maxShadowNoBt: Math.max(...latestSimulationData.map((r) => Number(r.shadow_length_without_backtracking || 0)), 0),
       maxShadowBt: Math.max(...latestSimulationData.map((r) => Number(r.shadow_length_with_backtracking || 0)), 0),
       maxPowerNoBt: Math.max(...latestSimulationData.map((r) => Number(r.power_without_backtracking || 0)), 0),
-      maxPowerBt: Math.max(...latestSimulationData.map((r) => Number(r.power_with_backtracking || 0)), 0)
+      maxPowerBt: Math.max(...latestSimulationData.map((r) => Number(r.power_with_backtracking || 0)), 0),
+      maxIrrFixed: Math.max(...latestSimulationData.map((r) => Number(r.irradiance_fixed || 0)), 0),
+      maxIrrNoBt: Math.max(...latestSimulationData.map((r) => Number(r.irradiance_without_backtracking || 0)), 0),
+      maxIrrBt: Math.max(...latestSimulationData.map((r) => Number(r.irradiance_with_backtracking || 0)), 0)
     };
 
     const anglesImg = pdfSafeCanvasData(document.getElementById("anglesChart"), mobileView);
@@ -1243,9 +1269,9 @@ async function downloadPdf() {
       `${payload.backtracking ? "Backtracking ON" : "Backtracking OFF"}`
     ], 14, 40, 5);
 
-    pdfMetricBox(doc, 14, 56, 42, 18, "Energy No BT", `${Number(result.daily_energy_without_backtracking || 0).toFixed(3)} kWh`);
-    pdfMetricBox(doc, 60, 56, 42, 18, "Energy BT", `${Number(result.daily_energy_with_backtracking || 0).toFixed(3)} kWh`);
-    pdfMetricBox(doc, 106, 56, 42, 18, "Energy Gain", `${Number(result.daily_energy_gain_percent || 0).toFixed(2)} %`);
+    pdfMetricBox(doc, 14, 56, 42, 18, "Irr. Fixed", `${Number(result.daily_irradiance_fixed || 0).toFixed(0)} Wh/m²`);
+    pdfMetricBox(doc, 60, 56, 42, 18, "Irr. No BT", `${Number(result.daily_irradiance_no_bt || 0).toFixed(0)} Wh/m²`);
+    pdfMetricBox(doc, 106, 56, 42, 18, "Irr. BT", `${Number(result.daily_irradiance_bt || 0).toFixed(0)} Wh/m²`);
     pdfMetricBox(doc, 152, 56, 42, 18, "GCR", `${metrics.gcr.ratio.toFixed(3)}`);
 
     pdfSectionTitle(doc, "Selected inputs", 14, 84);
@@ -1269,8 +1295,9 @@ async function downloadPdf() {
       `Max shading with backtracking: ${metrics.maxShadingBt.toFixed(2)}%`,
       `Max shadow without backtracking: ${pdfFormatShadowMetric(metrics.maxShadowNoBt)}`,
       `Max shadow with backtracking: ${pdfFormatShadowMetric(metrics.maxShadowBt)}`,
-      `Max power without backtracking: ${metrics.maxPowerNoBt.toFixed(1)} W`,
-      `Max power with backtracking: ${metrics.maxPowerBt.toFixed(1)} W`
+      `Peak irradiance – Fixed: ${metrics.maxIrrFixed.toFixed(1)} W/m²`,
+      `Peak irradiance – No BT: ${metrics.maxIrrNoBt.toFixed(1)} W/m²`,
+      `Peak irradiance – BT: ${metrics.maxIrrBt.toFixed(1)} W/m²`
     ], 14, 138, mobileView ? 5.0 : 5.2);
 
     pdfSectionTitle(doc, "Comparison summary", 14, 178);
@@ -1306,7 +1333,7 @@ async function downloadPdf() {
         { title: "Tracker Angle", img: anglesImg, x: 14, y: 22 },
         { title: "Solar Position", img: sunImg, x: 110, y: 22 },
         { title: "Inter-row Shadowing", img: shadingImg, x: 14, y: 114 },
-        { title: "Power Output", img: powerImg, x: 110, y: 114 }
+        { title: "Irradiance Comparison", img: powerImg, x: 110, y: 114 }
       ];
 
       charts.forEach((c) => {
@@ -1325,7 +1352,7 @@ async function downloadPdf() {
 
       pdfAddTwoChartsPage(doc, "Charts 3 / 4",
         { title: "Inter-row Shadowing", img: shadingImg },
-        { title: "Power Output", img: powerImg }
+        { title: "Irradiance Comparison", img: powerImg }
       );
     }
 

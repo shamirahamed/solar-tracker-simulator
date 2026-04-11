@@ -89,6 +89,24 @@ def get_tracker_day_profile(
         cross_axis_tilt=CROSS_AXIS_TILT,
     )
 
+    # Fixed-panel POA irradiance (baseline for irradiance comparison chart)
+    _fixed_tilt = abs(latitude)
+    _fixed_azimuth = 180.0 if latitude >= 0 else 0.0
+
+    _poa_fixed_series = pvlib.irradiance.get_total_irradiance(
+        surface_tilt=_fixed_tilt,
+        surface_azimuth=_fixed_azimuth,
+        dni=clearsky["dni"],
+        ghi=clearsky["ghi"],
+        dhi=clearsky["dhi"],
+        solar_zenith=solar_position["apparent_zenith"],
+        solar_azimuth=solar_position["azimuth"],
+        dni_extra=dni_extra,
+        airmass=relative_airmass,
+        albedo=ALBEDO,
+        model="haydavies",
+    )["poa_global"].fillna(0.0).clip(lower=0.0)
+
     data: List[Dict[str, Any]] = []
 
     for ts in times:
@@ -130,6 +148,7 @@ def get_tracker_day_profile(
                 "backtracking_surface_azimuth": _safe_tracking_value(
                     tracking_backtracking, ts, "surface_azimuth", 180.0
                 ),
+                "irradiance_fixed": round(_safe_series_value(_poa_fixed_series, ts, 0.0), 4),
             }
         )
 
