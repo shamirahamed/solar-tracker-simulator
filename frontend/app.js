@@ -631,7 +631,7 @@ function draw2DScene(row) {
 
   const payload = getPayload();
 
-  const groundY = height * (width < 640 ? 0.83 : 0.80);
+  const groundY = height * (width < 640 ? 0.85 : 0.80);
   const skyTop = 18;
   const skyHeight = groundY - skyTop - 40;
 
@@ -663,8 +663,8 @@ function draw2DScene(row) {
   const panelLengthPx = Math.max(58, Math.min(width < 640 ? width * 0.17 : width * 0.24, payload.panel_width * ppm));
 
   const trackerHeightPx = Math.max(
-    width < 640 ? 55 : 46,
-    Math.min(height * 0.24, payload.tracker_height * ppm * 0.90)
+    width < 640 ? 65 : 46,
+    Math.min(height * 0.26, payload.tracker_height * ppm * 0.90)
   );
 
   const centerX = width / 2;
@@ -1143,17 +1143,24 @@ function pdfSafeCanvasData(canvas, jpeg = true) {
   }
 }
 
-// Temporarily renders the chart at 600px height (2.5× normal 240px) so the
-// canvas has far more native pixels before capture — jsPDF then downscales it
-// to 160×120mm, giving crisp lines and readable labels in the PDF.
+// Temporarily renders the chart at a height matching the PDF slot's 4:3 aspect
+// ratio. chart.update('none') forces a synchronous draw — skipping the default
+// creation/resize animation that would otherwise leave the canvas blank.
 function pdfCaptureChartHiRes(chartObj) {
   if (!chartObj?.canvas) return null;
   const container = chartObj.canvas.closest(".chart-container");
-  if (!container) return pdfSafeCanvasData(chartObj.canvas, true);
+  if (!container) {
+    chartObj.update("none");
+    return pdfSafeCanvasData(chartObj.canvas, true);
+  }
   const origH = container.style.height;
   try {
-    container.style.height = "600px";
+    // Match the PDF slot ratio (160×120mm = 4:3) so jsPDF doesn't distort
+    const w = Math.max(container.offsetWidth || 0, 400);
+    const targetH = Math.round(w * 0.75);          // 4:3 landscape height
+    container.style.height = targetH + "px";
     chartObj.resize();
+    chartObj.update("none");   // ← synchronous draw, no animation blank-frame
     return pdfSafeCanvasData(chartObj.canvas, true);
   } finally {
     container.style.height = origH;
@@ -1398,13 +1405,17 @@ async function downloadPdf() {
       maxIrrBt: Math.max(...latestSimulationData.map((r) => Number(r.irradiance_with_backtracking || 0)), 0)
     };
 
-    // Temporarily render charts in light theme so they export cleanly on white PDF.
-    // All operations are synchronous — browser does not repaint, no visible flicker.
+    // Temporarily render charts in light theme for clean white-background PDF.
+    // chart.update('none') after buildCharts forces synchronous draw on every
+    // new instance — otherwise the default creation animation leaves canvases
+    // blank when toDataURL is called immediately after.
     const _pdfTheme = document.documentElement.dataset.theme || "dark";
     const _needSwitch = _pdfTheme !== "light";
     if (_needSwitch) {
       document.documentElement.dataset.theme = "light";
       buildCharts(latestSimulationData);
+      // Force each new chart to draw NOW (skip creation animation)
+      [anglesChart, sunChart, shadingChart, powerChart].forEach(c => c?.update("none"));
     }
 
     const anglesImg  = pdfCaptureChartHiRes(anglesChart);
@@ -1415,6 +1426,7 @@ async function downloadPdf() {
     if (_needSwitch) {
       document.documentElement.dataset.theme = _pdfTheme;
       buildCharts(latestSimulationData);
+      [anglesChart, sunChart, shadingChart, powerChart].forEach(c => c?.update("none"));
     }
 
     const dimensionImg = pdfBuildDimensionDiagramDataUrl(payload, mobileView);
