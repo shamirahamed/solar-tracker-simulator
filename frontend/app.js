@@ -1185,9 +1185,9 @@ function pdfSectionBox(doc, x, y, w, h) {
  * synchronously, composites onto white, returns a JPEG data-URL.
  * jsPDF then downscales this to 160×120mm → sharp, clean output.
  * ──────────────────────────────────────────────────────────────────── */
-// Canvas is 2000px wide, jsPDF slots it into 160mm ≈ 454px → scale ~4.4×.
-// Multiply target pt size × 4.4 to get canvas px:
-//   legend/title 11pt → 48px | ticks 9pt → 40px
+// Canvas is 1200×900px; jsPDF slots it into 160×120mm ≈ 454×341px → scale ~2.64×.
+// Multiply target pt size × 2.64:
+//   legend/title 11pt → 29px | ticks 9pt → 24px
 function _pdfChartOpts(yText) {
   const grid = "rgba(0,0,0,0.11)";
   const tick = "#1e293b";
@@ -1195,24 +1195,27 @@ function _pdfChartOpts(yText) {
     responsive: false,
     animation: false,
     maintainAspectRatio: false,
-    layout: { padding: { top: 10, right: 40, bottom: 10, left: 10 } },
+    layout: { padding: { top: 6, right: 24, bottom: 6, left: 6 } },
     plugins: {
       legend: { display: true, position: "top",
-        labels: { font: { size: 48, weight: "600" }, color: "#0f172a", boxWidth: 40, padding: 30 } },
+        labels: { font: { size: 26, weight: "600" }, color: "#0f172a", boxWidth: 24, padding: 18 } },
       tooltip: { enabled: false }
     },
     scales: {
-      x: { ticks: { maxTicksLimit: 10, font: { size: 40 }, color: tick, maxRotation: 0 },
+      x: { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: tick, maxRotation: 0 },
            grid: { color: grid } },
-      y: { title: { display: true, text: yText, font: { size: 48, weight: "700" }, color: "#0f172a" },
-           ticks: { font: { size: 40 }, color: tick }, grid: { color: grid } }
+      y: { title: { display: true, text: yText, font: { size: 26, weight: "700" }, color: "#0f172a" },
+           ticks: { font: { size: 22 }, color: tick }, grid: { color: grid } }
     }
   };
 }
 
 function pdfOffscreenChart(config) {
   try {
-    const CW = 2000, CH = 1500;
+    // 1200×900 is safe across all mobile browsers (iOS Safari caps ~4096px
+    // total area; 2000×1500=3M pixels was too close to limits on some devices).
+    // jsPDF downscales to 160×120mm regardless — quality is still sharp.
+    const CW = 1200, CH = 900;
     const chartCanvas = document.createElement("canvas");
     chartCanvas.width = CW; chartCanvas.height = CH;
     const chart = new Chart(chartCanvas, config);
@@ -1534,13 +1537,13 @@ async function downloadPdf() {
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
-          x:  { ticks: { maxTicksLimit: 10, font: { size: 40 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
           y:  { type: "linear", position: "left",  beginAtZero: true, min: 0, max: Math.max(5, Math.ceil(_maxSh  * 1.15)),
-                title: { display: true, text: "Shadow Length (m)", font: { size: 48, weight: "700" }, color: "#0f172a" },
-                ticks: { font: { size: 40 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
+                title: { display: true, text: "Shadow Length (m)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
           y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: Math.max(5, Math.ceil(_maxPct + 1)),
-                title: { display: true, text: "Shading (%)", font: { size: 48, weight: "700" }, color: "#0f172a" },
-                ticks: { font: { size: 40 }, color: "#1e293b" }, grid: { drawOnChartArea: false } }
+                title: { display: true, text: "Shading (%)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { drawOnChartArea: false } }
         }
       }
     });
