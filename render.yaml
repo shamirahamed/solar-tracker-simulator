@@ -1,0 +1,36 @@
+services:
+  # ── Backend API (FastAPI) ──────────────────────────────────────────
+  - type: web
+    name: solar-tracker-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+    healthCheckPath: /api/v1/health
+
+  # ── Frontend (Static Site) ─────────────────────────────────────────
+  - type: web
+    name: solar-tracker-ui
+    runtime: static
+    rootDir: frontend
+    # Build command writes the backend URL into _api_config.js so the
+    # browser knows where to send API requests without hardcoding URLs.
+    # Set RENDER_API_URL env var in the Render dashboard to your backend URL:
+    #   e.g. https://solar-tracker-api.onrender.com/api/v1
+    buildCommand: >
+      echo "window.__RENDER_API_URL = '${RENDER_API_URL}';" > _api_config.js
+    staticPublishPath: .
+    envVars:
+      - key: RENDER_API_URL
+        sync: false
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

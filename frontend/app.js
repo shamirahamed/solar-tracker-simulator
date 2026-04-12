@@ -1,7 +1,14 @@
-const AUTO_API_BASE =
-  window.location.hostname.includes("app.github.dev")
-    ? `${window.location.protocol}//${window.location.hostname.replace(/-\d+\./, "-8000.")}/api/v1`
-    : "http://localhost:8000/api/v1";
+// API base URL resolution (priority order):
+// 1. User-saved override in localStorage (Settings panel)
+// 2. RENDER_API_URL injected at build/deploy time (window.__RENDER_API_URL)
+// 3. Codespaces: auto-derive from the preview hostname
+// 4. Local dev fallback
+const AUTO_API_BASE = (() => {
+  if (window.__RENDER_API_URL) return window.__RENDER_API_URL;
+  if (window.location.hostname.includes("app.github.dev"))
+    return `${window.location.protocol}//${window.location.hostname.replace(/-\d+\./, "-8000.")}/api/v1`;
+  return "http://localhost:8000/api/v1";
+})();
 
 let API_BASE = localStorage.getItem("api_url") || AUTO_API_BASE;
 let allTimezones = [];
@@ -1240,8 +1247,7 @@ function pdfMetricBox(doc, x, y, w, h, title, value) {
 function pdfSafeCanvasData(canvas, jpeg = true) {
   if (!canvas) return null;
   try {
-    // Use source canvas native pixel dimensions (may be large from pdfCaptureChartHiRes)
-    // then composite onto white — downscaling in jsPDF gives sharp output
+    // Composite source canvas onto white background before export
     const W = canvas.width  || (jpeg ? 800 : 910);
     const H = canvas.height || (jpeg ? 600 : 360);
     const exportCanvas = document.createElement("canvas");
@@ -1259,63 +1265,6 @@ function pdfSafeCanvasData(canvas, jpeg = true) {
   }
 }
 
-// Force a synchronous draw on a Chart.js instance.
-// stop() cancels the RAF animation loop; draw() writes directly to canvas.
-// Falls back to update({duration:0}) for older Chart.js builds.
-function _pdfForceDrawChart(c) {
-  if (!c) return;
-  c.stop?.();
-  if (typeof c.draw === "function") {
-    c.draw();
-  } else {
-    c.update?.({ duration: 0 });
-  }
-}
-
-// Temporarily renders the chart at 4:3 aspect (matching 160×120mm PDF slot)
-// then captures the canvas AFTER a forced synchronous draw.
-function pdfCaptureChartHiRes(chartObj) {
-  if (!chartObj?.canvas) return null;
-  const container = chartObj.canvas.closest(".chart-container");
-  if (!container) {
-    _pdfForceDrawChart(chartObj);
-    return pdfSafeCanvasData(chartObj.canvas, true);
-  }
-  const origH = container.style.height;
-  try {
-    const w = Math.max(container.offsetWidth || 0, 400);
-    container.style.height = Math.round(w * 0.75) + "px"; // 4:3 landscape
-    chartObj.resize();
-    _pdfForceDrawChart(chartObj);   // draw to canvas NOW, no RAF delay
-    return pdfSafeCanvasData(chartObj.canvas, true);
-  } finally {
-    container.style.height = origH;
-    chartObj.resize();
-  }
-}
-
-// legacy shim kept so no other call sites break
-function _pdfSafeCanvasDataUnused(canvas, mobileView = false) {
-  if (!canvas) return null;
-  try {
-    if (!mobileView) {
-      return canvas.toDataURL("image/png", 1.0);
-    }
-    const scale = 0.68;
-    const exportCanvas = document.createElement("canvas");
-    exportCanvas.width = Math.max(600, Math.floor(canvas.width * scale));
-    exportCanvas.height = Math.max(320, Math.floor(canvas.height * scale));
-
-    const ctx = exportCanvas.getContext("2d");
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-    ctx.drawImage(canvas, 0, 0, exportCanvas.width, exportCanvas.height);
-
-    return exportCanvas.toDataURL("image/jpeg", 0.82);
-  } catch (e) {
-    return null;
-  }
-}
 
 function pdfSafeTrackerData() {
   try {
