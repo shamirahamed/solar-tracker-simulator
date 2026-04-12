@@ -44,10 +44,12 @@ const timeSlider = document.getElementById("timeSlider");
 const timeLabel = document.getElementById("timeLabel");
 const play2dBtn = document.getElementById("play2d");
 const pause2dBtn = document.getElementById("pause2d");
+const liveModeBtn = document.getElementById("liveMode");
 
 let anglesChart = null;
 let sunChart = null;
 let shadingChart = null;
+let liveTimer = null;
 
 /* ── Theme & accent system ─────────────────────────────────────────── */
 const ACCENTS = {
@@ -868,11 +870,57 @@ function stop2DPlayback() {
   setPlaybackState(false);
 }
 
+/* ── Live Mode ────────────────────────────────────────────────────── */
+// Finds the simulation row whose timestamp is closest to the current
+// real-world local time and jumps the slider + 2D canvas to that frame.
+// Updates every 30 seconds automatically.
+
+function _liveCurrentIndex() {
+  if (!latestSimulationData.length) return 0;
+  const now = new Date();
+  const hhmm = now.getHours() * 60 + now.getMinutes();
+  let best = 0, bestDiff = Infinity;
+  latestSimulationData.forEach((row, i) => {
+    const t = new Date(row.timestamp);
+    const rowMin = t.getHours() * 60 + t.getMinutes();
+    const diff = Math.abs(rowMin - hhmm);
+    if (diff < bestDiff) { bestDiff = diff; best = i; }
+  });
+  return best;
+}
+
+function stopLiveMode() {
+  if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+  liveModeBtn?.classList.remove("live-active");
+  liveModeBtn?.setAttribute("aria-pressed", "false");
+}
+
+function startLiveMode() {
+  if (!latestSimulationData.length) {
+    showPopup("Run simulation first.", "error"); return;
+  }
+  stop2DPlayback();         // stop animation playback if running
+  liveModeBtn?.classList.add("live-active");
+  liveModeBtn?.setAttribute("aria-pressed", "true");
+
+  const tick = () => {
+    if (!latestSimulationData.length) { stopLiveMode(); return; }
+    update2DFrame(_liveCurrentIndex());
+  };
+  tick();                   // jump immediately
+  liveTimer = setInterval(tick, 30_000);  // refresh every 30s
+}
+
+function toggleLiveMode() {
+  if (liveTimer) { stopLiveMode(); } else { startLiveMode(); }
+}
+
 function start2DPlayback() {
   if (!latestSimulationData.length || !timeSlider) {
     showPopup("Run simulation first.", "error");
     return;
   }
+  stopLiveMode();   // live mode and playback are mutually exclusive
 
   if (playTimer) {
     clearInterval(playTimer);
@@ -905,6 +953,7 @@ function setup2DControls() {
 
   timeSlider.addEventListener("input", () => {
     stop2DPlayback();
+    stopLiveMode();
     update2DFrame(parseInt(timeSlider.value, 10));
   });
 
@@ -915,6 +964,8 @@ function setup2DControls() {
   pause2dBtn.addEventListener("click", () => {
     stop2DPlayback();
   });
+
+  liveModeBtn?.addEventListener("click", toggleLiveMode);
 
   window.addEventListener("resize", () => {
     if (!latestSimulationData.length) return;
@@ -1481,17 +1532,21 @@ async function downloadPdf() {
     };
 
     // Build chart images from detached offscreen canvases (2000×1500px).
-    // animation:false + responsive:false = fully synchronous, no DOM touch,
-    // no theme switching needed — always renders with clean light colours.
+    // animation:false + responsive:false = fully synchronous, no DOM touch.
+    // Option A: mirror live chart dataset visibility — if user hid a line on
+    // the web chart by clicking the legend, it will also be hidden in the PDF.
     const _d = latestSimulationData;
     const _lbl = _d.map(r => formatTimeLabel(r.timestamp));
+
+    // Helper: read hidden state from live chart dataset by index
+    const _hidden = (chart, i) => chart?.data?.datasets?.[i]?.hidden === true;
 
     const anglesImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Ideal",        data: _d.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Limited",      data: _d.map(r => r.limited_tracker_angle), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Backtracking", data: _d.map(r => r.backtracking_angle),    borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
+        { label: "Ideal",        hidden: _hidden(anglesChart,0), data: _d.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Limited",      hidden: _hidden(anglesChart,1), data: _d.map(r => r.limited_tracker_angle), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Backtracking", hidden: _hidden(anglesChart,2), data: _d.map(r => r.backtracking_angle),    borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Angle (deg)")
     });
@@ -1499,8 +1554,8 @@ async function downloadPdf() {
     const sunImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Elevation", data: _d.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Azimuth",   data: _d.map(r => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
+        { label: "Elevation", hidden: _hidden(sunChart,0), data: _d.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Azimuth",   hidden: _hidden(sunChart,1), data: _d.map(r => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Sun Angle (deg)")
     });
@@ -1513,10 +1568,10 @@ async function downloadPdf() {
     const shadingImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Shadow No BT",   data: _snoBt, borderColor: "#0891b2", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shadow BT",      data: _sBt,   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shading% No BT", data: _d.map(r => r.shading_percent_without_backtracking), borderColor: "#dc2626", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "Shading% BT",    data: _d.map(r => r.shading_percent_with_backtracking),    borderColor: "#ea580c", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "Shadow No BT",   hidden: _hidden(shadingChart,0), data: _snoBt, borderColor: "#0891b2", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "Shadow BT",      hidden: _hidden(shadingChart,1), data: _sBt,   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "Shading% No BT", hidden: _hidden(shadingChart,2), data: _d.map(r => r.shading_percent_without_backtracking), borderColor: "#dc2626", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "Shading% BT",    hidden: _hidden(shadingChart,3), data: _d.map(r => r.shading_percent_with_backtracking),    borderColor: "#ea580c", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
@@ -1534,9 +1589,9 @@ async function downloadPdf() {
     const powerImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Fixed Panel",     data: _d.map(r => r.irradiance_fixed),                  borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – No BT", data: _d.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – BT",    data: _d.map(r => r.irradiance_with_backtracking),     borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
+        { label: "Fixed Panel",     hidden: _hidden(powerChart,0), data: _d.map(r => r.irradiance_fixed),                 borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", hidden: _hidden(powerChart,1), data: _d.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",    hidden: _hidden(powerChart,2), data: _d.map(r => r.irradiance_with_backtracking),    borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Irradiance (W/m²)")
     });
