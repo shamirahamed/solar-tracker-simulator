@@ -579,7 +579,7 @@ function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, g
 
   ctx.fillStyle = isLight ? "#1e3a5f" : "#94a3b8";
   ctx.font = "12px Arial";
-  ctx.fillText(label, pivotX - 18, pivotY - 12);
+  ctx.fillText(label, pivotX - 18, groundY + 14);
 
   return {
     leftX: Math.min(x1, x2),
@@ -716,33 +716,37 @@ function draw2DScene(row) {
     const sunHeightBoost = width < 640 ? 14 : 30;
     const sunY = groundY - sunYOffset - elevNorm * (skyHeight + sunHeightBoost);
 
-    // guide arc
-    ctx.strokeStyle = isLight ? "rgba(58,124,40,0.18)" : "rgba(0,200,83,0.12)";
+    // guide arc — ellipse matching sun's actual horizontal path (east→west)
+    const arcRx = (width - 88) / 2;
+    const arcRy = Math.min(skyHeight * 0.72, width < 640 ? 80 : 150);
+    ctx.strokeStyle = isLight ? "rgba(58,124,40,0.20)" : "rgba(0,200,83,0.15)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(width / 2, groundY + 16, Math.min(width * 0.42, 250), Math.PI, 2 * Math.PI);
+    ctx.ellipse(width / 2, groundY + 8, arcRx, arcRy, 0, Math.PI, 2 * Math.PI);
     ctx.stroke();
 
     drawSunIcon(ctx, sunX, sunY, 11);
 
-    // shadow opposite to sun
-    const shadowPx = shownShadowDisplay * ppm;
-    const shadowSourceX = sunOnLeft ? mast1X : mast2X;
-    const shadowEndX = sunOnLeft ? shadowSourceX + shadowPx : shadowSourceX - shadowPx;
+    // shadow opposite to sun — only draw when shadow actually exists
+    if (shownShadowDisplay > 0) {
+      const shadowPx = shownShadowDisplay * ppm;
+      const shadowSourceX = sunOnLeft ? mast1X : mast2X;
+      const shadowEndX = sunOnLeft ? shadowSourceX + shadowPx : shadowSourceX - shadowPx;
 
-    ctx.strokeStyle = isLight ? "rgba(0,0,0,0.10)" : "rgba(0,0,0,0.35)";
-    ctx.lineWidth = 7;
-    ctx.beginPath();
-    ctx.moveTo(shadowSourceX, groundY);
-    ctx.lineTo(shadowEndX, groundY);
-    ctx.stroke();
+      ctx.strokeStyle = isLight ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.40)";
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(shadowSourceX, groundY);
+      ctx.lineTo(shadowEndX, groundY);
+      ctx.stroke();
 
-    ctx.strokeStyle = isLight ? "rgba(30,58,95,0.55)" : "rgba(100,116,139,0.85)";
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(shadowSourceX, groundY);
-    ctx.lineTo(shadowEndX, groundY);
-    ctx.stroke();
+      ctx.strokeStyle = isLight ? "rgba(30,58,95,0.60)" : "rgba(148,163,184,0.90)";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(shadowSourceX, groundY);
+      ctx.lineTo(shadowEndX, groundY);
+      ctx.stroke();
+    }
 
     // downstream row shading only
     if (shadingPercentSelected > MIN_SHADING_VISUAL_PERCENT) {
@@ -1095,12 +1099,13 @@ function pdfMetricBox(doc, x, y, w, h, title, value) {
   doc.text(String(value), x + 3, y + 12);
 }
 
-function pdfSafeCanvasData(canvas) {
+function pdfSafeCanvasData(canvas, jpeg = true) {
   if (!canvas) return null;
   try {
-    // Normalize to 910×360 (2.53:1) matching the 182×72mm PDF slot.
-    // Consistent source size = consistent font/line appearance regardless of window width.
-    const W = 910, H = 360;
+    // 4:3 ratio (800×600) for JPEG output matching 160×120mm PDF slot
+    // PNG 2.53:1 ratio (910×360) kept for backward compat when jpeg=false
+    const W = jpeg ? 800 : 910;
+    const H = jpeg ? 600 : 360;
     const exportCanvas = document.createElement("canvas");
     exportCanvas.width  = W;
     exportCanvas.height = H;
@@ -1108,7 +1113,7 @@ function pdfSafeCanvasData(canvas) {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, W, H);
     ctx.drawImage(canvas, 0, 0, W, H);
-    return exportCanvas.toDataURL("image/png", 1.0);
+    return exportCanvas.toDataURL(jpeg ? "image/jpeg" : "image/png", jpeg ? 0.85 : 1.0);
   } catch (e) {
     return null;
   }
@@ -1431,34 +1436,36 @@ async function downloadPdf() {
     doc.setTextColor(71, 85, 105);
     doc.text("Geometry reference used for the current simulation inputs.", 14, 122, { maxWidth: 182 });
 
-    // PAGE 3 — Tracker Angle + Solar Position (full-width, 182×72mm each)
+    // PAGE 3 — Tracker Angle + Solar Position (160×120mm JPEG, 2 per page)
     {
-      const CW = 182, CH = 72;   // 2.53:1 matches pdfSafeCanvasData 910×360 export
+      const CW = 160, CH = 120;   // 4:3 matches pdfSafeCanvasData 800×600 JPEG export
+      const X = 15;
       doc.addPage();
       pdfPageBackground(doc);
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
-      doc.text("Tracker Angle", 14, 16);
-      if (anglesImg) doc.addImage(anglesImg, "PNG", 14, 20, CW, CH);
+      doc.text("Tracker Angle", X, 14);
+      if (anglesImg) doc.addImage(anglesImg, "JPEG", X, 18, CW, CH);
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
-      doc.text("Solar Position", 14, 100);
-      if (sunImg) doc.addImage(sunImg, "PNG", 14, 104, CW, CH);
+      doc.text("Solar Position", X, 146);
+      if (sunImg) doc.addImage(sunImg, "JPEG", X, 150, CW, CH);
     }
 
-    // PAGE 4 — Inter-row Shadowing + Irradiance Comparison (full-width)
+    // PAGE 4 — Inter-row Shadowing + Irradiance Comparison (160×120mm JPEG)
     {
-      const CW = 182, CH = 72;
+      const CW = 160, CH = 120;
+      const X = 15;
       doc.addPage();
       pdfPageBackground(doc);
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
-      doc.text("Inter-row Shadowing", 14, 16);
-      if (shadingImg) doc.addImage(shadingImg, "PNG", 14, 20, CW, CH);
+      doc.text("Inter-row Shadowing", X, 14);
+      if (shadingImg) doc.addImage(shadingImg, "JPEG", X, 18, CW, CH);
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
-      doc.text("Irradiance Comparison", 14, 100);
-      if (powerImg) doc.addImage(powerImg, "PNG", 14, 104, CW, CH);
+      doc.text("Irradiance Comparison", X, 146);
+      if (powerImg) doc.addImage(powerImg, "JPEG", X, 150, CW, CH);
     }
 
     // FINAL PAGE - NOTES
@@ -1631,10 +1638,23 @@ function setupChartModal() {
     if (e.key === "Escape") closeChartModal();
   });
 
-  // attach click-to-expand to every chart container
+  // Inject an explicit ⤢ expand button into each chart container.
+  // Only clicking this button opens the modal — prevents accidental zoom
+  // from tapping nearby UI elements (device bar, labels, etc.).
   Object.keys(CHART_MAP).forEach(id => {
-    const canvas = document.getElementById(id);
-    canvas?.closest(".chart-container")?.addEventListener("click", () => openChartModal(id));
+    const container = document.getElementById(id)?.closest(".chart-container");
+    if (!container) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chart-expand-btn";
+    btn.title = "Expand chart";
+    btn.setAttribute("aria-label", "Expand chart fullscreen");
+    btn.textContent = "⤢";
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();   // never bubbles to page
+      openChartModal(id);
+    });
+    container.appendChild(btn);
   });
 }
 
