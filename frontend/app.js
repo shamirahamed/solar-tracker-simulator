@@ -663,8 +663,8 @@ function draw2DScene(row) {
   const panelLengthPx = Math.max(58, Math.min(width < 640 ? width * 0.17 : width * 0.24, payload.panel_width * ppm));
 
   const trackerHeightPx = Math.max(
-    width < 640 ? 65 : 46,
-    Math.min(height * 0.26, payload.tracker_height * ppm * 0.90)
+    width < 640 ? 50 : 46,
+    Math.min(height * (width < 640 ? 0.20 : 0.26), payload.tracker_height * ppm * 0.88)
   );
 
   const centerX = width / 2;
