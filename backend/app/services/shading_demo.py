@@ -256,30 +256,9 @@ def run_full_simulation(
                 panel_efficiency=panel_efficiency,
             )
 
-            # If BT gives no actual shading benefit,
-            # keep raw BT shading values for display,
-            # but use limited-tracking irradiance/power for energy comparison.
-            if shading_percent_with <= 0.0:
-                (
-                    _shadow_length_tmp,
-                    _shaded_tmp,
-                    _shading_percent_tmp,
-                    _irradiance_tmp,
-                    _power_tmp,
-                ) = _mode_results(
-                    row=row,
-                    tracker_angle_key="limited_tracker_angle",
-                    surface_tilt_key="limited_surface_tilt",
-                    surface_azimuth_key="limited_surface_azimuth",
-                    panel_width=panel_width,
-                    tracker_height=tracker_height,
-                    row_spacing=row_spacing,
-                    panel_area=panel_area,
-                    panel_efficiency=panel_efficiency,
-                )
-
-                irradiance_with_backtracking = _irradiance_tmp
-                power_with_backtracking = _power_tmp
+            # BT irradiance and power are kept as-is from the backtracking calculation.
+            # BT avoids shading by rotating to a shallower angle — its POA may differ
+            # from No BT even when shading_percent_with is zero.
 
             irradiance_raw = max(0.0, float(row["ghi"]))
             irradiance_fixed = max(0.0, float(row.get("irradiance_fixed", 0.0)))
