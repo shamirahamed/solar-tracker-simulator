@@ -90,7 +90,12 @@ function applyTheme(theme) {
   if (settingBtn) settingBtn.textContent = `${icon} ${label}`;
   const statusEl = document.getElementById("themeStatus");
   if (statusEl) statusEl.textContent = statusText;
-  if (latestSimulationData.length) buildCharts(latestSimulationData);
+  if (latestSimulationData.length) {
+    buildCharts(latestSimulationData);
+    const idx = parseInt(document.getElementById("timeSlider")?.value || "720", 10);
+    const safeIdx = Math.max(0, Math.min(idx, latestSimulationData.length - 1));
+    draw2DScene(latestSimulationData[safeIdx]);
+  }
 }
 
 function toggleTheme() {
