@@ -1430,41 +1430,37 @@ async function downloadPdf() {
     doc.setTextColor(71, 85, 105);
     doc.text("Geometry reference used for the current simulation inputs.", 14, 122, { maxWidth: 182 });
 
-    // PAGE 3 — Charts A (Tracker Angle + Solar Position)
-    // Charts are wide (≈3.2:1). At 182mm wide → height ≈ 57mm.
+    // PAGE 3 — All 4 charts in 2×2 grid (matches desktop 2-col layout)
+    // Each chart: 88mm wide × 50mm tall (1.76:1 — matches desktop aspect ratio)
     {
-      const CW = 182, CH = 57;
+      const CW = 88, CH = 50;
+      const xL = 14, xR = 108;   // left col x, right col x (14+88+6gap)
+      const y1t = 20, y1c = 24;  // row1 title y, chart y
+      const y2t = 82, y2c = 86;  // row2 title y, chart y  (24+50+8gap)
+
       doc.addPage();
       pdfPageBackground(doc);
 
-      doc.setFontSize(11); doc.setTextColor(100, 116, 139);
-      doc.text("Charts  1–2 / 4", 14, 12);
+      doc.setFontSize(14); doc.setTextColor(15, 23, 42);
+      doc.text("Charts", 14, 14);
 
-      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
-      doc.text("Tracker Angle", 14, 20);
-      if (anglesImg) doc.addImage(anglesImg, "PNG", 14, 24, CW, CH);
+      // row 1
+      doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text("Tracker Angle", xL, y1t);
+      if (anglesImg) doc.addImage(anglesImg, "PNG", xL, y1c, CW, CH);
 
-      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
-      doc.text("Solar Position", 14, 91);
-      if (sunImg) doc.addImage(sunImg, "PNG", 14, 95, CW, CH);
-    }
+      doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text("Solar Position", xR, y1t);
+      if (sunImg) doc.addImage(sunImg, "PNG", xR, y1c, CW, CH);
 
-    // PAGE 4 — Charts B (Shadowing + Irradiance)
-    {
-      const CW = 182, CH = 57;
-      doc.addPage();
-      pdfPageBackground(doc);
+      // row 2
+      doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text("Inter-row Shadowing", xL, y2t);
+      if (shadingImg) doc.addImage(shadingImg, "PNG", xL, y2c, CW, CH);
 
-      doc.setFontSize(11); doc.setTextColor(100, 116, 139);
-      doc.text("Charts  3–4 / 4", 14, 12);
-
-      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
-      doc.text("Inter-row Shadowing", 14, 20);
-      if (shadingImg) doc.addImage(shadingImg, "PNG", 14, 24, CW, CH);
-
-      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
-      doc.text("Irradiance Comparison", 14, 91);
-      if (powerImg) doc.addImage(powerImg, "PNG", 14, 95, CW, CH);
+      doc.setFontSize(10); doc.setTextColor(15, 23, 42);
+      doc.text("Irradiance Comparison", xR, y2t);
+      if (powerImg) doc.addImage(powerImg, "PNG", xR, y2c, CW, CH);
     }
 
     // FINAL PAGE - NOTES
@@ -1549,6 +1545,101 @@ downloadPdfBtn?.addEventListener("click", async () => {
   await downloadPdf();
 });
 
+/* ── Chart fullscreen modal ────────────────────────────────────────── */
+let _modalChart = null;
+
+const CHART_MAP = {
+  anglesChart:  { get: () => anglesChart,  title: "Tracker Angle" },
+  sunChart:     { get: () => sunChart,     title: "Solar Position" },
+  shadingChart: { get: () => shadingChart, title: "Inter-row Shadowing" },
+  powerChart:   { get: () => powerChart,   title: "Irradiance Comparison" },
+};
+
+function openChartModal(canvasId) {
+  const entry = CHART_MAP[canvasId];
+  if (!entry) return;
+  const source = entry.get();
+  if (!source) return;
+
+  document.getElementById("chartModalTitle").textContent = entry.title;
+
+  // destroy previous modal chart
+  if (_modalChart) { _modalChart.destroy(); _modalChart = null; }
+
+  const modalCanvas = document.getElementById("chartModalCanvas");
+  const isLight = document.documentElement.dataset.theme === "light";
+  const gridColor  = isLight ? "rgba(0,0,0,0.07)"  : "rgba(30,39,54,0.9)";
+  const tickColor  = isLight ? "#64748b"            : "#64748b";
+  const titleColor = isLight ? "#475569"            : "#94a3b8";
+
+  // deep-clone config data safely
+  const srcData    = source.config.data;
+  const srcOptions = source.config.options || {};
+
+  _modalChart = new Chart(modalCanvas, {
+    type: source.config.type,
+    data: JSON.parse(JSON.stringify(srcData)),
+    options: {
+      ...JSON.parse(JSON.stringify(srcOptions)),
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        ...(srcOptions.plugins || {}),
+        legend: {
+          ...(srcOptions.plugins?.legend || {}),
+          labels: { ...(srcOptions.plugins?.legend?.labels || {}), color: titleColor, font: { size: 12 } }
+        },
+        tooltip: {
+          backgroundColor: isLight ? "rgba(255,255,255,0.97)" : "rgba(13,20,32,0.97)",
+          titleColor: isLight ? "#0f172a" : "#e2e8f0",
+          bodyColor:  isLight ? "#334155" : "#94a3b8",
+          borderColor: isLight ? "#cbd5e1" : "#1e2736",
+          borderWidth: 1,
+        }
+      },
+      scales: buildModalScales(srcOptions.scales, gridColor, tickColor, titleColor),
+    }
+  });
+
+  document.getElementById("chartModal").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function buildModalScales(srcScales, gridColor, tickColor, titleColor) {
+  if (!srcScales) return {};
+  const result = {};
+  for (const [key, scale] of Object.entries(srcScales)) {
+    result[key] = {
+      ...JSON.parse(JSON.stringify(scale)),
+      ticks:  { ...(scale.ticks  || {}), color: tickColor,  font: { size: 12 } },
+      grid:   { ...(scale.grid   || {}), color: gridColor },
+      title:  { ...(scale.title  || {}), color: titleColor, font: { size: 13 } },
+    };
+  }
+  return result;
+}
+
+function closeChartModal() {
+  document.getElementById("chartModal").classList.add("hidden");
+  document.body.style.overflow = "";
+  if (_modalChart) { _modalChart.destroy(); _modalChart = null; }
+}
+
+function setupChartModal() {
+  document.getElementById("chartModalClose")?.addEventListener("click", closeChartModal);
+  document.getElementById("chartModalBackdrop")?.addEventListener("click", closeChartModal);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeChartModal();
+  });
+
+  // attach click-to-expand to every chart container
+  Object.keys(CHART_MAP).forEach(id => {
+    const canvas = document.getElementById(id);
+    canvas?.closest(".chart-container")?.addEventListener("click", () => openChartModal(id));
+  });
+}
+
 function setupDeviceBar() {
   const btns = document.querySelectorAll(".dev-btn");
   const saved = localStorage.getItem("previewDevice") || "desktop";
@@ -1584,6 +1675,7 @@ window.onload = function () {
   setup2DControls();
   setupPresetButtons();
   setupDeviceBar();
+  setupChartModal();
   updateScenarioHeader();
   updateLocationPreviewFromInputs();
 
