@@ -433,11 +433,11 @@ select option { background: var(--card); color: var(--text); }
   align-items: flex-end;
 }
 
-#getLocation { width: 150px; }
+#getLocation { width: 118px; font-size: 11px; padding: 0 8px; }
 
 @media (max-width: 640px) {
   .location-col { grid-column: 1 / -1; align-items: stretch; }
-  #getLocation  { width: 100%; }
+  #getLocation  { width: 100%; font-size: var(--fs-base); padding: 0 14px; }
 }
 
 .helper-text {

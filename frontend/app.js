@@ -1097,16 +1097,17 @@ function pdfMetricBox(doc, x, y, w, h, title, value) {
 
 function pdfSafeCanvasData(canvas) {
   if (!canvas) return null;
-
   try {
-    // always composite onto white so dark-theme grid/text reads cleanly in PDF
+    // Normalize to 910×360 (2.53:1) matching the 182×72mm PDF slot.
+    // Consistent source size = consistent font/line appearance regardless of window width.
+    const W = 910, H = 360;
     const exportCanvas = document.createElement("canvas");
-    exportCanvas.width  = canvas.width  || canvas.offsetWidth  || 900;
-    exportCanvas.height = canvas.height || canvas.offsetHeight || 280;
+    exportCanvas.width  = W;
+    exportCanvas.height = H;
     const ctx = exportCanvas.getContext("2d");
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-    ctx.drawImage(canvas, 0, 0);
+    ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(canvas, 0, 0, W, H);
     return exportCanvas.toDataURL("image/png", 1.0);
   } catch (e) {
     return null;
@@ -1430,37 +1431,34 @@ async function downloadPdf() {
     doc.setTextColor(71, 85, 105);
     doc.text("Geometry reference used for the current simulation inputs.", 14, 122, { maxWidth: 182 });
 
-    // PAGE 3 — All 4 charts in 2×2 grid (matches desktop 2-col layout)
-    // Each chart: 88mm wide × 50mm tall (1.76:1 — matches desktop aspect ratio)
+    // PAGE 3 — Tracker Angle + Solar Position (full-width, 182×72mm each)
     {
-      const CW = 88, CH = 50;
-      const xL = 14, xR = 108;   // left col x, right col x (14+88+6gap)
-      const y1t = 20, y1c = 24;  // row1 title y, chart y
-      const y2t = 82, y2c = 86;  // row2 title y, chart y  (24+50+8gap)
-
+      const CW = 182, CH = 72;   // 2.53:1 matches pdfSafeCanvasData 910×360 export
       doc.addPage();
       pdfPageBackground(doc);
 
-      doc.setFontSize(14); doc.setTextColor(15, 23, 42);
-      doc.text("Charts", 14, 14);
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Tracker Angle", 14, 16);
+      if (anglesImg) doc.addImage(anglesImg, "PNG", 14, 20, CW, CH);
 
-      // row 1
-      doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text("Tracker Angle", xL, y1t);
-      if (anglesImg) doc.addImage(anglesImg, "PNG", xL, y1c, CW, CH);
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Solar Position", 14, 100);
+      if (sunImg) doc.addImage(sunImg, "PNG", 14, 104, CW, CH);
+    }
 
-      doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text("Solar Position", xR, y1t);
-      if (sunImg) doc.addImage(sunImg, "PNG", xR, y1c, CW, CH);
+    // PAGE 4 — Inter-row Shadowing + Irradiance Comparison (full-width)
+    {
+      const CW = 182, CH = 72;
+      doc.addPage();
+      pdfPageBackground(doc);
 
-      // row 2
-      doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text("Inter-row Shadowing", xL, y2t);
-      if (shadingImg) doc.addImage(shadingImg, "PNG", xL, y2c, CW, CH);
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Inter-row Shadowing", 14, 16);
+      if (shadingImg) doc.addImage(shadingImg, "PNG", 14, 20, CW, CH);
 
-      doc.setFontSize(10); doc.setTextColor(15, 23, 42);
-      doc.text("Irradiance Comparison", xR, y2t);
-      if (powerImg) doc.addImage(powerImg, "PNG", xR, y2c, CW, CH);
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Irradiance Comparison", 14, 100);
+      if (powerImg) doc.addImage(powerImg, "PNG", 14, 104, CW, CH);
     }
 
     // FINAL PAGE - NOTES
