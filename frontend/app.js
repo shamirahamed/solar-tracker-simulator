@@ -145,6 +145,8 @@ function initApiBase() {
   const savedApi = localStorage.getItem("api_url");
   API_BASE = savedApi || AUTO_API_BASE;
   if (apiUrlInput) apiUrlInput.value = API_BASE;
+  const src = document.getElementById("apiUrlSource");
+  if (src) src.textContent = savedApi ? "⚠️ Using saved override — click Reset to use default." : "✅ Using default URL.";
 }
 
 function openSettings() {
@@ -195,7 +197,9 @@ function setupTopButtons() {
     if (apiUrlInput) apiUrlInput.value = API_BASE;
     localStorage.removeItem("api_url");
     setBadge(badgeApi, "API: Default URL", "badge-gray");
-    showPopup("API URL reset.", "success");
+    const src = document.getElementById("apiUrlSource");
+    if (src) src.textContent = "✅ Using default URL.";
+    showPopup("API URL reset to default.", "success");
   });
 }
 
