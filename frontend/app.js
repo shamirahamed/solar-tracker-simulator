@@ -1113,22 +1113,24 @@ function pdfSectionBox(doc, x, y, w, h) {
  * synchronously, composites onto white, returns a JPEG data-URL.
  * jsPDF then downscales this to 160×120mm → sharp, clean output.
  * ──────────────────────────────────────────────────────────────────── */
+// Font sizes are large because the 2000px canvas is downscaled ~4.4× to fit
+// 160mm in jsPDF — 44px ≈ 10pt, 40px ≈ 9pt, 36px ≈ 8pt in the final PDF.
 function _pdfChartOpts(yText) {
-  const grid = "rgba(0,0,0,0.09)";
-  const tick = "#475569";
+  const grid = "rgba(0,0,0,0.10)";
+  const tick = "#374151";
   return {
     responsive: false,
     animation: false,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: true, position: "top",
-        labels: { font: { size: 20 }, color: "#0f172a", boxWidth: 22, padding: 18 } },
+        labels: { font: { size: 42 }, color: "#0f172a", boxWidth: 32, padding: 24 } },
       tooltip: { enabled: false }
     },
     scales: {
-      x: { ticks: { maxTicksLimit: 12, font: { size: 17 }, color: tick }, grid: { color: grid } },
-      y: { title: { display: true, text: yText, font: { size: 17 }, color: "#334155" },
-           ticks: { font: { size: 16 }, color: tick }, grid: { color: grid } }
+      x: { ticks: { maxTicksLimit: 12, font: { size: 36 }, color: tick }, grid: { color: grid } },
+      y: { title: { display: true, text: yText, font: { size: 40, weight: "600" }, color: "#1e293b" },
+           ticks: { font: { size: 36 }, color: tick }, grid: { color: grid } }
     }
   };
 }
@@ -1484,9 +1486,9 @@ async function downloadPdf() {
     const anglesImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Ideal",        data: _d.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
-        { label: "Limited",      data: _d.map(r => r.limited_tracker_angle), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
-        { label: "Backtracking", data: _d.map(r => r.backtracking_angle),    borderColor: "#16a34a", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
+        { label: "Ideal",        data: _d.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Limited",      data: _d.map(r => r.limited_tracker_angle), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Backtracking", data: _d.map(r => r.backtracking_angle),    borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Angle (deg)")
     });
@@ -1494,8 +1496,8 @@ async function downloadPdf() {
     const sunImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Elevation", data: _d.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
-        { label: "Azimuth",   data: _d.map(r => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
+        { label: "Elevation", data: _d.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Azimuth",   data: _d.map(r => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Sun Angle (deg)")
     });
@@ -1508,20 +1510,20 @@ async function downloadPdf() {
     const shadingImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Shadow No BT",   data: _snoBt, borderColor: "#0891b2", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shadow BT",      data: _sBt,   borderColor: "#7c3aed", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shading% No BT", data: _d.map(r => r.shading_percent_without_backtracking), borderColor: "#dc2626", borderWidth: 2, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "Shading% BT",    data: _d.map(r => r.shading_percent_with_backtracking),    borderColor: "#ea580c", borderWidth: 2, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "Shadow No BT",   data: _snoBt, borderColor: "#0891b2", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "Shadow BT",      data: _sBt,   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "Shading% No BT", data: _d.map(r => r.shading_percent_without_backtracking), borderColor: "#dc2626", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "Shading% BT",    data: _d.map(r => r.shading_percent_with_backtracking),    borderColor: "#ea580c", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
-          x:  { ticks: { maxTicksLimit: 12, font: { size: 17 }, color: "#475569" }, grid: { color: "rgba(0,0,0,0.09)" } },
+          x:  { ticks: { maxTicksLimit: 12, font: { size: 36 }, color: "#374151" }, grid: { color: "rgba(0,0,0,0.10)" } },
           y:  { type: "linear", position: "left",  beginAtZero: true, min: 0, max: Math.max(5, Math.ceil(_maxSh  * 1.15)),
-                title: { display: true, text: "Shadow Length (m)", font: { size: 17 }, color: "#334155" },
-                ticks: { font: { size: 16 }, color: "#475569" }, grid: { color: "rgba(0,0,0,0.09)" } },
+                title: { display: true, text: "Shadow Length (m)", font: { size: 40, weight: "600" }, color: "#1e293b" },
+                ticks: { font: { size: 36 }, color: "#374151" }, grid: { color: "rgba(0,0,0,0.10)" } },
           y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: Math.max(5, Math.ceil(_maxPct + 1)),
-                title: { display: true, text: "Shading (%)", font: { size: 17 }, color: "#334155" },
-                ticks: { font: { size: 16 }, color: "#475569" }, grid: { drawOnChartArea: false } }
+                title: { display: true, text: "Shading (%)", font: { size: 40, weight: "600" }, color: "#1e293b" },
+                ticks: { font: { size: 36 }, color: "#374151" }, grid: { drawOnChartArea: false } }
         }
       }
     });
@@ -1529,9 +1531,9 @@ async function downloadPdf() {
     const powerImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Fixed Panel",    data: _d.map(r => r.irradiance_fixed),                  borderColor: "#16a34a", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – No BT", data: _d.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – BT",   data: _d.map(r => r.irradiance_with_backtracking),      borderColor: "#2563eb", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
+        { label: "Fixed Panel",     data: _d.map(r => r.irradiance_fixed),                  borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", data: _d.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",    data: _d.map(r => r.irradiance_with_backtracking),     borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Irradiance (W/m²)")
     });
