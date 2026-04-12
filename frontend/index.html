@@ -372,6 +372,52 @@
     </div>
   </div>
 
+  <!-- ── PDF filter modal ────────────────────────── -->
+  <div id="pdfModal" class="chart-modal hidden" role="dialog" aria-modal="true">
+    <div class="chart-modal-backdrop" id="pdfModalBackdrop"></div>
+    <div class="chart-modal-content" style="max-width:480px">
+      <div class="chart-modal-header">
+        <span class="chart-modal-title">📄 PDF Export — Select Lines</span>
+        <span class="chart-modal-hint">Choose which lines to include</span>
+      </div>
+      <div class="chart-modal-body pdf-filter-body">
+
+        <div class="pdf-filter-group">
+          <div class="pdf-filter-label">Tracker Angle</div>
+          <label class="pdf-check"><input type="checkbox" id="pdf_ideal" checked> Ideal</label>
+          <label class="pdf-check"><input type="checkbox" id="pdf_limited" checked> Limited</label>
+          <label class="pdf-check"><input type="checkbox" id="pdf_backtracking" checked> Backtracking</label>
+        </div>
+
+        <div class="pdf-filter-group">
+          <div class="pdf-filter-label">Solar Position</div>
+          <label class="pdf-check"><input type="checkbox" id="pdf_elevation" checked> Elevation</label>
+          <label class="pdf-check"><input type="checkbox" id="pdf_azimuth" checked> Azimuth</label>
+        </div>
+
+        <div class="pdf-filter-group">
+          <div class="pdf-filter-label">Inter-row Shadowing</div>
+          <label class="pdf-check"><input type="checkbox" id="pdf_shadow_nobt" checked> Shadow No BT</label>
+          <label class="pdf-check"><input type="checkbox" id="pdf_shadow_bt" checked> Shadow BT</label>
+          <label class="pdf-check"><input type="checkbox" id="pdf_shading_nobt" checked> Shading% No BT</label>
+          <label class="pdf-check"><input type="checkbox" id="pdf_shading_bt" checked> Shading% BT</label>
+        </div>
+
+        <div class="pdf-filter-group">
+          <div class="pdf-filter-label">Irradiance Comparison</div>
+          <label class="pdf-check"><input type="checkbox" id="pdf_fixed" checked> Fixed Panel</label>
+          <label class="pdf-check"><input type="checkbox" id="pdf_irr_nobt" checked> Tracker – No BT</label>
+          <label class="pdf-check"><input type="checkbox" id="pdf_irr_bt" checked> Tracker – BT</label>
+        </div>
+
+      </div>
+      <div class="chart-modal-footer" style="justify-content:space-between">
+        <button type="button" id="pdfModalCancel" class="secondary-btn">✕ Cancel</button>
+        <button type="button" id="pdfModalExport" class="primary-btn">⬇ Export PDF</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Device preview bar (fixed bottom) ───────── -->
   <div class="device-bar" id="deviceBar">
     <span class="device-bar-label">Preview:</span>
