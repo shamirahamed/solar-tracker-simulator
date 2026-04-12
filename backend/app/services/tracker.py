@@ -58,7 +58,7 @@ def get_tracker_day_profile(
 
     tracking_ideal = pvlib.tracking.singleaxis(
         apparent_zenith=solar_position["apparent_zenith"],
-        solar_azimuth=solar_position["azimuth"],
+        apparent_azimuth=solar_position["azimuth"],
         axis_tilt=AXIS_TILT,
         axis_azimuth=AXIS_AZIMUTH,
         max_angle=90,
@@ -69,7 +69,7 @@ def get_tracker_day_profile(
 
     tracking_limited = pvlib.tracking.singleaxis(
         apparent_zenith=solar_position["apparent_zenith"],
-        solar_azimuth=solar_position["azimuth"],
+        apparent_azimuth=solar_position["azimuth"],
         axis_tilt=AXIS_TILT,
         axis_azimuth=AXIS_AZIMUTH,
         max_angle=max_angle,
@@ -80,7 +80,7 @@ def get_tracker_day_profile(
 
     tracking_backtracking = pvlib.tracking.singleaxis(
         apparent_zenith=solar_position["apparent_zenith"],
-        solar_azimuth=solar_position["azimuth"],
+        apparent_azimuth=solar_position["azimuth"],
         axis_tilt=AXIS_TILT,
         axis_azimuth=AXIS_AZIMUTH,
         max_angle=max_angle,
