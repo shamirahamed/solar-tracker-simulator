@@ -383,7 +383,16 @@ function chartBaseOptions(yText) {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: "index", intersect: false },
-    plugins: { legend: compactLegendOptions() },
+    plugins: {
+      legend: compactLegendOptions(),
+      tooltip: {
+        backgroundColor: isLight ? "rgba(255,255,255,0.97)" : "rgba(13,20,32,0.97)",
+        titleColor:      isLight ? "#0f172a"                : "#e2e8f0",
+        bodyColor:       isLight ? "#334155"                : "#94a3b8",
+        borderColor:     isLight ? "#cbd5e1"                : "#1e2736",
+        borderWidth: 1,
+      }
+    },
     scales: {
       x: {
         ticks: { maxTicksLimit: 12, font: { size: 10 }, color: tickColor },
@@ -535,14 +544,14 @@ function resizeTrackerCanvas() {
 }
 
 
-function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, groundY) {
+function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, groundY, isLight = false) {
   const x1 = pivotX - Math.cos(angleRad) * panelLength / 2;
   const y1 = pivotY - Math.sin(angleRad) * panelLength / 2;
   const x2 = pivotX + Math.cos(angleRad) * panelLength / 2;
   const y2 = pivotY + Math.sin(angleRad) * panelLength / 2;
 
   // mast
-  ctx.strokeStyle = "#334155";
+  ctx.strokeStyle = isLight ? "#64748b" : "#334155";
   ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.moveTo(pivotX, groundY);
@@ -550,7 +559,7 @@ function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, g
   ctx.stroke();
 
   // pivot
-  ctx.fillStyle = "#94a3b8";
+  ctx.fillStyle = isLight ? "#475569" : "#94a3b8";
   ctx.beginPath();
   ctx.arc(pivotX, pivotY, 3, 0, Math.PI * 2);
   ctx.fill();
@@ -563,7 +572,7 @@ function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, g
   ctx.lineTo(x2, y2);
   ctx.stroke();
 
-  ctx.fillStyle = "#94a3b8";
+  ctx.fillStyle = isLight ? "#1e3a5f" : "#94a3b8";
   ctx.font = "12px Arial";
   ctx.fillText(label, pivotX - 18, pivotY - 12);
 
@@ -618,15 +627,23 @@ function draw2DScene(row) {
   const skyTop = 18;
   const skyHeight = groundY - skyTop - 40;
 
+  const isLight = document.documentElement.dataset.theme === "light";
+
   // background
   const sky = ctx.createLinearGradient(0, 0, 0, groundY);
-  sky.addColorStop(0, "#060a0f");
-  sky.addColorStop(0.70, "#0a0e16");
-  sky.addColorStop(1, "#0d1420");
+  if (isLight) {
+    sky.addColorStop(0,    "#c8dff0");
+    sky.addColorStop(0.65, "#ddeef8");
+    sky.addColorStop(1,    "#eaf4fb");
+  } else {
+    sky.addColorStop(0,    "#060a0f");
+    sky.addColorStop(0.70, "#0a0e16");
+    sky.addColorStop(1,    "#0d1420");
+  }
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, width, groundY);
 
-  ctx.fillStyle = "#080c12";
+  ctx.fillStyle = isLight ? "#b8cfa0" : "#080c12";
   ctx.fillRect(0, groundY, width, height - groundY);
 
   // visual scaling
@@ -648,7 +665,7 @@ function draw2DScene(row) {
   const pivotY = groundY - trackerHeightPx;
 
   // ground
-  ctx.strokeStyle = "#00c853";
+  ctx.strokeStyle = isLight ? "#3a7c28" : getAccentColor();
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(28, groundY);
@@ -679,8 +696,8 @@ function draw2DScene(row) {
   const angleRad = visualAngle * Math.PI / 180;
 
   const panelColor = getAccentColor();
-  const panelA = drawPanelAt(ctx, mast1X, pivotY, angleRad, panelLengthPx, panelColor, "Row A", groundY);
-  const panelB = drawPanelAt(ctx, mast2X, pivotY, angleRad, panelLengthPx, panelColor, "Row B", groundY);
+  const panelA = drawPanelAt(ctx, mast1X, pivotY, angleRad, panelLengthPx, panelColor, "Row A", groundY, isLight);
+  const panelB = drawPanelAt(ctx, mast2X, pivotY, angleRad, panelLengthPx, panelColor, "Row B", groundY, isLight);
 
   if (elevation > 0) {
     // smooth arc from east(90) to west(270)
@@ -695,7 +712,7 @@ function draw2DScene(row) {
     const sunY = groundY - sunYOffset - elevNorm * (skyHeight + sunHeightBoost);
 
     // guide arc
-    ctx.strokeStyle = "rgba(0,200,83,0.12)";
+    ctx.strokeStyle = isLight ? "rgba(58,124,40,0.18)" : "rgba(0,200,83,0.12)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(width / 2, groundY + 16, Math.min(width * 0.42, 250), Math.PI, 2 * Math.PI);
@@ -708,14 +725,14 @@ function draw2DScene(row) {
     const shadowSourceX = sunOnLeft ? mast1X : mast2X;
     const shadowEndX = sunOnLeft ? shadowSourceX + shadowPx : shadowSourceX - shadowPx;
 
-    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.strokeStyle = isLight ? "rgba(0,0,0,0.10)" : "rgba(0,0,0,0.35)";
     ctx.lineWidth = 7;
     ctx.beginPath();
     ctx.moveTo(shadowSourceX, groundY);
     ctx.lineTo(shadowEndX, groundY);
     ctx.stroke();
 
-    ctx.strokeStyle = "rgba(100,116,139,0.85)";
+    ctx.strokeStyle = isLight ? "rgba(30,58,95,0.55)" : "rgba(100,116,139,0.85)";
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(shadowSourceX, groundY);
@@ -747,7 +764,7 @@ function draw2DScene(row) {
       setBadge(badgeShading, "Shading: No", "badge-green");
     }
   } else {
-    ctx.fillStyle = "#475569";
+    ctx.fillStyle = isLight ? "#334155" : "#475569";
     ctx.font = "12px Arial";
     ctx.fillText("Night / No Sun", width - 116, 26);
     setBadge(badgeShading, "Shading: --", "badge-gray");
@@ -766,7 +783,7 @@ function draw2DScene(row) {
   );
 
   // top info
-  ctx.fillStyle = "#94a3b8";
+  ctx.fillStyle = isLight ? "#1e3a5f" : "#94a3b8";
   ctx.font = width < 500 ? "11px Arial" : "12px Arial";
   ctx.fillText(`Time: ${formatTimeLabel(row.timestamp)}`, 16, 18);
   ctx.fillText(`Sun Elevation: ${elevation.toFixed(1)}°`, 16, 32);
@@ -775,13 +792,13 @@ function draw2DScene(row) {
   ctx.fillText(`Shadow: ${formatShadowMetric(shownShadowRaw)}`, 16, 74);
 
   // bottom info
-  ctx.fillStyle = "#475569";
+  ctx.fillStyle = isLight ? "#334155" : "#475569";
   ctx.font = "11px Arial";
   ctx.fillText(`Shading (No BT): ${shadingNoBt.toFixed(2)}%`, 16, height - 26);
   ctx.fillText(`Shading (With BT): ${shadingBt.toFixed(2)}%`, width < 640 ? 150 : 170, height - 26);
 
   if (shownShadowRaw > MAX_SHADOW_2D_DISPLAY_M) {
-    ctx.fillStyle = "#475569";
+    ctx.fillStyle = isLight ? "#334155" : "#475569";
     ctx.font = "10px Arial";
     ctx.fillText(`Visual shadow capped at ${MAX_SHADOW_2D_DISPLAY_M} m`, 16, height - 10);
   }

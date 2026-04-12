@@ -286,6 +286,11 @@ html, body {
 
 .full-width { grid-column: 1 / -1; }
 
+/* side-by-side inputs + metrics on wider screens */
+@media (min-width: 901px) {
+  .layout-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+
 /* ─── Cards ──────────────────────────────────── */
 .card {
   background: var(--card);
@@ -670,6 +675,30 @@ input[type="range"] { accent-color: var(--accent); }
   border-radius: 8px;
   padding: 8px;
 }
+
+/* light theme: chart bg stays clean white, stronger border */
+[data-theme="light"] .chart-container {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+/* light theme: section notes / muted labels need darker ink */
+[data-theme="light"] .section-note       { color: #475569; }
+[data-theme="light"] .chart-legend-note  { color: #475569; }
+[data-theme="light"] .canvas-note        { color: #475569; }
+[data-theme="light"] .helper-text        { color: #64748b; }
+[data-theme="light"] .kpi span           { color: #475569; }
+[data-theme="light"] .comparison-summary { color: #334155; }
+[data-theme="light"] .scenario-title     { color: #475569; }
+[data-theme="light"] .scenario-text      { color: #0f172a; }
+[data-theme="light"] .subhead            { color: #475569; }
+[data-theme="light"] .legend-item        { color: #334155; }
+[data-theme="light"] .slider-row label   { color: #475569; }
+[data-theme="light"] .preview-summary    { color: #334155; }
+[data-theme="light"] label               { color: #334155; }
+
+/* light theme tracker canvas wrapper – keep dark (it's a viz) */
+[data-theme="light"] .tracker-canvas-wrap { background: #1a2332; }
 
 canvas { width: 100% !important; height: 100% !important; }
 
