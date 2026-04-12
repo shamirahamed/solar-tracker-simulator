@@ -1113,24 +1113,27 @@ function pdfSectionBox(doc, x, y, w, h) {
  * synchronously, composites onto white, returns a JPEG data-URL.
  * jsPDF then downscales this to 160×120mm → sharp, clean output.
  * ──────────────────────────────────────────────────────────────────── */
-// Font sizes are large because the 2000px canvas is downscaled ~4.4× to fit
-// 160mm in jsPDF — 44px ≈ 10pt, 40px ≈ 9pt, 36px ≈ 8pt in the final PDF.
+// Canvas is 2000px wide, jsPDF slots it into 160mm ≈ 454px → scale ~4.4×.
+// Multiply target pt size × 4.4 to get canvas px:
+//   legend/title 11pt → 48px | ticks 9pt → 40px
 function _pdfChartOpts(yText) {
-  const grid = "rgba(0,0,0,0.10)";
-  const tick = "#374151";
+  const grid = "rgba(0,0,0,0.11)";
+  const tick = "#1e293b";
   return {
     responsive: false,
     animation: false,
     maintainAspectRatio: false,
+    layout: { padding: { top: 10, right: 40, bottom: 10, left: 10 } },
     plugins: {
       legend: { display: true, position: "top",
-        labels: { font: { size: 42 }, color: "#0f172a", boxWidth: 32, padding: 24 } },
+        labels: { font: { size: 48, weight: "600" }, color: "#0f172a", boxWidth: 40, padding: 30 } },
       tooltip: { enabled: false }
     },
     scales: {
-      x: { ticks: { maxTicksLimit: 12, font: { size: 36 }, color: tick }, grid: { color: grid } },
-      y: { title: { display: true, text: yText, font: { size: 40, weight: "600" }, color: "#1e293b" },
-           ticks: { font: { size: 36 }, color: tick }, grid: { color: grid } }
+      x: { ticks: { maxTicksLimit: 10, font: { size: 40 }, color: tick, maxRotation: 0 },
+           grid: { color: grid } },
+      y: { title: { display: true, text: yText, font: { size: 48, weight: "700" }, color: "#0f172a" },
+           ticks: { font: { size: 40 }, color: tick }, grid: { color: grid } }
     }
   };
 }
@@ -1517,13 +1520,13 @@ async function downloadPdf() {
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
-          x:  { ticks: { maxTicksLimit: 12, font: { size: 36 }, color: "#374151" }, grid: { color: "rgba(0,0,0,0.10)" } },
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 40 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
           y:  { type: "linear", position: "left",  beginAtZero: true, min: 0, max: Math.max(5, Math.ceil(_maxSh  * 1.15)),
-                title: { display: true, text: "Shadow Length (m)", font: { size: 40, weight: "600" }, color: "#1e293b" },
-                ticks: { font: { size: 36 }, color: "#374151" }, grid: { color: "rgba(0,0,0,0.10)" } },
+                title: { display: true, text: "Shadow Length (m)", font: { size: 48, weight: "700" }, color: "#0f172a" },
+                ticks: { font: { size: 40 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
           y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: Math.max(5, Math.ceil(_maxPct + 1)),
-                title: { display: true, text: "Shading (%)", font: { size: 40, weight: "600" }, color: "#1e293b" },
-                ticks: { font: { size: 36 }, color: "#374151" }, grid: { drawOnChartArea: false } }
+                title: { display: true, text: "Shading (%)", font: { size: 48, weight: "700" }, color: "#0f172a" },
+                ticks: { font: { size: 40 }, color: "#1e293b" }, grid: { drawOnChartArea: false } }
         }
       }
     });
