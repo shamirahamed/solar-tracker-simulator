@@ -585,7 +585,10 @@ function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, g
     leftX: Math.min(x1, x2),
     rightX: Math.max(x1, x2),
     topY: Math.min(y1, y2),
-    bottomY: Math.max(y1, y2)
+    bottomY: Math.max(y1, y2),
+    // actual panel endpoints (x1/y1 = left end, x2/y2 = right end)
+    ex1: x1, ey1: y1,
+    ex2: x2, ey2: y2
   };
 }
 
@@ -748,19 +751,38 @@ function draw2DScene(row) {
       ctx.stroke();
     }
 
-    // downstream row shading only
+    // downstream row shading — drawn as a red line segment ON the tilted panel
     if (shadingPercentSelected > MIN_SHADING_VISUAL_PERCENT) {
       const targetPanel = sunOnLeft ? panelB : panelA;
-      const panelWidthPx = Math.max(1, targetPanel.rightX - targetPanel.leftX);
-      const shadeWidth = Math.max(5, Math.min(panelWidthPx, panelWidthPx * (shadingPercentSelected / 100)));
-      const shadeX = sunOnLeft ? targetPanel.leftX : targetPanel.rightX - shadeWidth;
+      const shade = Math.min(shadingPercentSelected / 100, 1);
 
-      ctx.fillStyle = "rgba(239,68,68,0.28)";
-      ctx.fillRect(shadeX, pivotY - 13, shadeWidth, 26);
+      // The shaded end faces the upstream row (into the shadow).
+      // sunOnLeft → shadow goes right → downstream panel B → shaded end = left end (ex1/ey1)
+      // sunOnRight → shadow goes left → downstream panel A → shaded end = right end (ex2/ey2)
+      const [sx, sy, ex2, ey2] = sunOnLeft
+        ? [targetPanel.ex1, targetPanel.ey1, targetPanel.ex2, targetPanel.ey2]
+        : [targetPanel.ex2, targetPanel.ey2, targetPanel.ex1, targetPanel.ey1];
 
-      ctx.strokeStyle = "rgba(239,68,68,0.65)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(shadeX, pivotY - 13, shadeWidth, 26);
+      const shadeEndX = sx + (ex2 - sx) * shade;
+      const shadeEndY = sy + (ey2 - sy) * shade;
+
+      // thick semi-transparent fill under the highlight
+      ctx.strokeStyle = "rgba(239,68,68,0.30)";
+      ctx.lineWidth = 12;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(shadeEndX, shadeEndY);
+      ctx.stroke();
+
+      // sharp red outline on top
+      ctx.strokeStyle = "rgba(239,68,68,0.90)";
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(shadeEndX, shadeEndY);
+      ctx.stroke();
+      ctx.lineCap = "butt";
 
       ctx.fillStyle = "#ef4444";
       ctx.font = "12px Arial";
@@ -1376,10 +1398,25 @@ async function downloadPdf() {
       maxIrrBt: Math.max(...latestSimulationData.map((r) => Number(r.irradiance_with_backtracking || 0)), 0)
     };
 
+    // Temporarily render charts in light theme so they export cleanly on white PDF.
+    // All operations are synchronous — browser does not repaint, no visible flicker.
+    const _pdfTheme = document.documentElement.dataset.theme || "dark";
+    const _needSwitch = _pdfTheme !== "light";
+    if (_needSwitch) {
+      document.documentElement.dataset.theme = "light";
+      buildCharts(latestSimulationData);
+    }
+
     const anglesImg  = pdfCaptureChartHiRes(anglesChart);
     const sunImg     = pdfCaptureChartHiRes(sunChart);
     const shadingImg = pdfCaptureChartHiRes(shadingChart);
     const powerImg   = pdfCaptureChartHiRes(powerChart);
+
+    if (_needSwitch) {
+      document.documentElement.dataset.theme = _pdfTheme;
+      buildCharts(latestSimulationData);
+    }
+
     const dimensionImg = pdfBuildDimensionDiagramDataUrl(payload, mobileView);
     const summarySentence = pdfBuildSummarySentence(result);
 
