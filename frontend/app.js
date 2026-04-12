@@ -1107,6 +1107,60 @@ function pdfSectionBox(doc, x, y, w, h) {
   doc.roundedRect(x, y, w, h, 2, 2, "FD");
 }
 
+/* ── Offscreen PDF chart helpers ──────────────────────────────────────
+ * Creates a detached 2000×1500 canvas (never added to DOM), builds a
+ * Chart.js instance with animation:false + responsive:false so it draws
+ * synchronously, composites onto white, returns a JPEG data-URL.
+ * jsPDF then downscales this to 160×120mm → sharp, clean output.
+ * ──────────────────────────────────────────────────────────────────── */
+function _pdfChartOpts(yText) {
+  const grid = "rgba(0,0,0,0.09)";
+  const tick = "#475569";
+  return {
+    responsive: false,
+    animation: false,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, position: "top",
+        labels: { font: { size: 20 }, color: "#0f172a", boxWidth: 22, padding: 18 } },
+      tooltip: { enabled: false }
+    },
+    scales: {
+      x: { ticks: { maxTicksLimit: 12, font: { size: 17 }, color: tick }, grid: { color: grid } },
+      y: { title: { display: true, text: yText, font: { size: 17 }, color: "#334155" },
+           ticks: { font: { size: 16 }, color: tick }, grid: { color: grid } }
+    }
+  };
+}
+
+function pdfOffscreenChart(config) {
+  try {
+    const CW = 2000, CH = 1500;
+    const chartCanvas = document.createElement("canvas");
+    chartCanvas.width = CW; chartCanvas.height = CH;
+    const chart = new Chart(chartCanvas, config);
+    // animation:false means Chart.js drew synchronously in the constructor
+    // call stop+draw as belt-and-suspenders safety
+    chart.stop?.();
+    if (typeof chart.draw === "function") chart.draw();
+
+    // Composite onto white (canvas background is transparent by default)
+    const out = document.createElement("canvas");
+    out.width = CW; out.height = CH;
+    const ctx = out.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, CW, CH);
+    ctx.drawImage(chartCanvas, 0, 0);
+
+    const data = out.toDataURL("image/jpeg", 0.92);
+    chart.destroy();
+    return data;
+  } catch (e) {
+    console.warn("pdfOffscreenChart failed:", e);
+    return null;
+  }
+}
+
 function pdfTextBlock(doc, lines, x, y, lineHeight = 5.6) {
   lines.forEach((line) => {
     doc.text(String(line), x, y);
@@ -1421,30 +1475,66 @@ async function downloadPdf() {
       maxIrrBt: Math.max(...latestSimulationData.map((r) => Number(r.irradiance_with_backtracking || 0)), 0)
     };
 
-    // Temporarily render charts in light theme for clean white-background PDF.
-    // chart.update('none') after buildCharts forces synchronous draw on every
-    // new instance — otherwise the default creation animation leaves canvases
-    // blank when toDataURL is called immediately after.
-    const _pdfTheme = document.documentElement.dataset.theme || "dark";
-    const _needSwitch = _pdfTheme !== "light";
-    if (_needSwitch) {
-      document.documentElement.dataset.theme = "light";
-      buildCharts(latestSimulationData);
-      // New Chart instances animate from blank via RAF — stop + draw forces
-      // them to render synchronously to canvas before we capture.
-      [anglesChart, sunChart, shadingChart, powerChart].forEach(_pdfForceDrawChart);
-    }
+    // Build chart images from detached offscreen canvases (2000×1500px).
+    // animation:false + responsive:false = fully synchronous, no DOM touch,
+    // no theme switching needed — always renders with clean light colours.
+    const _d = latestSimulationData;
+    const _lbl = _d.map(r => formatTimeLabel(r.timestamp));
 
-    const anglesImg  = pdfCaptureChartHiRes(anglesChart);
-    const sunImg     = pdfCaptureChartHiRes(sunChart);
-    const shadingImg = pdfCaptureChartHiRes(shadingChart);
-    const powerImg   = pdfCaptureChartHiRes(powerChart);
+    const anglesImg = pdfOffscreenChart({
+      type: "line",
+      data: { labels: _lbl, datasets: [
+        { label: "Ideal",        data: _d.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
+        { label: "Limited",      data: _d.map(r => r.limited_tracker_angle), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
+        { label: "Backtracking", data: _d.map(r => r.backtracking_angle),    borderColor: "#16a34a", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
+      ]},
+      options: _pdfChartOpts("Angle (deg)")
+    });
 
-    if (_needSwitch) {
-      document.documentElement.dataset.theme = _pdfTheme;
-      buildCharts(latestSimulationData);
-      [anglesChart, sunChart, shadingChart, powerChart].forEach(_pdfForceDrawChart);
-    }
+    const sunImg = pdfOffscreenChart({
+      type: "line",
+      data: { labels: _lbl, datasets: [
+        { label: "Elevation", data: _d.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
+        { label: "Azimuth",   data: _d.map(r => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
+      ]},
+      options: _pdfChartOpts("Sun Angle (deg)")
+    });
+
+    const _snoBt  = _d.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking));
+    const _sBt    = _d.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking));
+    const _maxSh  = Math.max(..._snoBt, ..._sBt, 1);
+    const _maxPct = Math.max(..._d.map(r => Number(r.shading_percent_without_backtracking || 0)),
+                             ..._d.map(r => Number(r.shading_percent_with_backtracking    || 0)), 1);
+    const shadingImg = pdfOffscreenChart({
+      type: "line",
+      data: { labels: _lbl, datasets: [
+        { label: "Shadow No BT",   data: _snoBt, borderColor: "#0891b2", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "Shadow BT",      data: _sBt,   borderColor: "#7c3aed", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "Shading% No BT", data: _d.map(r => r.shading_percent_without_backtracking), borderColor: "#dc2626", borderWidth: 2, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "Shading% BT",    data: _d.map(r => r.shading_percent_with_backtracking),    borderColor: "#ea580c", borderWidth: 2, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+      ]},
+      options: { ..._pdfChartOpts("Shadow Length (m)"),
+        scales: {
+          x:  { ticks: { maxTicksLimit: 12, font: { size: 17 }, color: "#475569" }, grid: { color: "rgba(0,0,0,0.09)" } },
+          y:  { type: "linear", position: "left",  beginAtZero: true, min: 0, max: Math.max(5, Math.ceil(_maxSh  * 1.15)),
+                title: { display: true, text: "Shadow Length (m)", font: { size: 17 }, color: "#334155" },
+                ticks: { font: { size: 16 }, color: "#475569" }, grid: { color: "rgba(0,0,0,0.09)" } },
+          y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: Math.max(5, Math.ceil(_maxPct + 1)),
+                title: { display: true, text: "Shading (%)", font: { size: 17 }, color: "#334155" },
+                ticks: { font: { size: 16 }, color: "#475569" }, grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+
+    const powerImg = pdfOffscreenChart({
+      type: "line",
+      data: { labels: _lbl, datasets: [
+        { label: "Fixed Panel",    data: _d.map(r => r.irradiance_fixed),                  borderColor: "#16a34a", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", data: _d.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",   data: _d.map(r => r.irradiance_with_backtracking),      borderColor: "#2563eb", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
+      ]},
+      options: _pdfChartOpts("Irradiance (W/m²)")
+    });
 
     const dimensionImg = pdfBuildDimensionDiagramDataUrl(payload, mobileView);
     const summarySentence = pdfBuildSummarySentence(result);

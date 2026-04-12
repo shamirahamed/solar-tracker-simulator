@@ -25,6 +25,7 @@ CSV_FIELDS = [
     "shading_percent_without_backtracking",
     "shading_percent_with_backtracking",
     "irradiance_raw",
+    "irradiance_fixed",
     "irradiance_without_backtracking",
     "irradiance_with_backtracking",
     "power_without_backtracking",
