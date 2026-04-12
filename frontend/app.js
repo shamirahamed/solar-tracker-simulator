@@ -381,7 +381,7 @@ function compactLegendOptions() {
 
 function chartBaseOptions(yText) {
   const isLight = document.documentElement.dataset.theme === "light";
-  const gridColor  = isLight ? "rgba(0,0,0,0.07)"  : "rgba(30,39,54,0.9)";
+  const gridColor  = isLight ? "rgba(0,0,0,0.07)"  : "rgba(100,116,139,0.40)";
   const tickColor  = isLight ? "#64748b"            : "#64748b";
   const titleColor = isLight ? "#475569"            : "#94a3b8";
   return {
@@ -469,7 +469,7 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x: { ticks: { maxTicksLimit: 8, font: { size: 10 }, color: "#64748b" }, grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(30,39,54,0.9)" } },
+        x: { ticks: { maxTicksLimit: 8, font: { size: 10 }, color: "#64748b" }, grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" } },
         y: {
           type: "linear",
           position: "left",
@@ -478,7 +478,7 @@ function buildCharts(data) {
           max: Math.max(5, Math.ceil(maxShadowLen * 1.15)),
           title: { display: true, text: "Shadow Length (scaled)", font: { size: 11 }, color: document.documentElement.dataset.theme === "light" ? "#475569" : "#94a3b8" },
           ticks: { font: { size: 10 }, color: "#64748b" },
-          grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(30,39,54,0.9)" }
+          grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" }
         },
         y1: {
           type: "linear",
@@ -628,7 +628,7 @@ function draw2DScene(row) {
 
   const payload = getPayload();
 
-  const groundY = height * 0.80;
+  const groundY = height * (width < 640 ? 0.83 : 0.80);
   const skyTop = 18;
   const skyHeight = groundY - skyTop - 40;
 
@@ -660,9 +660,9 @@ function draw2DScene(row) {
   const panelLengthPx = Math.max(58, Math.min(width < 640 ? width * 0.17 : width * 0.24, payload.panel_width * ppm));
 
   const trackerHeightPx = Math.max(
-  width < 640 ? 22 : 26,
-  Math.min(height * (width < 640 ? 0.18 : 0.19), payload.tracker_height * ppm * 0.76)
-);
+    width < 640 ? 55 : 46,
+    Math.min(height * 0.24, payload.tracker_height * ppm * 0.90)
+  );
 
   const centerX = width / 2;
   const mast1X = centerX - rowSpacingPx / 2;
@@ -670,7 +670,7 @@ function draw2DScene(row) {
   const pivotY = groundY - trackerHeightPx;
 
   // ground
-  ctx.strokeStyle = isLight ? "#3a7c28" : getAccentColor();
+  ctx.strokeStyle = isLight ? "#3a7c28" : "rgba(100,116,139,0.55)";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(28, groundY);
@@ -1102,20 +1102,40 @@ function pdfMetricBox(doc, x, y, w, h, title, value) {
 function pdfSafeCanvasData(canvas, jpeg = true) {
   if (!canvas) return null;
   try {
-    // 4:3 ratio (800×600) for JPEG output matching 160×120mm PDF slot
-    // PNG 2.53:1 ratio (910×360) kept for backward compat when jpeg=false
-    const W = jpeg ? 800 : 910;
-    const H = jpeg ? 600 : 360;
+    // Use source canvas native pixel dimensions (may be large from pdfCaptureChartHiRes)
+    // then composite onto white — downscaling in jsPDF gives sharp output
+    const W = canvas.width  || (jpeg ? 800 : 910);
+    const H = canvas.height || (jpeg ? 600 : 360);
     const exportCanvas = document.createElement("canvas");
     exportCanvas.width  = W;
     exportCanvas.height = H;
     const ctx = exportCanvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, W, H);
     ctx.drawImage(canvas, 0, 0, W, H);
-    return exportCanvas.toDataURL(jpeg ? "image/jpeg" : "image/png", jpeg ? 0.85 : 1.0);
+    return exportCanvas.toDataURL(jpeg ? "image/jpeg" : "image/png", jpeg ? 0.92 : 1.0);
   } catch (e) {
     return null;
+  }
+}
+
+// Temporarily renders the chart at 600px height (2.5× normal 240px) so the
+// canvas has far more native pixels before capture — jsPDF then downscales it
+// to 160×120mm, giving crisp lines and readable labels in the PDF.
+function pdfCaptureChartHiRes(chartObj) {
+  if (!chartObj?.canvas) return null;
+  const container = chartObj.canvas.closest(".chart-container");
+  if (!container) return pdfSafeCanvasData(chartObj.canvas, true);
+  const origH = container.style.height;
+  try {
+    container.style.height = "600px";
+    chartObj.resize();
+    return pdfSafeCanvasData(chartObj.canvas, true);
+  } finally {
+    container.style.height = origH;
+    chartObj.resize();
   }
 }
 
@@ -1356,10 +1376,10 @@ async function downloadPdf() {
       maxIrrBt: Math.max(...latestSimulationData.map((r) => Number(r.irradiance_with_backtracking || 0)), 0)
     };
 
-    const anglesImg = pdfSafeCanvasData(document.getElementById("anglesChart"));
-    const sunImg    = pdfSafeCanvasData(document.getElementById("sunChart"));
-    const shadingImg = pdfSafeCanvasData(document.getElementById("shadingChart"));
-    const powerImg  = pdfSafeCanvasData(document.getElementById("powerChart"));
+    const anglesImg  = pdfCaptureChartHiRes(anglesChart);
+    const sunImg     = pdfCaptureChartHiRes(sunChart);
+    const shadingImg = pdfCaptureChartHiRes(shadingChart);
+    const powerImg   = pdfCaptureChartHiRes(powerChart);
     const dimensionImg = pdfBuildDimensionDiagramDataUrl(payload, mobileView);
     const summarySentence = pdfBuildSummarySentence(result);
 
@@ -1573,7 +1593,7 @@ function openChartModal(canvasId) {
 
   const modalCanvas = document.getElementById("chartModalCanvas");
   const isLight = document.documentElement.dataset.theme === "light";
-  const gridColor  = isLight ? "rgba(0,0,0,0.07)"  : "rgba(30,39,54,0.9)";
+  const gridColor  = isLight ? "rgba(0,0,0,0.07)"  : "rgba(100,116,139,0.40)";
   const tickColor  = isLight ? "#64748b"            : "#64748b";
   const titleColor = isLight ? "#475569"            : "#94a3b8";
 
