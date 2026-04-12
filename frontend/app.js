@@ -707,8 +707,8 @@ function draw2DScene(row) {
     const elevNorm = Math.max(0, Math.min(1, elevation / 90));
 
 
-    const sunYOffset = width < 640 ? 16 : 30;
-    const sunHeightBoost = width < 640 ? 0 : 18;
+    const sunYOffset = width < 640 ? 10 : 14;
+    const sunHeightBoost = width < 640 ? 14 : 30;
     const sunY = groundY - sunYOffset - elevNorm * (skyHeight + sunHeightBoost);
 
     // guide arc
@@ -1090,14 +1090,31 @@ function pdfMetricBox(doc, x, y, w, h, title, value) {
   doc.text(String(value), x + 3, y + 12);
 }
 
-function pdfSafeCanvasData(canvas, mobileView = false) {
+function pdfSafeCanvasData(canvas) {
   if (!canvas) return null;
 
+  try {
+    // always composite onto white so dark-theme grid/text reads cleanly in PDF
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width  = canvas.width  || canvas.offsetWidth  || 900;
+    exportCanvas.height = canvas.height || canvas.offsetHeight || 280;
+    const ctx = exportCanvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    ctx.drawImage(canvas, 0, 0);
+    return exportCanvas.toDataURL("image/png", 1.0);
+  } catch (e) {
+    return null;
+  }
+}
+
+// legacy shim kept so no other call sites break
+function _pdfSafeCanvasDataUnused(canvas, mobileView = false) {
+  if (!canvas) return null;
   try {
     if (!mobileView) {
       return canvas.toDataURL("image/png", 1.0);
     }
-
     const scale = 0.68;
     const exportCanvas = document.createElement("canvas");
     exportCanvas.width = Math.max(600, Math.floor(canvas.width * scale));
@@ -1328,10 +1345,10 @@ async function downloadPdf() {
       maxIrrBt: Math.max(...latestSimulationData.map((r) => Number(r.irradiance_with_backtracking || 0)), 0)
     };
 
-    const anglesImg = pdfSafeCanvasData(document.getElementById("anglesChart"), mobileView);
-    const sunImg = pdfSafeCanvasData(document.getElementById("sunChart"), mobileView);
-    const shadingImg = pdfSafeCanvasData(document.getElementById("shadingChart"), mobileView);
-    const powerImg = pdfSafeCanvasData(document.getElementById("powerChart"), mobileView);
+    const anglesImg = pdfSafeCanvasData(document.getElementById("anglesChart"));
+    const sunImg    = pdfSafeCanvasData(document.getElementById("sunChart"));
+    const shadingImg = pdfSafeCanvasData(document.getElementById("shadingChart"));
+    const powerImg  = pdfSafeCanvasData(document.getElementById("powerChart"));
     const dimensionImg = pdfBuildDimensionDiagramDataUrl(payload, mobileView);
     const summarySentence = pdfBuildSummarySentence(result);
 
@@ -1408,39 +1425,41 @@ async function downloadPdf() {
     doc.setTextColor(71, 85, 105);
     doc.text("Geometry reference used for the current simulation inputs.", 14, 122, { maxWidth: 182 });
 
-    if (!mobileView) {
-      // DESKTOP - 4 CHARTS ON ONE PAGE
+    // PAGE 3 — Charts A (Tracker Angle + Solar Position)
+    // Charts are wide (≈3.2:1). At 182mm wide → height ≈ 57mm.
+    {
+      const CW = 182, CH = 57;
       doc.addPage();
       pdfPageBackground(doc);
-      doc.setFontSize(16);
-      doc.setTextColor(15, 23, 42);
-      doc.text("Charts", 14, 16);
 
-      const charts = [
-        { title: "Tracker Angle", img: anglesImg, x: 14, y: 22 },
-        { title: "Solar Position", img: sunImg, x: 110, y: 22 },
-        { title: "Inter-row Shadowing", img: shadingImg, x: 14, y: 114 },
-        { title: "Irradiance Comparison", img: powerImg, x: 110, y: 114 }
-      ];
+      doc.setFontSize(11); doc.setTextColor(100, 116, 139);
+      doc.text("Charts  1–2 / 4", 14, 12);
 
-      charts.forEach((c) => {
-        if (!c.img) return;
-        doc.setFontSize(10);
-        doc.setTextColor(15, 23, 42);
-        doc.text(c.title, c.x, c.y);
-        doc.addImage(c.img, "PNG", c.x, c.y + 4, 90, 65);
-      });
-    } else {
-      // MOBILE - 2 CHARTS PER PAGE
-      pdfAddTwoChartsPage(doc, "Charts 1 / 2",
-        { title: "Tracker Angle", img: anglesImg },
-        { title: "Solar Position", img: sunImg }
-      );
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Tracker Angle", 14, 20);
+      if (anglesImg) doc.addImage(anglesImg, "PNG", 14, 24, CW, CH);
 
-      pdfAddTwoChartsPage(doc, "Charts 3 / 4",
-        { title: "Inter-row Shadowing", img: shadingImg },
-        { title: "Irradiance Comparison", img: powerImg }
-      );
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Solar Position", 14, 91);
+      if (sunImg) doc.addImage(sunImg, "PNG", 14, 95, CW, CH);
+    }
+
+    // PAGE 4 — Charts B (Shadowing + Irradiance)
+    {
+      const CW = 182, CH = 57;
+      doc.addPage();
+      pdfPageBackground(doc);
+
+      doc.setFontSize(11); doc.setTextColor(100, 116, 139);
+      doc.text("Charts  3–4 / 4", 14, 12);
+
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Inter-row Shadowing", 14, 20);
+      if (shadingImg) doc.addImage(shadingImg, "PNG", 14, 24, CW, CH);
+
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Irradiance Comparison", 14, 91);
+      if (powerImg) doc.addImage(powerImg, "PNG", 14, 95, CW, CH);
     }
 
     // FINAL PAGE - NOTES

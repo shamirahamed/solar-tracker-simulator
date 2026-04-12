@@ -419,12 +419,21 @@ select option { background: var(--card); color: var(--text); }
 
 .timezone-search-wrap,
 .timezone-col,
-.date-col,
-.location-col {
+.date-col {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
 }
+
+/* Use Location always on its own full row, right-aligned */
+.location-col {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+#getLocation { width: 160px; }
 
 .helper-text {
   color: var(--muted);
@@ -820,8 +829,7 @@ canvas { width: 100% !important; height: 100% !important; }
 
   .preset-row .small-btn { width: 100%; min-height: 34px; }
 
-  .location-col { grid-column: 1 / -1; }
-  #getLocation  { width: 100%; }
+  #getLocation  { width: 100%; max-width: 100%; }
 
   .button-row {
     display: grid;
@@ -857,9 +865,6 @@ canvas { width: 100% !important; height: 100% !important; }
 
   .preset-row { margin-bottom: 8px; gap: 6px; }
   .preset-row .small-btn { min-height: 28px; padding: 0 10px; font-size: var(--fs-sm); }
-
-  .location-col { display: flex; justify-content: flex-end; }
-  #getLocation  { width: 160px; min-height: 32px; align-self: end; }
 
   .timezone-search-wrap, .timezone-col, .date-col {
     display: flex;
