@@ -308,22 +308,30 @@ function compactLegendOptions() {
       boxWidth: 10,
       boxHeight: 10,
       padding: 6,
-      font: { size: 10 }
+      font: { size: 10 },
+      color: "#94a3b8"
     }
   };
 }
 
 function chartBaseOptions(yText) {
+  const gridColor = "rgba(30,39,54,0.9)";
+  const tickColor = "#64748b";
+  const titleColor = "#94a3b8";
   return {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: "index", intersect: false },
     plugins: { legend: compactLegendOptions() },
     scales: {
-      x: { ticks: { maxTicksLimit: 12, font: { size: 10 } } },
+      x: {
+        ticks: { maxTicksLimit: 12, font: { size: 10 }, color: tickColor },
+        grid: { color: gridColor }
+      },
       y: {
-        title: { display: true, text: yText, font: { size: 11 } },
-        ticks: { font: { size: 10 } }
+        title: { display: true, text: yText, font: { size: 11 }, color: titleColor },
+        ticks: { font: { size: 10 }, color: tickColor },
+        grid: { color: gridColor }
       }
     }
   };
@@ -386,15 +394,16 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x: { ticks: { maxTicksLimit: 8, font: { size: 10 } } },
+        x: { ticks: { maxTicksLimit: 8, font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(30,39,54,0.9)" } },
         y: {
           type: "linear",
           position: "left",
           beginAtZero: true,
           min: 0,
           max: Math.max(5, Math.ceil(maxShadowLen * 1.15)),
-          title: { display: true, text: "Shadow Length (scaled)", font: { size: 11 } },
-          ticks: { font: { size: 10 } }
+          title: { display: true, text: "Shadow Length (scaled)", font: { size: 11 }, color: "#94a3b8" },
+          ticks: { font: { size: 10 }, color: "#64748b" },
+          grid: { color: "rgba(30,39,54,0.9)" }
         },
         y1: {
           type: "linear",
@@ -402,8 +411,8 @@ function buildCharts(data) {
           beginAtZero: true,
           min: 0,
           max: Math.max(5, Math.ceil(maxShadingPercent + 1)),
-          title: { display: true, text: "Shading (%)", font: { size: 11 } },
-          ticks: { font: { size: 10 } },
+          title: { display: true, text: "Shading (%)", font: { size: 11 }, color: "#94a3b8" },
+          ticks: { font: { size: 10 }, color: "#64748b" },
           grid: { drawOnChartArea: false }
         }
       }
@@ -472,7 +481,7 @@ function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, g
   const y2 = pivotY + Math.sin(angleRad) * panelLength / 2;
 
   // mast
-  ctx.strokeStyle = "#1f2937";
+  ctx.strokeStyle = "#334155";
   ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.moveTo(pivotX, groundY);
@@ -480,7 +489,7 @@ function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, g
   ctx.stroke();
 
   // pivot
-  ctx.fillStyle = "#111827";
+  ctx.fillStyle = "#94a3b8";
   ctx.beginPath();
   ctx.arc(pivotX, pivotY, 3, 0, Math.PI * 2);
   ctx.fill();
@@ -493,7 +502,7 @@ function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, g
   ctx.lineTo(x2, y2);
   ctx.stroke();
 
-  ctx.fillStyle = "#0f172a";
+  ctx.fillStyle = "#94a3b8";
   ctx.font = "12px Arial";
   ctx.fillText(label, pivotX - 18, pivotY - 12);
 
@@ -550,13 +559,13 @@ function draw2DScene(row) {
 
   // background
   const sky = ctx.createLinearGradient(0, 0, 0, groundY);
-  sky.addColorStop(0, "#eaf4ff");
-  sky.addColorStop(0.70, "#ffffff");
-  sky.addColorStop(1, "#f8fafc");
+  sky.addColorStop(0, "#060a0f");
+  sky.addColorStop(0.70, "#0a0e16");
+  sky.addColorStop(1, "#0d1420");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, width, groundY);
 
-  ctx.fillStyle = "#eef2f7";
+  ctx.fillStyle = "#080c12";
   ctx.fillRect(0, groundY, width, height - groundY);
 
   // visual scaling
@@ -578,7 +587,7 @@ function draw2DScene(row) {
   const pivotY = groundY - trackerHeightPx;
 
   // ground
-  ctx.strokeStyle = "#94a3b8";
+  ctx.strokeStyle = "#00c853";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(28, groundY);
@@ -608,8 +617,8 @@ function draw2DScene(row) {
   const visualAngle = sunOnLeft ? -Math.abs(trackerAngle) : Math.abs(trackerAngle);
   const angleRad = visualAngle * Math.PI / 180;
 
-  const panelA = drawPanelAt(ctx, mast1X, pivotY, angleRad, panelLengthPx, "#2563eb", "Row A", groundY);
-  const panelB = drawPanelAt(ctx, mast2X, pivotY, angleRad, panelLengthPx, "#2563eb", "Row B", groundY);
+  const panelA = drawPanelAt(ctx, mast1X, pivotY, angleRad, panelLengthPx, "#00c853", "Row A", groundY);
+  const panelB = drawPanelAt(ctx, mast2X, pivotY, angleRad, panelLengthPx, "#00c853", "Row B", groundY);
 
   if (elevation > 0) {
     // smooth arc from east(90) to west(270)
@@ -624,7 +633,7 @@ function draw2DScene(row) {
     const sunY = groundY - sunYOffset - elevNorm * (skyHeight + sunHeightBoost);
 
     // guide arc
-    ctx.strokeStyle = "rgba(148,163,184,0.20)";
+    ctx.strokeStyle = "rgba(0,200,83,0.12)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(width / 2, groundY + 16, Math.min(width * 0.42, 250), Math.PI, 2 * Math.PI);
@@ -637,14 +646,14 @@ function draw2DScene(row) {
     const shadowSourceX = sunOnLeft ? mast1X : mast2X;
     const shadowEndX = sunOnLeft ? shadowSourceX + shadowPx : shadowSourceX - shadowPx;
 
-    ctx.strokeStyle = "rgba(0,0,0,0.12)";
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
     ctx.lineWidth = 7;
     ctx.beginPath();
     ctx.moveTo(shadowSourceX, groundY);
     ctx.lineTo(shadowEndX, groundY);
     ctx.stroke();
 
-    ctx.strokeStyle = "rgba(0,0,0,0.68)";
+    ctx.strokeStyle = "rgba(100,116,139,0.85)";
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(shadowSourceX, groundY);
@@ -658,19 +667,19 @@ function draw2DScene(row) {
       const shadeWidth = Math.max(5, Math.min(panelWidthPx, panelWidthPx * (shadingPercentSelected / 100)));
       const shadeX = sunOnLeft ? targetPanel.leftX : targetPanel.rightX - shadeWidth;
 
-      ctx.fillStyle = "rgba(220,38,38,0.26)";
+      ctx.fillStyle = "rgba(239,68,68,0.28)";
       ctx.fillRect(shadeX, pivotY - 13, shadeWidth, 26);
 
-      ctx.strokeStyle = "rgba(185,28,28,0.58)";
+      ctx.strokeStyle = "rgba(239,68,68,0.65)";
       ctx.lineWidth = 1;
       ctx.strokeRect(shadeX, pivotY - 13, shadeWidth, 26);
 
-      ctx.fillStyle = "#b91c1c";
+      ctx.fillStyle = "#ef4444";
       ctx.font = "12px Arial";
       ctx.fillText(`Shading ${shadingPercentSelected.toFixed(1)}%`, width / 2 - 42, pivotY - 22);
       setBadge(badgeShading, "Shading: Yes", "badge-red");
     } else {
-      ctx.fillStyle = "#16a34a";
+      ctx.fillStyle = "#00c853";
       ctx.font = "12px Arial";
       ctx.fillText("No Shading", width / 2 - 28, pivotY - 22);
       setBadge(badgeShading, "Shading: No", "badge-green");
@@ -695,7 +704,7 @@ function draw2DScene(row) {
   );
 
   // top info
-  ctx.fillStyle = "#0f172a";
+  ctx.fillStyle = "#94a3b8";
   ctx.font = width < 500 ? "11px Arial" : "12px Arial";
   ctx.fillText(`Time: ${formatTimeLabel(row.timestamp)}`, 16, 18);
   ctx.fillText(`Sun Elevation: ${elevation.toFixed(1)}°`, 16, 32);
@@ -710,7 +719,7 @@ function draw2DScene(row) {
   ctx.fillText(`Shading (With BT): ${shadingBt.toFixed(2)}%`, width < 640 ? 150 : 170, height - 26);
 
   if (shownShadowRaw > MAX_SHADOW_2D_DISPLAY_M) {
-    ctx.fillStyle = "#64748b";
+    ctx.fillStyle = "#475569";
     ctx.font = "10px Arial";
     ctx.fillText(`Visual shadow capped at ${MAX_SHADOW_2D_DISPLAY_M} m`, 16, height - 10);
   }
