@@ -578,8 +578,8 @@ function drawPanelAt(ctx, pivotX, pivotY, angleRad, panelLength, color, label, g
   ctx.stroke();
 
   ctx.fillStyle = isLight ? "#1e3a5f" : "#94a3b8";
-  ctx.font = "12px Arial";
-  ctx.fillText(label, pivotX - 18, groundY + 14);
+  ctx.font = "bold 11px Arial";
+  ctx.fillText(label, pivotX - 16, groundY + 13);
 
   return {
     leftX: Math.min(x1, x2),
@@ -822,16 +822,22 @@ function draw2DScene(row) {
   ctx.fillText(`Tracker Angle: ${trackerAngle.toFixed(1)}°`, 16, 60);
   ctx.fillText(`Shadow: ${formatShadowMetric(shownShadowRaw)}`, 16, 74);
 
-  // bottom info
-  ctx.fillStyle = isLight ? "#334155" : "#475569";
-  ctx.font = "11px Arial";
-  ctx.fillText(`Shading (No BT): ${shadingNoBt.toFixed(2)}%`, 16, height - 26);
-  ctx.fillText(`Shading (With BT): ${shadingBt.toFixed(2)}%`, width < 640 ? 150 : 170, height - 26);
+  // Dark info strip — gives the Row labels + shading text a clean background
+  ctx.fillStyle = isLight ? "rgba(170,205,140,0.55)" : "rgba(2,5,10,0.75)";
+  ctx.fillRect(0, groundY + 2, width, height - groundY - 2);
+
+  // Bottom text — anchored to groundY so it never collides with Row A/B labels
+  // Row labels are at groundY+12; shading text starts at groundY+26
+  ctx.fillStyle = isLight ? "#1e3a5f" : "#64748b";
+  const bFont = width < 500 ? "10px Arial" : "11px Arial";
+  ctx.font = bFont;
+  const col2X = width < 640 ? Math.floor(width / 2) : 170;
+  ctx.fillText(`Shading (No BT): ${shadingNoBt.toFixed(2)}%`,   8,     groundY + 26);
+  ctx.fillText(`Shading (BT): ${shadingBt.toFixed(2)}%`,        col2X, groundY + 26);
 
   if (shownShadowRaw > MAX_SHADOW_2D_DISPLAY_M) {
-    ctx.fillStyle = isLight ? "#334155" : "#475569";
     ctx.font = "10px Arial";
-    ctx.fillText(`Visual shadow capped at ${MAX_SHADOW_2D_DISPLAY_M} m`, 16, height - 10);
+    ctx.fillText(`Shadow capped at ${MAX_SHADOW_2D_DISPLAY_M} m`, 8, groundY + 40);
   }
 }
 
