@@ -1919,4 +1919,10 @@ window.onload = function () {
   });
 
   setBadge(badgeApi, "API: Not checked", "badge-gray");
+
+  // Keep-alive ping — prevents Render free tier backend from sleeping.
+  // Calls /health silently every 10 min; no UI impact if it fails.
+  const _keepAlive = () => fetch(`${API_BASE.replace(/\/api\/v1$/, "")}/api/v1/health`, { method: "GET" }).catch(() => {});
+  _keepAlive();
+  setInterval(_keepAlive, 10 * 60 * 1000);
 };
