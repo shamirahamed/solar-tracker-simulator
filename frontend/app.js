@@ -985,14 +985,19 @@ async function runSimulation() {
   localStorage.setItem("solarInputs", JSON.stringify(payload));
   updateScenarioHeader();
   preview.textContent = "Loading simulation...";
-  showPopup("Running simulation...", "info", 2000);
+  showPopup("Running simulation… (first load may take ~30s to wake server)", "info", 8000);
 
   try {
+    // 90s timeout — Render free tier can take ~30-50s to wake from sleep
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
     const response = await fetch(`${API_BASE}/simulate/day`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const text = await response.text();
@@ -1036,9 +1041,14 @@ preview.textContent = JSON.stringify(
     showPopup("Simulation completed.", "success");
   } catch (error) {
     setBadge(badgeApi, "API: Error", "badge-red");
-    preview.textContent = `Request failed:\n${error.message}`;
-    showPopup("Unable to connect to API.", "error");
-    openSettings();
+    if (error.name === "AbortError") {
+      preview.textContent = "Request timed out. The server may be waking up — please try again in 30 seconds.";
+      showPopup("Server is waking up — try again in 30s.", "error", 6000);
+    } else {
+      preview.textContent = `Request failed:\n${error.message}`;
+      showPopup("Unable to connect to API.", "error");
+      openSettings();
+    }
   }
 }
 
