@@ -19,6 +19,7 @@
         <p class="subhead">Single-axis tracker visualization and daily comparison</p>
       </div>
       <div class="topbar-actions">
+        <button type="button" id="themeToggleBtn" class="icon-btn" aria-label="Toggle theme" title="Toggle light/dark">🌙</button>
         <button type="button" id="aboutBtn" class="icon-btn" aria-label="About">ℹ️</button>
         <button type="button" id="settingsBtn" class="icon-btn" aria-label="Settings">⚙️</button>
       </div>
@@ -88,17 +89,42 @@
         <button type="button" id="close-settings" class="secondary-btn">Close</button>
       </div>
 
-      <div class="input-grid compact-grid">
-        <div class="full-span">
+      <!-- Theme -->
+      <div class="settings-section">
+        <h3>Theme</h3>
+        <div class="theme-row">
+          <button type="button" id="themeToggleSetting" class="secondary-btn small-btn">☀️ Switch to Light</button>
+          <span id="themeStatus" class="theme-status">Current: Dark</span>
+        </div>
+      </div>
+
+      <!-- Accent colour -->
+      <div class="settings-section">
+        <h3>Accent Color</h3>
+        <div class="accent-swatches">
+          <button class="accent-swatch active" data-accent="cyber"    style="background:#00c853" title="Cyber Green"></button>
+          <button class="accent-swatch"        data-accent="military" style="background:#6b8f3a" title="Military Green"></button>
+          <button class="accent-swatch"        data-accent="phosphor" style="background:#39ff14" title="Phosphor"></button>
+          <button class="accent-swatch"        data-accent="arctic"   style="background:#00e5ff" title="Arctic Cyan"></button>
+          <button class="accent-swatch"        data-accent="amber"    style="background:#f59e0b" title="Amber"></button>
+        </div>
+        <small class="helper-text" style="display:block;margin-top:8px">
+          Cyber #00c853 &nbsp;·&nbsp; Military #6b8f3a &nbsp;·&nbsp; Phosphor #39ff14 &nbsp;·&nbsp; Cyan #00e5ff &nbsp;·&nbsp; Amber #f59e0b
+        </small>
+      </div>
+
+      <!-- API URL -->
+      <div class="settings-section">
+        <h3>API</h3>
+        <div>
           <label for="api_url">API Base URL</label>
           <input type="text" id="api_url" placeholder="https://server/api/v1" />
           <small class="helper-text">Used for simulation and CSV export.</small>
         </div>
-      </div>
-
-      <div class="button-row">
-        <button type="button" id="save-api-url">Save API URL</button>
-        <button type="button" id="reset-api-url" class="secondary-btn">Reset API URL</button>
+        <div class="button-row">
+          <button type="button" id="save-api-url">Save API URL</button>
+          <button type="button" id="reset-api-url" class="secondary-btn">Reset API URL</button>
+        </div>
       </div>
     </section>
 
@@ -316,6 +342,15 @@
       </section>
     </main>
   </div>
+  <!-- ── Device preview bar (fixed bottom) ───────── -->
+  <div class="device-bar" id="deviceBar">
+    <span class="device-bar-label">Preview:</span>
+    <button class="dev-btn active" data-device="desktop"  title="Desktop (full width)">🖥 Desktop</button>
+    <button class="dev-btn"        data-device="tablet-l" title="Tablet Landscape 1024px">⬜ Tab L</button>
+    <button class="dev-btn"        data-device="tablet-p" title="Tablet Portrait 768px">📋 Tab P</button>
+    <button class="dev-btn"        data-device="mobile"   title="Mobile 375px">📱 Mobile</button>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>

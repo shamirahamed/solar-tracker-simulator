@@ -48,6 +48,60 @@ const pause2dBtn = document.getElementById("pause2d");
 let anglesChart = null;
 let sunChart = null;
 let shadingChart = null;
+
+/* ── Theme & accent system ─────────────────────────────────────────── */
+const ACCENTS = {
+  cyber:    { base: "#00c853", dark: "#00a844", dim: "rgba(0,200,83,0.12)",    glow: "rgba(0,200,83,0.25)" },
+  military: { base: "#6b8f3a", dark: "#4d6b27", dim: "rgba(107,143,58,0.14)", glow: "rgba(107,143,58,0.30)" },
+  phosphor: { base: "#39ff14", dark: "#28cc00", dim: "rgba(57,255,20,0.12)",   glow: "rgba(57,255,20,0.25)" },
+  arctic:   { base: "#00e5ff", dark: "#00b8cc", dim: "rgba(0,229,255,0.12)",   glow: "rgba(0,229,255,0.25)" },
+  amber:    { base: "#f59e0b", dark: "#d97706", dim: "rgba(245,158,11,0.12)",  glow: "rgba(245,158,11,0.25)" },
+};
+
+function applyAccent(name) {
+  const a = ACCENTS[name] || ACCENTS.cyber;
+  const r = document.documentElement;
+  r.style.setProperty("--accent",      a.base);
+  r.style.setProperty("--accent-dark", a.dark);
+  r.style.setProperty("--accent-dim",  a.dim);
+  r.style.setProperty("--accent-glow", a.glow);
+  localStorage.setItem("accent", name);
+  document.querySelectorAll(".accent-swatch").forEach(b => {
+    b.classList.toggle("active", b.dataset.accent === name);
+  });
+  // rebuild charts so colours update
+  if (latestSimulationData.length) buildCharts(latestSimulationData);
+}
+
+function getAccentColor() {
+  return getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#00c853";
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem("theme", theme);
+  const isLight = theme === "light";
+  const icon = isLight ? "🌙" : "☀️";
+  const label = isLight ? "Switch to Dark" : "Switch to Light";
+  const statusText = isLight ? "Current: Light" : "Current: Dark";
+  document.getElementById("themeToggleBtn")?.setAttribute("title", label);
+  document.getElementById("themeToggleBtn").textContent = icon;
+  const settingBtn = document.getElementById("themeToggleSetting");
+  if (settingBtn) settingBtn.textContent = `${icon} ${label}`;
+  const statusEl = document.getElementById("themeStatus");
+  if (statusEl) statusEl.textContent = statusText;
+  if (latestSimulationData.length) buildCharts(latestSimulationData);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.dataset.theme || "dark";
+  applyTheme(current === "dark" ? "light" : "dark");
+}
+
+function initThemeAndAccent() {
+  applyTheme(localStorage.getItem("theme") || "dark");
+  applyAccent(localStorage.getItem("accent") || "cyber");
+}
 let powerChart = null;
 let latestSimulationResult = null;
 let latestSimulationData = [];
@@ -98,6 +152,12 @@ function closeAbout() {
 }
 
 function setupTopButtons() {
+  document.getElementById("themeToggleBtn")?.addEventListener("click", toggleTheme);
+  document.getElementById("themeToggleSetting")?.addEventListener("click", toggleTheme);
+  document.querySelectorAll(".accent-swatch").forEach(btn => {
+    btn.addEventListener("click", () => applyAccent(btn.dataset.accent));
+  });
+
   settingsBtn?.addEventListener("click", openSettings);
   closeSettingsBtn?.addEventListener("click", closeSettings);
   aboutBtn?.addEventListener("click", openAbout);
@@ -315,9 +375,10 @@ function compactLegendOptions() {
 }
 
 function chartBaseOptions(yText) {
-  const gridColor = "rgba(30,39,54,0.9)";
-  const tickColor = "#64748b";
-  const titleColor = "#94a3b8";
+  const isLight = document.documentElement.dataset.theme === "light";
+  const gridColor  = isLight ? "rgba(0,0,0,0.07)"  : "rgba(30,39,54,0.9)";
+  const tickColor  = isLight ? "#64748b"            : "#64748b";
+  const titleColor = isLight ? "#475569"            : "#94a3b8";
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -394,16 +455,16 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x: { ticks: { maxTicksLimit: 8, font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(30,39,54,0.9)" } },
+        x: { ticks: { maxTicksLimit: 8, font: { size: 10 }, color: "#64748b" }, grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(30,39,54,0.9)" } },
         y: {
           type: "linear",
           position: "left",
           beginAtZero: true,
           min: 0,
           max: Math.max(5, Math.ceil(maxShadowLen * 1.15)),
-          title: { display: true, text: "Shadow Length (scaled)", font: { size: 11 }, color: "#94a3b8" },
+          title: { display: true, text: "Shadow Length (scaled)", font: { size: 11 }, color: document.documentElement.dataset.theme === "light" ? "#475569" : "#94a3b8" },
           ticks: { font: { size: 10 }, color: "#64748b" },
-          grid: { color: "rgba(30,39,54,0.9)" }
+          grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(30,39,54,0.9)" }
         },
         y1: {
           type: "linear",
@@ -411,7 +472,7 @@ function buildCharts(data) {
           beginAtZero: true,
           min: 0,
           max: Math.max(5, Math.ceil(maxShadingPercent + 1)),
-          title: { display: true, text: "Shading (%)", font: { size: 11 }, color: "#94a3b8" },
+          title: { display: true, text: "Shading (%)", font: { size: 11 }, color: document.documentElement.dataset.theme === "light" ? "#475569" : "#94a3b8" },
           ticks: { font: { size: 10 }, color: "#64748b" },
           grid: { drawOnChartArea: false }
         }
@@ -617,8 +678,9 @@ function draw2DScene(row) {
   const visualAngle = sunOnLeft ? -Math.abs(trackerAngle) : Math.abs(trackerAngle);
   const angleRad = visualAngle * Math.PI / 180;
 
-  const panelA = drawPanelAt(ctx, mast1X, pivotY, angleRad, panelLengthPx, "#00c853", "Row A", groundY);
-  const panelB = drawPanelAt(ctx, mast2X, pivotY, angleRad, panelLengthPx, "#00c853", "Row B", groundY);
+  const panelColor = getAccentColor();
+  const panelA = drawPanelAt(ctx, mast1X, pivotY, angleRad, panelLengthPx, panelColor, "Row A", groundY);
+  const panelB = drawPanelAt(ctx, mast2X, pivotY, angleRad, panelLengthPx, panelColor, "Row B", groundY);
 
   if (elevation > 0) {
     // smooth arc from east(90) to west(270)
@@ -679,7 +741,7 @@ function draw2DScene(row) {
       ctx.fillText(`Shading ${shadingPercentSelected.toFixed(1)}%`, width / 2 - 42, pivotY - 22);
       setBadge(badgeShading, "Shading: Yes", "badge-red");
     } else {
-      ctx.fillStyle = "#00c853";
+      ctx.fillStyle = getAccentColor();
       ctx.font = "12px Arial";
       ctx.fillText("No Shading", width / 2 - 28, pivotY - 22);
       setBadge(badgeShading, "Shading: No", "badge-green");
@@ -1446,7 +1508,31 @@ downloadPdfBtn?.addEventListener("click", async () => {
   await downloadPdf();
 });
 
+function setupDeviceBar() {
+  const btns = document.querySelectorAll(".dev-btn");
+  const saved = localStorage.getItem("previewDevice") || "desktop";
+  setPreviewDevice(saved);
+
+  btns.forEach(btn => {
+    btn.addEventListener("click", () => setPreviewDevice(btn.dataset.device));
+  });
+}
+
+function setPreviewDevice(device) {
+  document.body.dataset.preview = device;
+  localStorage.setItem("previewDevice", device);
+  document.querySelectorAll(".dev-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.device === device);
+  });
+  // redraw canvas to fit new width
+  if (latestSimulationData.length) {
+    const idx = parseInt(document.getElementById("timeSlider")?.value || "720");
+    draw2DScene(latestSimulationData[Math.min(idx, latestSimulationData.length - 1)]);
+  }
+}
+
 window.onload = function () {
+  initThemeAndAccent();
   initApiBase();
   loadTimezones();
   setupTimezoneSearch();
@@ -1456,6 +1542,7 @@ window.onload = function () {
   setupLocationButton();
   setup2DControls();
   setupPresetButtons();
+  setupDeviceBar();
   updateScenarioHeader();
   updateLocationPreviewFromInputs();
 
