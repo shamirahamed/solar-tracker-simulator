@@ -1149,24 +1149,34 @@ function pdfSafeCanvasData(canvas, jpeg = true) {
   }
 }
 
-// Temporarily renders the chart at a height matching the PDF slot's 4:3 aspect
-// ratio. chart.update('none') forces a synchronous draw — skipping the default
-// creation/resize animation that would otherwise leave the canvas blank.
+// Force a synchronous draw on a Chart.js instance.
+// stop() cancels the RAF animation loop; draw() writes directly to canvas.
+// Falls back to update({duration:0}) for older Chart.js builds.
+function _pdfForceDrawChart(c) {
+  if (!c) return;
+  c.stop?.();
+  if (typeof c.draw === "function") {
+    c.draw();
+  } else {
+    c.update?.({ duration: 0 });
+  }
+}
+
+// Temporarily renders the chart at 4:3 aspect (matching 160×120mm PDF slot)
+// then captures the canvas AFTER a forced synchronous draw.
 function pdfCaptureChartHiRes(chartObj) {
   if (!chartObj?.canvas) return null;
   const container = chartObj.canvas.closest(".chart-container");
   if (!container) {
-    chartObj.update("none");
+    _pdfForceDrawChart(chartObj);
     return pdfSafeCanvasData(chartObj.canvas, true);
   }
   const origH = container.style.height;
   try {
-    // Match the PDF slot ratio (160×120mm = 4:3) so jsPDF doesn't distort
     const w = Math.max(container.offsetWidth || 0, 400);
-    const targetH = Math.round(w * 0.75);          // 4:3 landscape height
-    container.style.height = targetH + "px";
+    container.style.height = Math.round(w * 0.75) + "px"; // 4:3 landscape
     chartObj.resize();
-    chartObj.update("none");   // ← synchronous draw, no animation blank-frame
+    _pdfForceDrawChart(chartObj);   // draw to canvas NOW, no RAF delay
     return pdfSafeCanvasData(chartObj.canvas, true);
   } finally {
     container.style.height = origH;
@@ -1420,8 +1430,9 @@ async function downloadPdf() {
     if (_needSwitch) {
       document.documentElement.dataset.theme = "light";
       buildCharts(latestSimulationData);
-      // Force each new chart to draw NOW (skip creation animation)
-      [anglesChart, sunChart, shadingChart, powerChart].forEach(c => c?.update("none"));
+      // New Chart instances animate from blank via RAF — stop + draw forces
+      // them to render synchronously to canvas before we capture.
+      [anglesChart, sunChart, shadingChart, powerChart].forEach(_pdfForceDrawChart);
     }
 
     const anglesImg  = pdfCaptureChartHiRes(anglesChart);
@@ -1432,7 +1443,7 @@ async function downloadPdf() {
     if (_needSwitch) {
       document.documentElement.dataset.theme = _pdfTheme;
       buildCharts(latestSimulationData);
-      [anglesChart, sunChart, shadingChart, powerChart].forEach(c => c?.update("none"));
+      [anglesChart, sunChart, shadingChart, powerChart].forEach(_pdfForceDrawChart);
     }
 
     const dimensionImg = pdfBuildDimensionDiagramDataUrl(payload, mobileView);
