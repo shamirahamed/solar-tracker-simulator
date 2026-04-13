@@ -989,6 +989,16 @@ function setup2DControls() {
 
   liveModeBtn?.addEventListener("click", toggleLiveMode);
 
+  // ⓘ info toggle: show/hide .chart-legend-note on mobile
+  document.querySelectorAll(".info-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const target = document.getElementById(btn.dataset.target);
+      if (!target) return;
+      const visible = target.classList.toggle("info-visible");
+      btn.classList.toggle("active", visible);
+    });
+  });
+
   window.addEventListener("resize", () => {
     if (!latestSimulationData.length) return;
     update2DFrame(parseInt(timeSlider?.value || "0", 10));

@@ -316,37 +316,37 @@
 
       <section class="card">
         <div class="section-head">
-          <h2>Tracker Angle</h2>
+          <h2>Tracker Angle <button class="info-toggle" aria-label="More info" data-target="info-angles">ⓘ</button></h2>
           <span class="section-note">Ideal / Limited / BT from pvlib tracking</span>
         </div>
-        <div class="chart-legend-note">Ideal = unconstrained, Limited = max-angle limited, BT = backtracking.</div>
+        <div class="chart-legend-note" id="info-angles">Ideal = unconstrained, Limited = max-angle limited, BT = backtracking.</div>
         <div class="chart-container"><canvas id="anglesChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
-          <h2>Solar Position</h2>
+          <h2>Solar Position <button class="info-toggle" aria-label="More info" data-target="info-sun">ⓘ</button></h2>
           <span class="section-note">Elevation and azimuth from pvlib</span>
         </div>
-        <div class="chart-legend-note">Shows solar movement through the day.</div>
+        <div class="chart-legend-note" id="info-sun">Shows solar movement through the day.</div>
         <div class="chart-container"><canvas id="sunChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
-          <h2>Inter-row Shadowing</h2>
+          <h2>Inter-row Shadowing <button class="info-toggle" aria-label="More info" data-target="info-shading">ⓘ</button></h2>
           <span class="section-note">Displayed shadow + actual shading %</span>
         </div>
-        <div class="chart-legend-note">Displayed shadow is scaled for readability. Shading % better represents actual panel-to-panel impact.</div>
+        <div class="chart-legend-note" id="info-shading">Displayed shadow is scaled for readability. Shading % better represents actual panel-to-panel impact.</div>
         <div class="chart-container"><canvas id="shadingChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
-          <h2>Irradiance Comparison</h2>
+          <h2>Irradiance Comparison <button class="info-toggle" aria-label="More info" data-target="info-power">ⓘ</button></h2>
           <span class="section-note">Fixed panel vs Tracker No BT vs Tracker BT (W/m²)</span>
         </div>
-        <div class="chart-legend-note">Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading.</div>
+        <div class="chart-legend-note" id="info-power">Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading.</div>
         <div class="chart-container"><canvas id="powerChart"></canvas></div>
       </section>
 
