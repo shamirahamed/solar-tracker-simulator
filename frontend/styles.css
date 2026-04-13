@@ -719,6 +719,39 @@ button:hover {
 
 input[type="range"] { accent-color: var(--accent); }
 
+/* ─── pvlib credit banner ─────────────────────── */
+.pvlib-credit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--card-soft);
+  border: 1px solid var(--line-bright);
+  border-radius: 10px;
+}
+.pvlib-credit-label {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+}
+.pvlib-credit-link { display: flex; align-items: center; }
+.pvlib-logo {
+  height: 28px;
+  width: auto;
+  filter: brightness(1.05);
+  border-radius: 4px;
+}
+.pvlib-credit-version {
+  font-size: 10px;
+  color: #475569;
+  margin-left: auto;
+}
+@media (max-width: 640px) {
+  .pvlib-credit-version { display: none; }
+}
+
 /* ─── Panel footer (Close button at bottom) ─────── */
 .panel-footer {
   display: flex;

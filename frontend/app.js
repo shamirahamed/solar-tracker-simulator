@@ -2164,6 +2164,12 @@ function setPreviewDevice(device) {
   }
 }
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
 window.onload = function () {
   initThemeAndAccent();
   initApiBase();
