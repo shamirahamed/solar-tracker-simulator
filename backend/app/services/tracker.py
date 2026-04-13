@@ -119,6 +119,16 @@ def get_tracker_day_profile(
         cross_axis_tilt=CROSS_AXIS_TILT,
     )
 
+    # pvlib-validated projected solar zenith angle — sign gives shadow direction:
+    #   positive → shadow falls East  (morning, sun in East)
+    #   negative → shadow falls West  (afternoon, sun in West)
+    _proj_zenith_series = pvlib.shading.projected_solar_zenith_angle(
+        solar_zenith=solar_position["apparent_zenith"],
+        solar_azimuth=solar_position["azimuth"],
+        axis_tilt=AXIS_TILT,
+        axis_azimuth=AXIS_AZIMUTH,
+    )
+
     # Fixed-panel tilt/azimuth (latitude tilt, equator-facing)
     _fixed_tilt = abs(latitude)
     _fixed_azimuth = 180.0 if latitude >= 0 else 0.0
@@ -260,6 +270,14 @@ def get_tracker_day_profile(
                     tracking_backtracking, ts, "surface_azimuth", 180.0
                 ),
                 "irradiance_fixed": round(poa_fixed_val, 4),
+                # pvlib-validated shadow direction (sign = East/West)
+                "projected_solar_zenith": round(
+                    _safe_series_value(_proj_zenith_series, ts, 0.0), 4
+                ),
+                # clear-sky GHI always stored for comparison chart
+                "clearsky_ghi": round(
+                    _safe_series_value(clearsky["ghi"], ts, 0.0), 4
+                ),
             }
         )
 

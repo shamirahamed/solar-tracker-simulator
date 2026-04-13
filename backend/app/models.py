@@ -54,6 +54,13 @@ class SimulationPoint(BaseModel):
     selected_shading_percent: float
     selected_power: float
 
+    # v1.2 — pvlib-validated extras
+    power_fixed: float = 0.0
+    temp: float = 20.0
+    cell_temp: float = 20.0
+    clearsky_ghi: float = 0.0
+    projected_solar_zenith: float = 0.0
+
 
 class SimulationResponse(BaseModel):
     latitude: float

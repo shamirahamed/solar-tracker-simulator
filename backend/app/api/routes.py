@@ -34,6 +34,11 @@ CSV_FIELDS = [
     "selected_shaded",
     "selected_shading_percent",
     "selected_power",
+    "power_fixed",
+    "temp",
+    "cell_temp",
+    "clearsky_ghi",
+    "projected_solar_zenith",
 ]
 
 

@@ -462,6 +462,42 @@
         <div id="financialPlaceholder" class="comparison-summary">Run simulation to see financial estimate.</div>
       </section>
 
+      <section class="card">
+        <div class="section-head">
+          <h2>Power Output</h2>
+          <span class="section-note">Actual panel power — Fixed / No BT / BT (W)</span>
+        </div>
+        <div class="chart-legend-note">Temperature-derated power via pvlib noct_sam. More actionable than W/m².</div>
+        <div class="chart-container"><canvas id="powerWChart"></canvas></div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Shadow Direction E/W</h2>
+          <span class="section-note">pvlib projected_solar_zenith — + East shadow / − West shadow</span>
+        </div>
+        <div class="chart-legend-note">Flip from East to West when sun crosses the tracker axis. Shading % overlaid.</div>
+        <div class="chart-container"><canvas id="shadowDirChart"></canvas></div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Cell Temperature</h2>
+          <span class="section-note">Ambient vs cell temp — pvlib noct_sam (°C)</span>
+        </div>
+        <div class="chart-legend-note">Cell temp drives derating. Hot climates lose more than cool ones.</div>
+        <div class="chart-container"><canvas id="tempChart"></canvas></div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>GHI: Actual vs Clear-sky</h2>
+          <span class="section-note">Measured vs theoretical maximum irradiance (W/m²)</span>
+        </div>
+        <div class="chart-legend-note">Gap = cloud / weather impact. Identical lines in clear-sky mode.</div>
+        <div class="chart-container"><canvas id="ghiCompChart"></canvas></div>
+      </section>
+
       <section class="card full-width">
         <details>
           <summary class="preview-summary">Response Preview (advanced)</summary>

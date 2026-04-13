@@ -192,14 +192,22 @@ def _mode_results(
     # Apply shading penalty to total POA
     poa_after_shading = max(0.0, poa_global * (1 - shaded_fraction))
 
-    # Temperature derating (NOCT model)
-    # Cell temperature rises with irradiance above ambient
-    t_cell = t_ambient + (NOCT - 20.0) / 800.0 * poa_after_shading
-    temp_factor = max(0.0, 1.0 + TEMP_COEFF * (t_cell - 25.0))
+    # pvlib-validated cell temperature (NOCT/SAM model)
+    try:
+        t_cell = float(pvlib.temperature.noct_sam(
+            poa_global=poa_after_shading,
+            temp_air=t_ambient,
+            wind_speed=1.0,
+            noct=NOCT,
+            module_efficiency=panel_efficiency,
+        ))
+    except Exception:
+        t_cell = t_ambient + (NOCT - 20.0) / 800.0 * poa_after_shading
 
+    temp_factor = max(0.0, 1.0 + TEMP_COEFF * (t_cell - 25.0))
     power = poa_after_shading * panel_area * panel_efficiency * temp_factor
 
-    return shadow_length, shaded, shaded_fraction * 100.0, poa_after_shading, power
+    return shadow_length, shaded, shaded_fraction * 100.0, poa_after_shading, power, t_cell
 
 
 def run_full_simulation(
@@ -215,21 +223,25 @@ def run_full_simulation(
     results: List[Dict[str, Any]] = []
 
     for row in tracker_data:
+        t_night = float(row.get("temp", 20.0))
         if float(row["sun_elevation"]) <= 0:
             shadow_length_without = 0.0
             shaded_without = False
             shading_percent_without = 0.0
             irradiance_without_backtracking = 0.0
             power_without_backtracking = 0.0
+            cell_temp_nobt = t_night
 
             shadow_length_with = 0.0
             shaded_with = False
             shading_percent_with = 0.0
             irradiance_with_backtracking = 0.0
             power_with_backtracking = 0.0
+            cell_temp_bt = t_night
 
             irradiance_raw = 0.0
             irradiance_fixed = 0.0
+            power_fixed_val = 0.0
         else:
             t_amb = float(row.get("temp", 20.0))
 
@@ -239,6 +251,7 @@ def run_full_simulation(
                 shading_percent_without,
                 irradiance_without_backtracking,
                 power_without_backtracking,
+                cell_temp_nobt,
             ) = _mode_results(
                 row=row,
                 tracker_angle_key="limited_tracker_angle",
@@ -259,6 +272,7 @@ def run_full_simulation(
                 shading_percent_with,
                 irradiance_with_backtracking,
                 power_with_backtracking,
+                cell_temp_bt,
             ) = _mode_results(
                 row=row,
                 tracker_angle_key="backtracking_angle",
@@ -271,6 +285,21 @@ def run_full_simulation(
                 panel_efficiency=panel_efficiency,
                 t_ambient=t_amb,
             )
+
+            # Fixed panel — pvlib temperature + derating for fair comparison
+            irradiance_fixed_val = max(0.0, float(row.get("irradiance_fixed", 0.0)))
+            try:
+                t_cell_fixed = float(pvlib.temperature.noct_sam(
+                    poa_global=irradiance_fixed_val,
+                    temp_air=t_amb,
+                    wind_speed=1.0,
+                    noct=NOCT,
+                    module_efficiency=panel_efficiency,
+                ))
+                tf_fixed = max(0.0, 1.0 + TEMP_COEFF * (t_cell_fixed - 25.0))
+            except Exception:
+                tf_fixed = 1.0
+            power_fixed_val = irradiance_fixed_val * panel_area * panel_efficiency * tf_fixed
 
             # BT irradiance and power are kept as-is from the backtracking calculation.
             # BT avoids shading by rotating to a shallower angle — its POA may differ
@@ -314,6 +343,12 @@ def run_full_simulation(
                 "selected_shaded": selected_shaded,
                 "selected_shading_percent": round(selected_shading_percent, 2),
                 "selected_power": round(selected_power, 2),
+                # v1.2 — pvlib-validated extras
+                "power_fixed": round(power_fixed_val, 2),
+                "temp": round(float(row.get("temp", 20.0)), 2),
+                "cell_temp": round(cell_temp_bt, 2),
+                "clearsky_ghi": round(float(row.get("clearsky_ghi", 0.0)), 2),
+                "projected_solar_zenith": round(float(row.get("projected_solar_zenith", 0.0)), 4),
             }
         )
 

@@ -43,7 +43,11 @@ const badgeApi = document.getElementById("badgeApi");
 const anglesCtx = document.getElementById("anglesChart")?.getContext("2d");
 const sunCtx = document.getElementById("sunChart")?.getContext("2d");
 const shadingCtx = document.getElementById("shadingChart")?.getContext("2d");
-const powerCtx = document.getElementById("powerChart")?.getContext("2d");
+const powerCtx      = document.getElementById("powerChart")?.getContext("2d");
+const powerWCtx     = document.getElementById("powerWChart")?.getContext("2d");
+const shadowDirCtx  = document.getElementById("shadowDirChart")?.getContext("2d");
+const tempCtx       = document.getElementById("tempChart")?.getContext("2d");
+const ghiCompCtx    = document.getElementById("ghiCompChart")?.getContext("2d");
 
 const trackerCanvas = document.getElementById("tracker2dCanvas");
 const tracker2dCtx = trackerCanvas?.getContext("2d");
@@ -116,7 +120,11 @@ function initThemeAndAccent() {
   applyTheme(localStorage.getItem("theme") || "dark");
   applyAccent(localStorage.getItem("accent") || "cyber");
 }
-let powerChart = null;
+let powerChart     = null;
+let powerWChart    = null;
+let shadowDirChart = null;
+let tempChart      = null;
+let ghiCompChart   = null;
 let latestSimulationResult = null;
 let latestSimulationData = [];
 let playTimer = null;
@@ -435,6 +443,10 @@ function destroyCharts() {
   sunChart?.destroy();
   shadingChart?.destroy();
   powerChart?.destroy();
+  powerWChart?.destroy();
+  shadowDirChart?.destroy();
+  tempChart?.destroy();
+  ghiCompChart?.destroy();
 }
 
 // Plugin: draws a vertical accent line + value labels at the current time slider position
@@ -716,6 +728,79 @@ function buildCharts(data) {
       ]
     },
     options: chartBaseOptions("Irradiance (W/m²)")
+  });
+
+  // ── Power Output (W) — temperature-derated via pvlib noct_sam ─────────
+  powerWChart = new Chart(powerWCtx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "Fixed Panel",    data: data.map(r => r.power_fixed),                borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.07)",   borderWidth: 2,   pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", data: data.map(r => r.power_without_backtracking), borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.07)", borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",    data: data.map(r => r.power_with_backtracking),    borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",   borderWidth: 2,   pointRadius: 0, tension: 0.22 },
+      ]
+    },
+    options: chartBaseOptions("Power (W)")
+  });
+
+  // ── Shadow Direction E/W — pvlib projected_solar_zenith sign ──────────
+  // Signed shadow: positive = East shadow, negative = West shadow
+  const shadowDirBt   = data.map(r => {
+    const s = Number(r.shadow_length_with_backtracking || 0);
+    return r.projected_solar_zenith >= 0 ? s : -s;
+  });
+  const shadowDirNoBt = data.map(r => {
+    const s = Number(r.shadow_length_without_backtracking || 0);
+    return r.projected_solar_zenith >= 0 ? s : -s;
+  });
+
+  shadowDirChart = new Chart(shadowDirCtx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "Shadow BT (+ East / − West)",    data: shadowDirBt,   borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",   borderWidth: 2,   pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "Shadow No BT (+ East / − West)", data: shadowDirNoBt, borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.06)", borderWidth: 1.5, borderDash: [5,4], pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "Shading % BT", data: data.map(r => r.shading_percent_with_backtracking), borderColor: "#ef4444", borderWidth: 1.5, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: compactLegendOptions() },
+      scales: {
+        x:  { ticks: { maxTicksLimit: 8, font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(100,116,139,0.40)" } },
+        y:  { type: "linear", position: "left",  title: { display: true, text: "Shadow (m)  + East / − West", font: { size: 10 } }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(100,116,139,0.40)" } },
+        y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100, title: { display: true, text: "Shading %", font: { size: 10 } }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { drawOnChartArea: false } },
+      }
+    }
+  });
+
+  // ── Cell Temperature — pvlib noct_sam ─────────────────────────────────
+  tempChart = new Chart(tempCtx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "Ambient (°C)",   data: data.map(r => r.temp),      borderColor: "#94a3b8", borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, tension: 0.22 },
+        { label: "Cell Temp (°C)", data: data.map(r => r.cell_temp), borderColor: "#f97316", backgroundColor: "rgba(249,115,22,0.08)", borderWidth: 2, pointRadius: 0, tension: 0.22 },
+      ]
+    },
+    options: chartBaseOptions("Temperature (°C)")
+  });
+
+  // ── GHI: Actual vs Clear-sky ───────────────────────────────────────────
+  ghiCompChart = new Chart(ghiCompCtx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "Clear-sky GHI", data: data.map(r => r.clearsky_ghi), borderColor: "#f59e0b", borderWidth: 1.5, borderDash: [5,4], pointRadius: 0, tension: 0.22 },
+        { label: "Actual GHI",    data: data.map(r => r.irradiance_raw), borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.07)", borderWidth: 2, pointRadius: 0, tension: 0.22 },
+      ]
+    },
+    options: chartBaseOptions("GHI (W/m²)")
   });
 }
 
