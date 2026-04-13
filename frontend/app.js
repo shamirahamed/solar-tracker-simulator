@@ -733,7 +733,7 @@ function draw2DScene(row, overrideCtx, overrideW, overrideH) {
 
 
     const sunYOffset = width < 640 ? 10 : 14;
-    const sunHeightBoost = width < 640 ? 14 : 30;
+    const sunHeightBoost = width < 640 ? 30 : 55;
     const sunY = groundY - sunYOffset - elevNorm * (skyHeight + sunHeightBoost);
 
     // guide arc — ellipse matching sun's actual horizontal path (east→west)
@@ -745,7 +745,7 @@ function draw2DScene(row, overrideCtx, overrideW, overrideH) {
     ctx.ellipse(width / 2, groundY + 8, arcRx, arcRy, 0, Math.PI, 2 * Math.PI);
     ctx.stroke();
 
-    drawSunIcon(ctx, sunX, sunY, 11);
+    drawSunIcon(ctx, sunX, sunY, 8);
 
     // shadow opposite to sun — only draw when shadow actually exists
     if (shownShadowDisplay > 0) {
@@ -1918,6 +1918,7 @@ function openTracker2dModal() {
   _tracker2dModalOpen = true;
   document.getElementById("tracker2dModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
+  _syncModalLiveBtn();
   _drawTracker2dModal();
 }
 
@@ -1948,6 +1949,14 @@ function _drawTracker2dModal() {
   if (timeEl) timeEl.textContent = formatTimeLabel(row.timestamp);
 }
 
+function _syncModalLiveBtn() {
+  const btn = document.getElementById("tracker2dModalLive");
+  if (!btn) return;
+  const active = !!liveTimer;
+  btn.classList.toggle("live-active", active);
+  btn.setAttribute("aria-pressed", String(active));
+}
+
 function setupTracker2dModal() {
   document.getElementById("tracker2dModalClose")?.addEventListener("click", closeTracker2dModal);
   document.getElementById("tracker2dModalBackdrop")?.addEventListener("click", closeTracker2dModal);
@@ -1955,6 +1964,21 @@ function setupTracker2dModal() {
     e.stopPropagation();
     openTracker2dModal();
   });
+
+  // Play / Pause / Live mirror the main controls
+  document.getElementById("tracker2dModalPlay")?.addEventListener("click", () => {
+    start2DPlayback();
+    _syncModalLiveBtn();
+  });
+  document.getElementById("tracker2dModalPause")?.addEventListener("click", () => {
+    stop2DPlayback();
+    _syncModalLiveBtn();
+  });
+  document.getElementById("tracker2dModalLive")?.addEventListener("click", () => {
+    toggleLiveMode();
+    _syncModalLiveBtn();
+  });
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && _tracker2dModalOpen) closeTracker2dModal();
   });
