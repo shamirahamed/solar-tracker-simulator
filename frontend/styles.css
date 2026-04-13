@@ -1045,6 +1045,12 @@ canvas { width: 100% !important; height: 100% !important; }
   .slider-row { grid-template-columns: 40px 1fr 52px; }
   .playback-controls { grid-template-columns: 1fr 1fr auto; }
 
+  /* Compact chart headers on mobile */
+  .section-head { margin-bottom: 6px; gap: 6px; }
+  .section-head h2 { font-size: 13px; }
+  .section-note { font-size: 10px; line-height: 1.3; }
+  .chart-legend-note { display: none; }
+
   input[type="number"],
   input[type="text"],
   input[type="date"],
