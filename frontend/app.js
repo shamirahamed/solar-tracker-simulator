@@ -470,10 +470,10 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Shadow No BT", data: shadowNoBtDisplay, borderWidth: 2, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shadow BT", data: shadowBtDisplay, borderWidth: 2, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shading % No BT", data: data.map((r) => r.shading_percent_without_backtracking), borderWidth: 2, borderDash: [6, 5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "Shading % BT", data: data.map((r) => r.shading_percent_with_backtracking), borderWidth: 2, borderDash: [6, 5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "No BT", data: shadowNoBtDisplay, borderWidth: 2, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "BT", data: shadowBtDisplay, borderWidth: 2, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "% No BT", data: data.map((r) => r.shading_percent_without_backtracking), borderWidth: 2, borderDash: [6, 5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "% BT", data: data.map((r) => r.shading_percent_with_backtracking), borderWidth: 2, borderDash: [6, 5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]
     },
     options: {
@@ -1566,10 +1566,10 @@ async function downloadPdf() {
     const shadingImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Shadow No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#0891b2", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shadow BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shading% No BT", hidden: !_chk("pdf_shading_nobt"), data: _ds.map(r => r.shading_percent_without_backtracking), borderColor: "#dc2626", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "Shading% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#ea580c", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#0891b2", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _ds.map(r => r.shading_percent_without_backtracking), borderColor: "#dc2626", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#ea580c", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
