@@ -378,7 +378,7 @@ function destroyCharts() {
   powerChart?.destroy();
 }
 
-// Plugin: draws a vertical accent line at the current time slider position
+// Plugin: draws a vertical accent line + value labels at the current time slider position
 const timeLinePlugin = {
   id: "timeLine",
   afterDraw(chart) {
@@ -389,18 +389,92 @@ const timeLinePlugin = {
     if (!xScale) return;
     const ratio = Math.max(0, Math.min(1, idx / Math.max(total - 1, 1)));
     const x = xScale.left + ratio * (xScale.right - xScale.left);
-    const { top, bottom } = chart.chartArea;
+    const { top, bottom, right } = chart.chartArea;
     const ctx = chart.ctx;
+    const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#00c853";
+    const isLight = document.documentElement.dataset.theme === "light";
+
+    // Dashed vertical line
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(x, top);
     ctx.lineTo(x, bottom);
-    ctx.strokeStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue("--accent").trim() || "#00c853";
+    ctx.strokeStyle = accent;
     ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 3]);
     ctx.globalAlpha = 0.75;
     ctx.stroke();
+    ctx.restore();
+
+    // Value labels for each visible dataset
+    ctx.save();
+    ctx.setLineDash([]);
+    const fontSize = 9;
+    ctx.font = `bold ${fontSize}px system-ui,sans-serif`;
+    ctx.textBaseline = "middle";
+
+    const entries = [];
+    chart.data.datasets.forEach((ds, i) => {
+      const meta = chart.getDatasetMeta(i);
+      if (meta.hidden) return;
+      const val = ds.data[idx];
+      if (val == null || isNaN(+val)) return;
+      const yScale = chart.scales[ds.yAxisID || "y"];
+      if (!yScale) return;
+      const yPx = yScale.getPixelForValue(+val);
+      if (yPx < top - 1 || yPx > bottom + 1) return;
+      const color = (typeof ds.borderColor === "string" ? ds.borderColor : null) || accent;
+      const num = +val;
+      const text = num >= 100 || num <= -100 ? num.toFixed(0) : num.toFixed(1);
+      entries.push({ yPx: Math.max(top + 5, Math.min(bottom - 5, yPx)), text, color });
+    });
+
+    if (!entries.length) { ctx.restore(); return; }
+
+    // Sort top→bottom, then push down any overlapping labels
+    entries.sort((a, b) => a.yPx - b.yPx);
+    const minGap = fontSize + 5;
+    for (let i = 1; i < entries.length; i++) {
+      if (entries[i].yPx - entries[i - 1].yPx < minGap)
+        entries[i].yPx = entries[i - 1].yPx + minGap;
+    }
+
+    // Labels go right of line; flip left when near right edge
+    const flipThreshold = right - 36;
+    const padX = 3, padY = 2;
+
+    entries.forEach(({ yPx, text, color }) => {
+      if (yPx > bottom || yPx < top) return;
+      const tw = ctx.measureText(text).width;
+      const bw = tw + padX * 2, bh = fontSize + padY * 2;
+      const lx = x > flipThreshold ? x - bw - 5 : x + 4;
+
+      // Dot on line
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, yPx, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pill background
+      ctx.globalAlpha = 0.88;
+      ctx.fillStyle = isLight ? "rgba(255,255,255,0.93)" : "rgba(10,17,28,0.90)";
+      ctx.beginPath();
+      ctx.roundRect(lx, yPx - bh / 2, bw, bh, 3);
+      ctx.fill();
+
+      // Pill border
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      // Value text
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = color;
+      ctx.fillText(text, lx + padX, yPx);
+    });
+
     ctx.restore();
   }
 };
