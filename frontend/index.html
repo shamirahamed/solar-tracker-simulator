@@ -279,8 +279,10 @@
       <section class="card full-width">
         <div class="section-head">
           <h2>2D Tracker View</h2>
-          <span class="section-note">Displayed ground shadow is limited to row spacing for readability. Red shows actual panel shading.</span>
+          <span class="section-note section-note-desktop">Displayed ground shadow is limited to row spacing for readability. Red shows actual panel shading.</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-2d">ⓘ</button>
         </div>
+        <div class="chart-legend-note" id="info-2d"><span class="section-note section-note-mobile">Displayed ground shadow limited to row spacing. Red = actual panel shading.</span><br class="section-note-mobile">Black shadow is a displayed helper. Red shading % is the main indicator of actual row-to-row shading.</div>
 
         <div class="legend-row">
           <span class="legend-item"><span class="legend-swatch black"></span>Ground Shadow</span>
@@ -291,10 +293,6 @@
         <div class="tracker-canvas-wrap">
           <canvas id="tracker2dCanvas"></canvas>
           <button class="chart-expand-btn" id="tracker2dExpandBtn" title="Expand 2D view">⤢</button>
-        </div>
-
-        <div class="canvas-note">
-          Black shadow is a displayed helper. Red shading and shading % are the main indicators of actual row-to-row shading.
         </div>
 
         <div class="slider-row">

@@ -1935,14 +1935,20 @@ function _drawTracker2dModal() {
   const modalCanvas = document.getElementById("tracker2dModalCanvas");
   if (!modalCanvas) return;
 
-  // Size canvas to its CSS container
+  // Apply devicePixelRatio for sharp rendering on retina/mobile screens
   const body = modalCanvas.parentElement;
   const W = body.clientWidth  || 600;
   const H = body.clientHeight || 400;
-  modalCanvas.width  = W;
-  modalCanvas.height = H;
+  const dpr = window.devicePixelRatio || 1;
+  modalCanvas.width  = Math.floor(W * dpr);
+  modalCanvas.height = Math.floor(H * dpr);
+  modalCanvas.style.width  = `${W}px`;
+  modalCanvas.style.height = `${H}px`;
 
-  draw2DScene(row, modalCanvas.getContext("2d"), W, H);
+  const ctx = modalCanvas.getContext("2d");
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  draw2DScene(row, ctx, W, H);
 
   // Update time label in modal header
   const timeEl = document.getElementById("tracker2dModalTime");
