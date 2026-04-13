@@ -654,6 +654,7 @@ button:hover {
 .chart-yaxis-label {
   font-size: 10px;
   color: var(--muted);
+  margin-top: -4px;
   margin-bottom: 3px;
   display: flex;
   justify-content: space-between;

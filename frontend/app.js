@@ -1809,10 +1809,10 @@ document.getElementById("pdfModalExport")?.addEventListener("click", async () =>
 let _modalChart = null;
 
 const CHART_MAP = {
-  anglesChart:  { get: () => anglesChart,  title: "Tracker Angle" },
-  sunChart:     { get: () => sunChart,     title: "Solar Position" },
-  shadingChart: { get: () => shadingChart, title: "Inter-row Shadowing" },
-  powerChart:   { get: () => powerChart,   title: "Irradiance Comparison" },
+  anglesChart:  { get: () => anglesChart,  title: "Tracker Angle",        yLabel: "Angle (deg)" },
+  sunChart:     { get: () => sunChart,     title: "Solar Position",        yLabel: "Sun Angle (deg)" },
+  shadingChart: { get: () => shadingChart, title: "Inter-row Shadowing",   yLabel: "Shadow Length (scaled)  ·  Shading (%)" },
+  powerChart:   { get: () => powerChart,   title: "Irradiance Comparison", yLabel: "Irradiance (W/m²)" },
 };
 
 function openChartModal(canvasId) {
@@ -1822,6 +1822,7 @@ function openChartModal(canvasId) {
   if (!source) return;
 
   document.getElementById("chartModalTitle").textContent = entry.title;
+  document.getElementById("chartModalYLabel").textContent = entry.yLabel || "";
 
   // destroy previous modal chart
   if (_modalChart) { _modalChart.destroy(); _modalChart = null; }
