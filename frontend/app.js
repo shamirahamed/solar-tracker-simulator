@@ -2206,6 +2206,19 @@ window.onload = function () {
 
   setBadge(badgeApi, "API: Not checked", "badge-gray");
 
+  // Dismiss chart tooltips on touch outside a chart canvas (Chart.js has no
+  // native mouseleave on touch, so tooltips stick until tapped again).
+  const _chartCanvasIds = ["anglesChart", "sunChart", "shadingChart", "powerChart"];
+  document.addEventListener("touchstart", (e) => {
+    const onCanvas = _chartCanvasIds.some(id => e.target === document.getElementById(id));
+    if (!onCanvas) {
+      [anglesChart, sunChart, shadingChart, powerChart].forEach(c => {
+        if (!c) return;
+        try { c.tooltip.setActiveElements([], {}); c.update("none"); } catch (_) {}
+      });
+    }
+  }, { passive: true });
+
   // Keep-alive ping — prevents Render free tier backend from sleeping.
   // Calls /health silently every 10 min; no UI impact if it fails.
   const _keepAlive = () => fetch(`${API_BASE.replace(/\/api\/v1$/, "")}/api/v1/health`, { method: "GET" }).catch(() => {});
