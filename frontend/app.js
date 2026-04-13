@@ -1897,8 +1897,9 @@ function buildModalScales(srcScales, gridColor, tickColor, titleColor) {
       ticks: {
         ...(scale.ticks || {}),
         color: tickColor,
-        font: { size: 12 },
-        padding: isX ? 8 : 4,   // extra breathing room between x labels and chart
+        font: { size: 11 },
+        padding: isX ? 6 : 4,
+        ...(isX ? { maxTicksLimit: 6, maxRotation: 50, minRotation: 0 } : {}),
       },
       grid:  { ...(scale.grid  || {}), color: gridColor },
       title: { ...(scale.title || {}), color: titleColor, font: { size: 13 } },
