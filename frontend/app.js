@@ -736,15 +736,6 @@ function draw2DScene(row, overrideCtx, overrideW, overrideH) {
     const sunHeightBoost = width < 640 ? 30 : 55;
     const sunY = groundY - sunYOffset - elevNorm * (skyHeight + sunHeightBoost);
 
-    // guide arc — ellipse matching sun's actual horizontal path (east→west)
-    const arcRx = (width - 88) / 2;
-    const arcRy = Math.min(skyHeight * 0.72, width < 640 ? 80 : 150);
-    ctx.strokeStyle = isLight ? "rgba(58,124,40,0.20)" : "rgba(0,200,83,0.15)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.ellipse(width / 2, groundY + 8, arcRx, arcRy, 0, Math.PI, 2 * Math.PI);
-    ctx.stroke();
-
     drawSunIcon(ctx, sunX, sunY, 8);
 
     // shadow opposite to sun — only draw when shadow actually exists
@@ -864,6 +855,11 @@ function update2DFrame(index) {
   const safeIndex = Math.max(0, Math.min(index, latestSimulationData.length - 1));
   if (timeSlider) timeSlider.value = String(safeIndex);
   if (timeLabel) timeLabel.textContent = formatTimeLabel(latestSimulationData[safeIndex].timestamp);
+  // keep modal slider in sync
+  const modalSlider = document.getElementById("tracker2dModalSlider");
+  const modalSliderTime = document.getElementById("tracker2dModalSliderTime");
+  if (modalSlider) modalSlider.value = String(safeIndex);
+  if (modalSliderTime) modalSliderTime.textContent = formatTimeLabel(latestSimulationData[safeIndex].timestamp);
   draw2DScene(latestSimulationData[safeIndex]);
   if (_tracker2dModalOpen) _drawTracker2dModal();
 }
@@ -1041,6 +1037,9 @@ async function runSimulation() {
     const result = await response.json();
     latestSimulationResult = result;
     latestSimulationData = result.data || [];
+    // sync modal slider max to data length
+    const modalSlider = document.getElementById("tracker2dModalSlider");
+    if (modalSlider) modalSlider.max = String(latestSimulationData.length - 1);
     setBadge(badgeApi, "API: Connected", "badge-green");
 
 preview.textContent = JSON.stringify(
@@ -1969,6 +1968,14 @@ function setupTracker2dModal() {
   document.getElementById("tracker2dExpandBtn")?.addEventListener("click", (e) => {
     e.stopPropagation();
     openTracker2dModal();
+  });
+
+  // Modal slider mirrors main slider
+  document.getElementById("tracker2dModalSlider")?.addEventListener("input", (e) => {
+    stop2DPlayback();
+    stopLiveMode();
+    _syncModalLiveBtn();
+    update2DFrame(parseInt(e.target.value, 10));
   });
 
   // Play / Pause / Live mirror the main controls
