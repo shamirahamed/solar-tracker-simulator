@@ -1215,10 +1215,17 @@ function pdfOffscreenChart(config) {
     // 1200×900 is safe across all mobile browsers (iOS Safari caps ~4096px
     // total area; 2000×1500=3M pixels was too close to limits on some devices).
     // jsPDF downscales to 160×120mm regardless — quality is still sharp.
+    // devicePixelRatio:1 prevents Chart.js from scaling the canvas by the
+    // device ratio (2-3× on mobile retina), which would push it to 3600×2700
+    // and exceed mobile canvas limits, causing data to bunch at the right edge.
     const CW = 1200, CH = 900;
     const chartCanvas = document.createElement("canvas");
     chartCanvas.width = CW; chartCanvas.height = CH;
-    const chart = new Chart(chartCanvas, config);
+    const mergedConfig = {
+      ...config,
+      options: { ...config.options, devicePixelRatio: 1 }
+    };
+    const chart = new Chart(chartCanvas, mergedConfig);
     // animation:false means Chart.js drew synchronously in the constructor
     // call stop+draw as belt-and-suspenders safety
     chart.stop?.();
@@ -1497,18 +1504,22 @@ async function downloadPdf() {
       maxIrrBt: Math.max(...latestSimulationData.map((r) => Number(r.irradiance_with_backtracking || 0)), 0)
     };
 
-    // Build chart images from detached offscreen canvases (2000×1500px).
+    // Build chart images from detached offscreen canvases.
     // Option B: read checkbox states from PDF filter modal.
-    const _d = latestSimulationData;
-    const _lbl = _d.map(r => formatTimeLabel(r.timestamp));
+    // Sample every 5th minute (1440 → 288 pts) so Chart.js category scale
+    // distributes data across the full canvas width (1440 string labels in a
+    // 1200px responsive:false canvas causes all data to bunch at the right edge).
+    const _d   = latestSimulationData;
+    const _ds  = _d.filter((_, i) => i % 5 === 0);   // one point per 5 min
+    const _lbl = _ds.map(r => formatTimeLabel(r.timestamp));
     const _chk = id => document.getElementById(id)?.checked !== false;
 
     const anglesImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Ideal",        hidden: !_chk("pdf_ideal"),        data: _d.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Limited",      hidden: !_chk("pdf_limited"),      data: _d.map(r => r.limited_tracker_angle), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Backtracking", hidden: !_chk("pdf_backtracking"), data: _d.map(r => r.backtracking_angle),    borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
+        { label: "Ideal",        hidden: !_chk("pdf_ideal"),        data: _ds.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Limited",      hidden: !_chk("pdf_limited"),      data: _ds.map(r => r.limited_tracker_angle), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Backtracking", hidden: !_chk("pdf_backtracking"), data: _ds.map(r => r.backtracking_angle),    borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Angle (deg)")
     });
@@ -1516,24 +1527,24 @@ async function downloadPdf() {
     const sunImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Elevation", hidden: !_chk("pdf_elevation"), data: _d.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Azimuth",   hidden: !_chk("pdf_azimuth"),   data: _d.map(r => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
+        { label: "Elevation", hidden: !_chk("pdf_elevation"), data: _ds.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Azimuth",   hidden: !_chk("pdf_azimuth"),   data: _ds.map(r => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Sun Angle (deg)")
     });
 
-    const _snoBt  = _d.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking));
-    const _sBt    = _d.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking));
+    const _snoBt  = _ds.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking));
+    const _sBt    = _ds.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking));
     const _maxSh  = Math.max(..._snoBt, ..._sBt, 1);
-    const _maxPct = Math.max(..._d.map(r => Number(r.shading_percent_without_backtracking || 0)),
-                             ..._d.map(r => Number(r.shading_percent_with_backtracking    || 0)), 1);
+    const _maxPct = Math.max(..._ds.map(r => Number(r.shading_percent_without_backtracking || 0)),
+                             ..._ds.map(r => Number(r.shading_percent_with_backtracking    || 0)), 1);
     const shadingImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
         { label: "Shadow No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#0891b2", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "Shadow BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shading% No BT", hidden: !_chk("pdf_shading_nobt"), data: _d.map(r => r.shading_percent_without_backtracking), borderColor: "#dc2626", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "Shading% BT",    hidden: !_chk("pdf_shading_bt"),   data: _d.map(r => r.shading_percent_with_backtracking),    borderColor: "#ea580c", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "Shading% No BT", hidden: !_chk("pdf_shading_nobt"), data: _ds.map(r => r.shading_percent_without_backtracking), borderColor: "#dc2626", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "Shading% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#ea580c", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
@@ -1551,9 +1562,9 @@ async function downloadPdf() {
     const powerImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Fixed Panel",     hidden: !_chk("pdf_fixed"),    data: _d.map(r => r.irradiance_fixed),                 borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – No BT", hidden: !_chk("pdf_irr_nobt"), data: _d.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – BT",    hidden: !_chk("pdf_irr_bt"),   data: _d.map(r => r.irradiance_with_backtracking),    borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
+        { label: "Fixed Panel",     hidden: !_chk("pdf_fixed"),    data: _ds.map(r => r.irradiance_fixed),                 borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", hidden: !_chk("pdf_irr_nobt"), data: _ds.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",    hidden: !_chk("pdf_irr_bt"),   data: _ds.map(r => r.irradiance_with_backtracking),    borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Irradiance (W/m²)")
     });
