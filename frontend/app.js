@@ -409,15 +409,19 @@ function chartBaseOptions(yText) {
         bodyColor:       isLight ? "#334155"                : "#94a3b8",
         borderColor:     isLight ? "#cbd5e1"                : "#1e2736",
         borderWidth: 1,
+        padding: { x: 8, y: 5 },
+        titleFont: { size: 11 },
+        bodyFont:  { size: 10 },
+        boxWidth: 8, boxHeight: 8,
       }
     },
     scales: {
       x: {
-        ticks: { maxTicksLimit: 12, font: { size: 10 }, color: tickColor },
+        ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: tickColor },
         grid: { color: gridColor }
       },
       y: {
-        title: { display: true, text: yText, font: { size: 11 }, color: titleColor },
+        title: { display: false },
         ticks: { font: { size: 10 }, color: tickColor },
         grid: { color: gridColor }
       }
@@ -482,14 +486,14 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x: { ticks: { maxTicksLimit: 8, font: { size: 10 }, color: "#64748b" }, grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" } },
+        x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" } },
         y: {
           type: "linear",
           position: "left",
           beginAtZero: true,
           min: 0,
           max: Math.max(5, Math.ceil(maxShadowLen * 1.15)),
-          title: { display: true, text: "Shadow Length (scaled)", font: { size: 11 }, color: document.documentElement.dataset.theme === "light" ? "#475569" : "#94a3b8" },
+          title: { display: false },
           ticks: { font: { size: 10 }, color: "#64748b" },
           grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" }
         },
@@ -499,7 +503,7 @@ function buildCharts(data) {
           beginAtZero: true,
           min: 0,
           max: Math.max(5, Math.ceil(maxShadingPercent + 1)),
-          title: { display: true, text: "Shading (%)", font: { size: 11 }, color: document.documentElement.dataset.theme === "light" ? "#475569" : "#94a3b8" },
+          title: { display: false },
           ticks: { font: { size: 10 }, color: "#64748b" },
           grid: { drawOnChartArea: false }
         }

@@ -651,6 +651,17 @@ button:hover {
   background: #060a0f;
 }
 
+.chart-yaxis-label {
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 3px;
+  display: flex;
+  justify-content: space-between;
+}
+.chart-yaxis-label-r {
+  color: var(--muted);
+}
+
 .canvas-note, .chart-legend-note {
   margin-top: 8px;
   color: var(--muted);

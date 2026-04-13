@@ -320,6 +320,7 @@
           <button class="info-toggle" aria-label="More info" data-target="info-angles">ⓘ</button>
         </div>
         <div class="chart-legend-note" id="info-angles"><span class="section-note section-note-mobile">Ideal / Limited / BT from pvlib tracking</span><br class="section-note-mobile">Ideal = unconstrained, Limited = max-angle limited, BT = backtracking.</div>
+        <div class="chart-yaxis-label">Angle (deg)</div>
         <div class="chart-container"><canvas id="anglesChart"></canvas></div>
       </section>
 
@@ -330,6 +331,7 @@
           <button class="info-toggle" aria-label="More info" data-target="info-sun">ⓘ</button>
         </div>
         <div class="chart-legend-note" id="info-sun"><span class="section-note section-note-mobile">Elevation and azimuth from pvlib</span><br class="section-note-mobile">Shows solar movement through the day.</div>
+        <div class="chart-yaxis-label">Sun Angle (deg)</div>
         <div class="chart-container"><canvas id="sunChart"></canvas></div>
       </section>
 
@@ -340,6 +342,7 @@
           <button class="info-toggle" aria-label="More info" data-target="info-shading">ⓘ</button>
         </div>
         <div class="chart-legend-note" id="info-shading"><span class="section-note section-note-mobile">Displayed shadow + actual shading %</span><br class="section-note-mobile">Displayed shadow is scaled for readability. Shading % better represents actual panel-to-panel impact.</div>
+        <div class="chart-yaxis-label">Shadow Length (scaled) <span class="chart-yaxis-label-r">Shading (%)</span></div>
         <div class="chart-container"><canvas id="shadingChart"></canvas></div>
       </section>
 
@@ -350,6 +353,7 @@
           <button class="info-toggle" aria-label="More info" data-target="info-power">ⓘ</button>
         </div>
         <div class="chart-legend-note" id="info-power"><span class="section-note section-note-mobile">Fixed panel vs Tracker No BT vs Tracker BT (W/m²)</span><br class="section-note-mobile">Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading.</div>
+        <div class="chart-yaxis-label">Irradiance (W/m²)</div>
         <div class="chart-container"><canvas id="powerChart"></canvas></div>
       </section>
 
