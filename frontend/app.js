@@ -437,6 +437,113 @@ function destroyCharts() {
   powerChart?.destroy();
 }
 
+// Plugin: draws a vertical accent line + value labels at the current time slider position
+const timeLinePlugin = {
+  id: "timeLine",
+  afterDraw(chart) {
+    if (!latestSimulationData.length || !timeSlider) return;
+    const idx   = parseInt(timeSlider.value || "0", 10);
+    const total = latestSimulationData.length;
+    const xScale = chart.scales?.x;
+    if (!xScale) return;
+    const ratio = Math.max(0, Math.min(1, idx / Math.max(total - 1, 1)));
+    const x = xScale.left + ratio * (xScale.right - xScale.left);
+    const { top, bottom, right } = chart.chartArea;
+    const ctx = chart.ctx;
+    const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#00c853";
+    const isLight = document.documentElement.dataset.theme === "light";
+
+    // Dashed vertical line
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.lineTo(x, bottom);
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.globalAlpha = 0.75;
+    ctx.stroke();
+    ctx.restore();
+
+    // Value labels for each visible dataset
+    ctx.save();
+    ctx.setLineDash([]);
+    const fontSize = 9;
+    ctx.font = `bold ${fontSize}px system-ui,sans-serif`;
+    ctx.textBaseline = "middle";
+
+    const entries = [];
+    chart.data.datasets.forEach((ds, i) => {
+      const meta = chart.getDatasetMeta(i);
+      if (meta.hidden) return;
+      const val = ds.data[idx];
+      if (val == null || isNaN(+val)) return;
+      const yScale = chart.scales[ds.yAxisID || "y"];
+      if (!yScale) return;
+      const yPx = yScale.getPixelForValue(+val);
+      if (yPx < top - 1 || yPx > bottom + 1) return;
+      const color = (typeof ds.borderColor === "string" ? ds.borderColor : null) || accent;
+      const num = +val;
+      const text = num >= 100 || num <= -100 ? num.toFixed(0) : num.toFixed(1);
+      entries.push({ yPx: Math.max(top + 5, Math.min(bottom - 5, yPx)), text, color });
+    });
+
+    if (!entries.length) { ctx.restore(); return; }
+
+    // Sort top→bottom, then push down any overlapping labels
+    entries.sort((a, b) => a.yPx - b.yPx);
+    const minGap = fontSize + 5;
+    for (let i = 1; i < entries.length; i++) {
+      if (entries[i].yPx - entries[i - 1].yPx < minGap)
+        entries[i].yPx = entries[i - 1].yPx + minGap;
+    }
+
+    // Labels go right of line; flip left when near right edge
+    const flipThreshold = right - 36;
+    const padX = 3, padY = 2;
+
+    entries.forEach(({ yPx, text, color }) => {
+      if (yPx > bottom || yPx < top) return;
+      const tw = ctx.measureText(text).width;
+      const bw = tw + padX * 2, bh = fontSize + padY * 2;
+      const lx = x > flipThreshold ? x - bw - 5 : x + 4;
+
+      // Dot on line
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, yPx, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pill background
+      ctx.globalAlpha = 0.88;
+      ctx.fillStyle = isLight ? "rgba(255,255,255,0.93)" : "rgba(10,17,28,0.90)";
+      ctx.beginPath();
+      ctx.roundRect(lx, yPx - bh / 2, bw, bh, 3);
+      ctx.fill();
+
+      // Pill border
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      // Value text
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = color;
+      ctx.fillText(text, lx + padX, yPx);
+    });
+
+    ctx.restore();
+  }
+};
+
+function _refreshChartLines() {
+  [anglesChart, sunChart, shadingChart, powerChart].forEach(c => {
+    try { if (c) c.update("none"); } catch (e) {}
+  });
+}
+
 function compactLegendOptions() {
   return {
     position: "bottom",
@@ -468,15 +575,19 @@ function chartBaseOptions(yText) {
         bodyColor:       isLight ? "#334155"                : "#94a3b8",
         borderColor:     isLight ? "#cbd5e1"                : "#1e2736",
         borderWidth: 1,
+        padding: { x: 8, y: 5 },
+        titleFont: { size: 11 },
+        bodyFont:  { size: 10 },
+        boxWidth: 8, boxHeight: 8,
       }
     },
     scales: {
       x: {
-        ticks: { maxTicksLimit: 12, font: { size: 10 }, color: tickColor },
+        ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: tickColor },
         grid: { color: gridColor }
       },
       y: {
-        title: { display: true, text: yText, font: { size: 11 }, color: titleColor },
+        title: { display: false },
         ticks: { font: { size: 10 }, color: tickColor },
         grid: { color: gridColor }
       }
@@ -491,6 +602,7 @@ function buildCharts(data) {
 
   anglesChart = new Chart(anglesCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -504,6 +616,7 @@ function buildCharts(data) {
 
   sunChart = new Chart(sunCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -526,13 +639,14 @@ function buildCharts(data) {
 
   shadingChart = new Chart(shadingCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
-        { label: "Shadow No BT", data: shadowNoBtDisplay, borderWidth: 2, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shadow BT", data: shadowBtDisplay, borderWidth: 2, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shading % No BT", data: data.map((r) => r.shading_percent_without_backtracking), borderWidth: 2, borderDash: [6, 5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "Shading % BT", data: data.map((r) => r.shading_percent_with_backtracking), borderWidth: 2, borderDash: [6, 5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "No BT",   data: shadowNoBtDisplay,                                          borderColor: "#38bdf8", borderWidth: 2,   pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "BT",      data: shadowBtDisplay,                                             borderColor: "#f472b6", borderWidth: 2,   pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "% No BT", data: data.map((r) => r.shading_percent_without_backtracking),     borderColor: "#fb923c", borderWidth: 1.8, pointRadius: 0, tension: 0.18, borderDash: [8, 4], yAxisID: "y1" },
+        { label: "% BT",    data: data.map((r) => r.shading_percent_with_backtracking),        borderColor: "#a78bfa", borderWidth: 1.8, pointRadius: 0, tension: 0.18, borderDash: [3, 3], yAxisID: "y1" }
       ]
     },
     options: {
@@ -541,14 +655,14 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x: { ticks: { maxTicksLimit: 8, font: { size: 10 }, color: "#64748b" }, grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" } },
+        x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" } },
         y: {
           type: "linear",
           position: "left",
           beginAtZero: true,
           min: 0,
           max: Math.max(5, Math.ceil(maxShadowLen * 1.15)),
-          title: { display: true, text: "Shadow Length (scaled)", font: { size: 11 }, color: document.documentElement.dataset.theme === "light" ? "#475569" : "#94a3b8" },
+          title: { display: false },
           ticks: { font: { size: 10 }, color: "#64748b" },
           grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" }
         },
@@ -558,7 +672,7 @@ function buildCharts(data) {
           beginAtZero: true,
           min: 0,
           max: Math.max(5, Math.ceil(maxShadingPercent + 1)),
-          title: { display: true, text: "Shading (%)", font: { size: 11 }, color: document.documentElement.dataset.theme === "light" ? "#475569" : "#94a3b8" },
+          title: { display: false },
           ticks: { font: { size: 10 }, color: "#64748b" },
           grid: { drawOnChartArea: false }
         }
@@ -568,6 +682,7 @@ function buildCharts(data) {
 
   powerChart = new Chart(powerCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -692,13 +807,17 @@ function drawSunIcon(ctx, x, y, r) {
 
 
 
-function draw2DScene(row) {
-  if (!tracker2dCtx || !row) return;
-  const size = resizeTrackerCanvas();
-  if (!size) return;
-
-  const { width, height } = size;
-  const ctx = tracker2dCtx;
+function draw2DScene(row, overrideCtx, overrideW, overrideH) {
+  if (!row) return;
+  let ctx, width, height;
+  if (overrideCtx) {
+    ctx = overrideCtx; width = overrideW; height = overrideH;
+  } else {
+    if (!tracker2dCtx) return;
+    const size = resizeTrackerCanvas();
+    if (!size) return;
+    ctx = tracker2dCtx; width = size.width; height = size.height;
+  }
   ctx.clearRect(0, 0, width, height);
 
   const payload = getPayload();
@@ -788,19 +907,10 @@ function draw2DScene(row) {
 
 
     const sunYOffset = width < 640 ? 10 : 14;
-    const sunHeightBoost = width < 640 ? 14 : 30;
+    const sunHeightBoost = width < 640 ? 30 : 55;
     const sunY = groundY - sunYOffset - elevNorm * (skyHeight + sunHeightBoost);
 
-    // guide arc — ellipse matching sun's actual horizontal path (east→west)
-    const arcRx = (width - 88) / 2;
-    const arcRy = Math.min(skyHeight * 0.72, width < 640 ? 80 : 150);
-    ctx.strokeStyle = isLight ? "rgba(58,124,40,0.20)" : "rgba(0,200,83,0.15)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.ellipse(width / 2, groundY + 8, arcRx, arcRy, 0, Math.PI, 2 * Math.PI);
-    ctx.stroke();
-
-    drawSunIcon(ctx, sunX, sunY, 11);
+    drawSunIcon(ctx, sunX, sunY, 8);
 
     // shadow opposite to sun — only draw when shadow actually exists
     if (shownShadowDisplay > 0) {
@@ -919,7 +1029,14 @@ function update2DFrame(index) {
   const safeIndex = Math.max(0, Math.min(index, latestSimulationData.length - 1));
   if (timeSlider) timeSlider.value = String(safeIndex);
   if (timeLabel) timeLabel.textContent = formatTimeLabel(latestSimulationData[safeIndex].timestamp);
+  // keep modal slider in sync
+  const modalSlider = document.getElementById("tracker2dModalSlider");
+  const modalSliderTime = document.getElementById("tracker2dModalSliderTime");
+  if (modalSlider) modalSlider.value = String(safeIndex);
+  if (modalSliderTime) modalSliderTime.textContent = formatTimeLabel(latestSimulationData[safeIndex].timestamp);
   draw2DScene(latestSimulationData[safeIndex]);
+  if (_tracker2dModalOpen) _drawTracker2dModal();
+  _refreshChartLines();
 }
 
 function setPlaybackState(isPlaying) {
@@ -1048,6 +1165,16 @@ function setup2DControls() {
 
   liveModeBtn?.addEventListener("click", toggleLiveMode);
 
+  // ⓘ info toggle: show/hide .chart-legend-note on mobile
+  document.querySelectorAll(".info-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const target = document.getElementById(btn.dataset.target);
+      if (!target) return;
+      const visible = target.classList.toggle("info-visible");
+      btn.classList.toggle("active", visible);
+    });
+  });
+
   window.addEventListener("resize", () => {
     if (!latestSimulationData.length) return;
     update2DFrame(parseInt(timeSlider?.value || "0", 10));
@@ -1085,6 +1212,9 @@ async function runSimulation() {
     const result = await response.json();
     latestSimulationResult = result;
     latestSimulationData = result.data || [];
+    // sync modal slider max to data length
+    const modalSlider = document.getElementById("tracker2dModalSlider");
+    if (modalSlider) modalSlider.max = String(latestSimulationData.length - 1);
     setBadge(badgeApi, "API: Connected", "badge-green");
 
 preview.textContent = JSON.stringify(
@@ -1622,10 +1752,10 @@ async function downloadPdf() {
     const shadingImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Shadow No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#0891b2", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shadow BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shading% No BT", hidden: !_chk("pdf_shading_nobt"), data: _ds.map(r => r.shading_percent_without_backtracking), borderColor: "#dc2626", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "Shading% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#ea580c", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#38bdf8", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#f472b6", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _ds.map(r => r.shading_percent_without_backtracking), borderColor: "#fb923c", borderWidth: 1.5, borderDash: [8,4], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#a78bfa", borderWidth: 1.5, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
@@ -1861,10 +1991,10 @@ document.getElementById("pdfModalExport")?.addEventListener("click", async () =>
 let _modalChart = null;
 
 const CHART_MAP = {
-  anglesChart:  { get: () => anglesChart,  title: "Tracker Angle" },
-  sunChart:     { get: () => sunChart,     title: "Solar Position" },
-  shadingChart: { get: () => shadingChart, title: "Inter-row Shadowing" },
-  powerChart:   { get: () => powerChart,   title: "Irradiance Comparison" },
+  anglesChart:  { get: () => anglesChart,  title: "Tracker Angle",        yLabel: "Angle (deg)",            info: "Ideal = unconstrained, Limited = max-angle limited, BT = backtracking." },
+  sunChart:     { get: () => sunChart,     title: "Solar Position",        yLabel: "Sun Angle (deg)",        info: "Shows solar elevation and azimuth movement through the day." },
+  shadingChart: { get: () => shadingChart, title: "Inter-row Shadowing",   yLabel: "Shadow Length (scaled)", yLabelR: "Shading (%)", info: "Displayed shadow is scaled for readability. Shading % better represents actual panel-to-panel impact." },
+  powerChart:   { get: () => powerChart,   title: "Irradiance Comparison", yLabel: "Irradiance (W/m²)",      info: "Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading." },
 };
 
 function openChartModal(canvasId) {
@@ -1874,6 +2004,26 @@ function openChartModal(canvasId) {
   if (!source) return;
 
   document.getElementById("chartModalTitle").textContent = entry.title;
+
+  // y-axis label (always show in modal regardless of mobile CSS)
+  const yEl = document.getElementById("chartModalYLabel");
+  yEl.style.display = "flex";
+  yEl.innerHTML = entry.yLabelR
+    ? `<span>${entry.yLabel}</span><span class="chart-yaxis-label-r">${entry.yLabelR}</span>`
+    : `<span>${entry.yLabel || ""}</span>`;
+
+  // ⓘ info button — replaces hint text on mobile
+  const infoBtn = document.getElementById("chartModalInfoBtn");
+  const infoText = document.getElementById("chartModalInfoText");
+  if (infoBtn && infoText) {
+    infoText.textContent = entry.info || "";
+    infoText.style.display = "none";
+    infoBtn.onclick = () => {
+      const visible = infoText.style.display === "none";
+      infoText.style.display = visible ? "block" : "none";
+      infoBtn.classList.toggle("active", visible);
+    };
+  }
 
   // destroy previous modal chart
   if (_modalChart) { _modalChart.destroy(); _modalChart = null; }
@@ -1896,6 +2046,7 @@ function openChartModal(canvasId) {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
+      layout: { padding: { top: 8, right: 16, bottom: 10, left: 8 } },
       plugins: {
         ...(srcOptions.plugins || {}),
         legend: {
@@ -1922,11 +2073,18 @@ function buildModalScales(srcScales, gridColor, tickColor, titleColor) {
   if (!srcScales) return {};
   const result = {};
   for (const [key, scale] of Object.entries(srcScales)) {
+    const isX = key === "x";
     result[key] = {
       ...JSON.parse(JSON.stringify(scale)),
-      ticks:  { ...(scale.ticks  || {}), color: tickColor,  font: { size: 12 } },
-      grid:   { ...(scale.grid   || {}), color: gridColor },
-      title:  { ...(scale.title  || {}), color: titleColor, font: { size: 13 } },
+      ticks: {
+        ...(scale.ticks || {}),
+        color: tickColor,
+        font: { size: 11 },
+        padding: isX ? 6 : 4,
+        ...(isX ? { maxTicksLimit: 5, maxRotation: 35, minRotation: 35 } : {}),
+      },
+      grid:  { ...(scale.grid  || {}), color: gridColor },
+      title: { ...(scale.title || {}), color: titleColor, font: { size: 13 } },
     };
   }
   return result;
@@ -1965,6 +2123,94 @@ function setupChartModal() {
   });
 }
 
+/* ── 2D Tracker popup modal ────────────────────────────────────────── */
+let _tracker2dModalOpen = false;
+
+function openTracker2dModal() {
+  if (!latestSimulationData.length) { showPopup("Run simulation first.", "error"); return; }
+  _tracker2dModalOpen = true;
+  document.getElementById("tracker2dModal").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  _syncModalLiveBtn();
+  _drawTracker2dModal();
+}
+
+function closeTracker2dModal() {
+  _tracker2dModalOpen = false;
+  document.getElementById("tracker2dModal").classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+function _drawTracker2dModal() {
+  if (!_tracker2dModalOpen || !latestSimulationData.length) return;
+  const idx = parseInt(timeSlider?.value || "0", 10);
+  const row = latestSimulationData[Math.max(0, Math.min(idx, latestSimulationData.length - 1))];
+  const modalCanvas = document.getElementById("tracker2dModalCanvas");
+  if (!modalCanvas) return;
+
+  // Apply devicePixelRatio for sharp rendering on retina/mobile screens
+  const body = modalCanvas.parentElement;
+  const W = body.clientWidth  || 600;
+  const H = body.clientHeight || 400;
+  const dpr = window.devicePixelRatio || 1;
+  modalCanvas.width  = Math.floor(W * dpr);
+  modalCanvas.height = Math.floor(H * dpr);
+  modalCanvas.style.width  = `${W}px`;
+  modalCanvas.style.height = `${H}px`;
+
+  const ctx = modalCanvas.getContext("2d");
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  draw2DScene(row, ctx, W, H);
+
+  // Update time label in modal header
+  const timeEl = document.getElementById("tracker2dModalTime");
+  if (timeEl) timeEl.textContent = formatTimeLabel(row.timestamp);
+}
+
+function _syncModalLiveBtn() {
+  const btn = document.getElementById("tracker2dModalLive");
+  if (!btn) return;
+  const active = !!liveTimer;
+  btn.classList.toggle("live-active", active);
+  btn.setAttribute("aria-pressed", String(active));
+}
+
+function setupTracker2dModal() {
+  document.getElementById("tracker2dModalClose")?.addEventListener("click", closeTracker2dModal);
+  document.getElementById("tracker2dModalBackdrop")?.addEventListener("click", closeTracker2dModal);
+  document.getElementById("tracker2dExpandBtn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openTracker2dModal();
+  });
+
+  // Modal slider mirrors main slider
+  document.getElementById("tracker2dModalSlider")?.addEventListener("input", (e) => {
+    stop2DPlayback();
+    stopLiveMode();
+    _syncModalLiveBtn();
+    update2DFrame(parseInt(e.target.value, 10));
+  });
+
+  // Play / Pause / Live mirror the main controls
+  document.getElementById("tracker2dModalPlay")?.addEventListener("click", () => {
+    start2DPlayback();
+    _syncModalLiveBtn();
+  });
+  document.getElementById("tracker2dModalPause")?.addEventListener("click", () => {
+    stop2DPlayback();
+    _syncModalLiveBtn();
+  });
+  document.getElementById("tracker2dModalLive")?.addEventListener("click", () => {
+    toggleLiveMode();
+    _syncModalLiveBtn();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && _tracker2dModalOpen) closeTracker2dModal();
+  });
+}
+
 function setupDeviceBar() {
   const btns = document.querySelectorAll(".dev-btn");
   const saved = localStorage.getItem("previewDevice") || "desktop";
@@ -1988,6 +2234,12 @@ function setPreviewDevice(device) {
   }
 }
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
 window.onload = function () {
   initThemeAndAccent();
   initApiBase();
@@ -2001,6 +2253,7 @@ window.onload = function () {
   setupPresetButtons();
   setupDeviceBar();
   setupChartModal();
+  setupTracker2dModal();
   updateScenarioHeader();
   updateLocationPreviewFromInputs();
 
@@ -2035,6 +2288,19 @@ window.onload = function () {
       if (latestSimulationResult) updateFinancialCalc(latestSimulationResult);
     });
   });
+
+  // Dismiss chart tooltips on touch outside a chart canvas (Chart.js has no
+  // native mouseleave on touch, so tooltips stick until tapped again).
+  const _chartCanvasIds = ["anglesChart", "sunChart", "shadingChart", "powerChart"];
+  document.addEventListener("touchstart", (e) => {
+    const onCanvas = _chartCanvasIds.some(id => e.target === document.getElementById(id));
+    if (!onCanvas) {
+      [anglesChart, sunChart, shadingChart, powerChart].forEach(c => {
+        if (!c) return;
+        try { c.tooltip.setActiveElements([], {}); c.update("none"); } catch (_) {}
+      });
+    }
+  }, { passive: true });
 
   // Keep-alive ping — prevents Render free tier backend from sleeping.
   // Calls /health silently every 10 min; no UI impact if it fails.

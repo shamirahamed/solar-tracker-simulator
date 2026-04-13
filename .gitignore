@@ -15,8 +15,10 @@ Thumbs.db
 
 # Local test files
 *.pdf
-*.png
 *.jpg
+# Allow PWA icons
+!frontend/assets/*.png
+frontend/assets/generate-icons.html
 
 # IDE
 .vscode/

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Icon Generator</title></head>
+<body style="font-family:sans-serif;padding:20px;background:#0a1118;color:#e2e8f0">
+<h2>Solar Tracker — PWA Icon Generator</h2>
+<p>Click the button to generate and download both PNG icons. Place them in <code>frontend/assets/</code>.</p>
+<button id="gen" style="padding:10px 20px;background:#00c853;color:#000;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:15px">Generate & Download Icons</button>
+<div id="previews" style="display:flex;gap:24px;margin-top:20px;align-items:flex-end"></div>
+
+<script>
+const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0a1118"/>
+  <line x1="80" y1="360" x2="432" y2="360" stroke="#1e2736" stroke-width="6"/>
+  <rect x="244" y="260" width="24" height="110" rx="6" fill="#1e3a5f"/>
+  <g transform="translate(256,255) rotate(-20)">
+    <rect x="-110" y="-18" width="220" height="36" rx="6" fill="#0ea5e9"/>
+    <line x1="-37" y1="-18" x2="-37" y2="18" stroke="#0c4a6e" stroke-width="2"/>
+    <line x1="37" y1="-18" x2="37" y2="18" stroke="#0c4a6e" stroke-width="2"/>
+    <line x1="-110" y1="0" x2="110" y2="0" stroke="#0c4a6e" stroke-width="2"/>
+  </g>
+  <circle cx="370" cy="130" r="42" fill="#f59e0b"/>
+  <g stroke="#f59e0b" stroke-width="5" stroke-linecap="round">
+    <line x1="370" y1="72" x2="370" y2="58"/>
+    <line x1="370" y1="188" x2="370" y2="202"/>
+    <line x1="312" y1="130" x2="298" y2="130"/>
+    <line x1="428" y1="130" x2="442" y2="130"/>
+    <line x1="329" y1="89" x2="319" y2="79"/>
+    <line x1="411" y1="171" x2="421" y2="181"/>
+    <line x1="411" y1="89" x2="421" y2="79"/>
+    <line x1="329" y1="171" x2="319" y2="181"/>
+  </g>
+  <path d="M 180 360 A 80 80 0 0 1 256 280" stroke="#00c853" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <circle cx="256" cy="280" r="6" fill="#00c853"/>
+</svg>`;
+
+function svgToPng(size, filename) {
+  return new Promise(resolve => {
+    const blob = new Blob([SVG], { type: "image/svg+xml" });
+    const url  = URL.createObjectURL(blob);
+    const img  = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(pngBlob => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(pngBlob);
+        a.download = filename;
+        a.click();
+
+        // Show preview
+        const div = document.createElement("div");
+        div.style.textAlign = "center";
+        const preview = document.createElement("img");
+        preview.src = a.href;
+        preview.style.cssText = `width:${Math.min(size,96)}px;height:${Math.min(size,96)}px;border:1px solid #1e2736;border-radius:12px`;
+        const label = document.createElement("p");
+        label.style.cssText = "margin:6px 0 0;font-size:12px;color:#94a3b8";
+        label.textContent = `${filename} (${size}×${size})`;
+        div.appendChild(preview);
+        div.appendChild(label);
+        document.getElementById("previews").appendChild(div);
+        resolve();
+      }, "image/png");
+    };
+    img.src = url;
+  });
+}
+
+document.getElementById("gen").addEventListener("click", async () => {
+  document.getElementById("previews").innerHTML = "";
+  await svgToPng(192, "icon-192.png");
+  await svgToPng(512, "icon-512.png");
+  document.getElementById("gen").textContent = "Done! Move the downloaded files to frontend/assets/";
+});
+</script>
+</body>
+</html>

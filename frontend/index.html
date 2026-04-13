@@ -5,6 +5,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Solar Tracker Simulator</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#00c853" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SolarTracker" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
   <link rel="stylesheet" href="styles.css" />
   <!-- Render injects the backend URL via this file at deploy time -->
   <script src="_api_config.js" onerror="void 0"></script>
@@ -89,6 +96,14 @@
             <li><strong>Financial Estimate</strong> — set electricity rate and panel count for annual value.</li>
           </ul>
         </div>
+      </div>
+
+      <div class="pvlib-credit">
+        <span class="pvlib-credit-label">Solar calculations powered by</span>
+        <a href="https://pvlib-python.readthedocs.io" target="_blank" rel="noopener" class="pvlib-credit-link" aria-label="pvlib documentation">
+          <img src="assets/pvlib_logo.webp" alt="pvlib" class="pvlib-logo" />
+        </a>
+        <span class="pvlib-credit-version">pvlib 0.11 · Python open-source PV modelling library</span>
       </div>
 
       <div class="panel-footer">
@@ -300,8 +315,10 @@
       <section class="card full-width">
         <div class="section-head">
           <h2>2D Tracker View</h2>
-          <span class="section-note">Displayed ground shadow is limited to row spacing for readability. Red shows actual panel shading.</span>
+          <span class="section-note section-note-desktop">Displayed ground shadow is limited to row spacing for readability. Red shows actual panel shading.</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-2d">ⓘ</button>
         </div>
+        <div class="chart-legend-note" id="info-2d"><span class="section-note section-note-mobile">Displayed ground shadow limited to row spacing. Red = actual panel shading.</span><br class="section-note-mobile">Black shadow is a displayed helper. Red shading % is the main indicator of actual row-to-row shading.</div>
 
         <div class="legend-row">
           <span class="legend-item"><span class="legend-swatch black"></span>Ground Shadow</span>
@@ -311,10 +328,7 @@
 
         <div class="tracker-canvas-wrap">
           <canvas id="tracker2dCanvas"></canvas>
-        </div>
-
-        <div class="canvas-note">
-          Black shadow is a displayed helper. Red shading and shading % are the main indicators of actual row-to-row shading.
+          <button class="chart-expand-btn" id="tracker2dExpandBtn" title="Expand 2D view">⤢</button>
         </div>
 
         <div class="slider-row">
@@ -338,36 +352,44 @@
       <section class="card">
         <div class="section-head">
           <h2>Tracker Angle</h2>
-          <span class="section-note">Ideal / Limited / BT from pvlib tracking</span>
+          <span class="section-note section-note-desktop">Ideal / Limited / BT from pvlib tracking</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-angles">ⓘ</button>
         </div>
-        <div class="chart-legend-note">Ideal = unconstrained, Limited = max-angle limited, BT = backtracking.</div>
+        <div class="chart-legend-note" id="info-angles"><span class="section-note section-note-mobile">Ideal / Limited / BT from pvlib tracking</span><br class="section-note-mobile">Ideal = unconstrained, Limited = max-angle limited, BT = backtracking.</div>
+        <div class="chart-yaxis-label">Angle (deg)</div>
         <div class="chart-container"><canvas id="anglesChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
           <h2>Solar Position</h2>
-          <span class="section-note">Elevation and azimuth from pvlib</span>
+          <span class="section-note section-note-desktop">Elevation and azimuth from pvlib</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-sun">ⓘ</button>
         </div>
-        <div class="chart-legend-note">Shows solar movement through the day.</div>
+        <div class="chart-legend-note" id="info-sun"><span class="section-note section-note-mobile">Elevation and azimuth from pvlib</span><br class="section-note-mobile">Shows solar movement through the day.</div>
+        <div class="chart-yaxis-label">Sun Angle (deg)</div>
         <div class="chart-container"><canvas id="sunChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
           <h2>Inter-row Shadowing</h2>
-          <span class="section-note">Displayed shadow + actual shading %</span>
+          <span class="section-note section-note-desktop">Displayed shadow + actual shading %</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-shading">ⓘ</button>
         </div>
-        <div class="chart-legend-note">Displayed shadow is scaled for readability. Shading % better represents actual panel-to-panel impact.</div>
+        <div class="chart-legend-note" id="info-shading"><span class="section-note section-note-mobile">Displayed shadow + actual shading %</span><br class="section-note-mobile">Displayed shadow is scaled for readability. Shading % better represents actual panel-to-panel impact.</div>
+        <div class="chart-yaxis-label">Shadow Length (scaled) <span class="chart-yaxis-label-r">Shading (%)</span></div>
         <div class="chart-container"><canvas id="shadingChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
           <h2>Irradiance Comparison</h2>
-          <span class="section-note">Fixed panel vs Tracker No BT vs Tracker BT (W/m²)</span>
+          <span class="section-note section-note-desktop">Fixed panel vs Tracker No BT vs Tracker BT (W/m²)</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-power">ⓘ</button>
         </div>
-        <div class="chart-legend-note">Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading.</div>
+        <div class="chart-legend-note" id="info-power"><span class="section-note section-note-mobile">Fixed panel vs Tracker No BT vs Tracker BT (W/m²)</span><br class="section-note-mobile">Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading.</div>
+        <div class="chart-yaxis-label">Irradiance (W/m²)</div>
         <div class="chart-container"><canvas id="powerChart"></canvas></div>
       </section>
 
@@ -448,14 +470,44 @@
       </section>
     </main>
   </div>
+  <!-- ── 2D Tracker popup modal ───────────────────── -->
+  <div id="tracker2dModal" class="chart-modal hidden" role="dialog" aria-modal="true">
+    <div class="chart-modal-backdrop" id="tracker2dModalBackdrop"></div>
+    <div class="chart-modal-content tracker2d-modal-content">
+      <div class="chart-modal-header">
+        <span class="chart-modal-title">2D Tracker View</span>
+        <span class="chart-modal-hint" id="tracker2dModalTime">--:--</span>
+      </div>
+      <div class="chart-modal-body tracker2d-modal-body">
+        <canvas id="tracker2dModalCanvas"></canvas>
+      </div>
+      <div class="tracker2d-modal-slider">
+        <span class="tracker2d-modal-slider-label">Time</span>
+        <input type="range" id="tracker2dModalSlider" min="0" max="1439" value="720" />
+        <strong id="tracker2dModalSliderTime">--:--</strong>
+      </div>
+      <div class="chart-modal-footer tracker2d-modal-footer">
+        <div class="tracker2d-modal-controls">
+          <button type="button" id="tracker2dModalPlay" class="secondary-btn">▶ Play</button>
+          <button type="button" id="tracker2dModalPause" class="secondary-btn">⏸ Pause</button>
+          <button type="button" id="tracker2dModalLive" class="live-btn">🔴 Live</button>
+        </div>
+        <button type="button" id="tracker2dModalClose" class="secondary-btn">✕ Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Chart fullscreen modal ──────────────────── -->
   <div id="chartModal" class="chart-modal hidden" role="dialog" aria-modal="true">
     <div class="chart-modal-backdrop" id="chartModalBackdrop"></div>
     <div class="chart-modal-content">
       <div class="chart-modal-header">
         <span id="chartModalTitle" class="chart-modal-title"></span>
-        <span class="chart-modal-hint">Hover for tooltips · ESC to close</span>
+        <button class="info-toggle" id="chartModalInfoBtn" aria-label="Chart info" title="Chart info">ⓘ</button>
+        <span class="chart-modal-hint modal-hint-desktop">Hover for tooltips · ESC to close</span>
       </div>
+      <div id="chartModalInfoText" class="chart-legend-note" style="display:none;margin-bottom:4px;"></div>
+      <div class="chart-yaxis-label" id="chartModalYLabel" style="margin-bottom:3px;"></div>
       <div class="chart-modal-body">
         <canvas id="chartModalCanvas"></canvas>
       </div>
