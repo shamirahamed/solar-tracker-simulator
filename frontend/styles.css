@@ -784,6 +784,24 @@ input[type="range"] { accent-color: var(--accent); }
   border-top: 1px solid var(--line);
 }
 
+/* 2D tracker popup modal */
+.tracker2d-modal-content {
+  max-width: 860px;
+}
+.tracker2d-modal-body {
+  height: 70vw;
+  max-height: 72vh;
+  min-height: 260px;
+  padding: 0 !important;
+  overflow: hidden;
+}
+#tracker2dModalCanvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  border-radius: 8px;
+}
+
 /* PDF filter modal */
 .pdf-filter-body {
   height: auto !important;

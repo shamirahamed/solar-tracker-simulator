@@ -633,13 +633,17 @@ function drawSunIcon(ctx, x, y, r) {
 
 
 
-function draw2DScene(row) {
-  if (!tracker2dCtx || !row) return;
-  const size = resizeTrackerCanvas();
-  if (!size) return;
-
-  const { width, height } = size;
-  const ctx = tracker2dCtx;
+function draw2DScene(row, overrideCtx, overrideW, overrideH) {
+  if (!row) return;
+  let ctx, width, height;
+  if (overrideCtx) {
+    ctx = overrideCtx; width = overrideW; height = overrideH;
+  } else {
+    if (!tracker2dCtx) return;
+    const size = resizeTrackerCanvas();
+    if (!size) return;
+    ctx = tracker2dCtx; width = size.width; height = size.height;
+  }
   ctx.clearRect(0, 0, width, height);
 
   const payload = getPayload();
@@ -861,6 +865,7 @@ function update2DFrame(index) {
   if (timeSlider) timeSlider.value = String(safeIndex);
   if (timeLabel) timeLabel.textContent = formatTimeLabel(latestSimulationData[safeIndex].timestamp);
   draw2DScene(latestSimulationData[safeIndex]);
+  if (_tracker2dModalOpen) _drawTracker2dModal();
 }
 
 function setPlaybackState(isPlaying) {
@@ -1905,6 +1910,56 @@ function setupChartModal() {
   });
 }
 
+/* ── 2D Tracker popup modal ────────────────────────────────────────── */
+let _tracker2dModalOpen = false;
+
+function openTracker2dModal() {
+  if (!latestSimulationData.length) { showPopup("Run simulation first.", "error"); return; }
+  _tracker2dModalOpen = true;
+  document.getElementById("tracker2dModal").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  _drawTracker2dModal();
+}
+
+function closeTracker2dModal() {
+  _tracker2dModalOpen = false;
+  document.getElementById("tracker2dModal").classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+function _drawTracker2dModal() {
+  if (!_tracker2dModalOpen || !latestSimulationData.length) return;
+  const idx = parseInt(timeSlider?.value || "0", 10);
+  const row = latestSimulationData[Math.max(0, Math.min(idx, latestSimulationData.length - 1))];
+  const modalCanvas = document.getElementById("tracker2dModalCanvas");
+  if (!modalCanvas) return;
+
+  // Size canvas to its CSS container
+  const body = modalCanvas.parentElement;
+  const W = body.clientWidth  || 600;
+  const H = body.clientHeight || 400;
+  modalCanvas.width  = W;
+  modalCanvas.height = H;
+
+  draw2DScene(row, modalCanvas.getContext("2d"), W, H);
+
+  // Update time label in modal header
+  const timeEl = document.getElementById("tracker2dModalTime");
+  if (timeEl) timeEl.textContent = formatTimeLabel(row.timestamp);
+}
+
+function setupTracker2dModal() {
+  document.getElementById("tracker2dModalClose")?.addEventListener("click", closeTracker2dModal);
+  document.getElementById("tracker2dModalBackdrop")?.addEventListener("click", closeTracker2dModal);
+  document.getElementById("tracker2dExpandBtn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openTracker2dModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && _tracker2dModalOpen) closeTracker2dModal();
+  });
+}
+
 function setupDeviceBar() {
   const btns = document.querySelectorAll(".dev-btn");
   const saved = localStorage.getItem("previewDevice") || "desktop";
@@ -1941,6 +1996,7 @@ window.onload = function () {
   setupPresetButtons();
   setupDeviceBar();
   setupChartModal();
+  setupTracker2dModal();
   updateScenarioHeader();
   updateLocationPreviewFromInputs();
 

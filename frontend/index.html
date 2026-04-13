@@ -290,6 +290,7 @@
 
         <div class="tracker-canvas-wrap">
           <canvas id="tracker2dCanvas"></canvas>
+          <button class="chart-expand-btn" id="tracker2dExpandBtn" title="Expand 2D view">⤢</button>
         </div>
 
         <div class="canvas-note">
@@ -362,6 +363,23 @@
       </section>
     </main>
   </div>
+  <!-- ── 2D Tracker popup modal ───────────────────── -->
+  <div id="tracker2dModal" class="chart-modal hidden" role="dialog" aria-modal="true">
+    <div class="chart-modal-backdrop" id="tracker2dModalBackdrop"></div>
+    <div class="chart-modal-content tracker2d-modal-content">
+      <div class="chart-modal-header">
+        <span class="chart-modal-title">2D Tracker View</span>
+        <span class="chart-modal-hint" id="tracker2dModalTime">--:--</span>
+      </div>
+      <div class="chart-modal-body tracker2d-modal-body">
+        <canvas id="tracker2dModalCanvas"></canvas>
+      </div>
+      <div class="chart-modal-footer">
+        <button type="button" id="tracker2dModalClose" class="secondary-btn">✕ Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Chart fullscreen modal ──────────────────── -->
   <div id="chartModal" class="chart-modal hidden" role="dialog" aria-modal="true">
     <div class="chart-modal-backdrop" id="chartModalBackdrop"></div>
