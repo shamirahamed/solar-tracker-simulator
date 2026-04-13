@@ -378,6 +378,39 @@ function destroyCharts() {
   powerChart?.destroy();
 }
 
+// Plugin: draws a vertical accent line at the current time slider position
+const timeLinePlugin = {
+  id: "timeLine",
+  afterDraw(chart) {
+    if (!latestSimulationData.length || !timeSlider) return;
+    const idx   = parseInt(timeSlider.value || "0", 10);
+    const total = latestSimulationData.length;
+    const xScale = chart.scales?.x;
+    if (!xScale) return;
+    const ratio = Math.max(0, Math.min(1, idx / Math.max(total - 1, 1)));
+    const x = xScale.left + ratio * (xScale.right - xScale.left);
+    const { top, bottom } = chart.chartArea;
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.lineTo(x, bottom);
+    ctx.strokeStyle = getComputedStyle(document.documentElement)
+      .getPropertyValue("--accent").trim() || "#00c853";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.globalAlpha = 0.75;
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
+function _refreshChartLines() {
+  [anglesChart, sunChart, shadingChart, powerChart].forEach(c => {
+    try { if (c) c.update("none"); } catch (e) {}
+  });
+}
+
 function compactLegendOptions() {
   return {
     position: "bottom",
@@ -436,6 +469,7 @@ function buildCharts(data) {
 
   anglesChart = new Chart(anglesCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -449,6 +483,7 @@ function buildCharts(data) {
 
   sunChart = new Chart(sunCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -471,6 +506,7 @@ function buildCharts(data) {
 
   shadingChart = new Chart(shadingCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -513,6 +549,7 @@ function buildCharts(data) {
 
   powerChart = new Chart(powerCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -866,6 +903,7 @@ function update2DFrame(index) {
   if (modalSliderTime) modalSliderTime.textContent = formatTimeLabel(latestSimulationData[safeIndex].timestamp);
   draw2DScene(latestSimulationData[safeIndex]);
   if (_tracker2dModalOpen) _drawTracker2dModal();
+  _refreshChartLines();
 }
 
 function setPlaybackState(isPlaying) {
