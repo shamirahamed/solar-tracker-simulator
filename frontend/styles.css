@@ -1147,6 +1147,10 @@ canvas { width: 100% !important; height: 100% !important; }
   .legend-item { font-size: 10px; gap: 4px; }
   .legend-swatch { width: 10px; height: 10px; }
 
+  /* Hide y-axis label + form helper text on mobile — saves vertical space */
+  .chart-yaxis-label { display: none; }
+  .helper-text { display: none; }
+
   input[type="number"],
   input[type="text"],
   input[type="date"],
@@ -1332,6 +1336,8 @@ body[data-preview="mobile"] .section-note          { font-size: 10px; line-heigh
 body[data-preview="mobile"] .legend-row            { gap: 8px; margin-bottom: 6px; }
 body[data-preview="mobile"] .legend-item           { font-size: 10px; gap: 4px; }
 body[data-preview="mobile"] .legend-swatch         { width: 10px; height: 10px; }
+body[data-preview="mobile"] .chart-yaxis-label     { display: none; }
+body[data-preview="mobile"] .helper-text           { display: none; }
 
 /* tablet portrait: 768px */
 body[data-preview="tablet-p"] .app-shell           { max-width: 768px !important; padding: 16px 14px; }
