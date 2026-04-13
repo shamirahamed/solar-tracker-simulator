@@ -900,10 +900,20 @@ function _liveCurrentIndex() {
   return best;
 }
 
+function _liveCheckDateMismatch() {
+  const simDate = document.getElementById("date")?.value;   // "YYYY-MM-DD"
+  if (!simDate) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const warn = document.getElementById("liveDateWarn");
+  if (warn) warn.style.display = simDate !== today ? "inline" : "none";
+}
+
 function stopLiveMode() {
   if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
   liveModeBtn?.classList.remove("live-active");
   liveModeBtn?.setAttribute("aria-pressed", "false");
+  const warn = document.getElementById("liveDateWarn");
+  if (warn) warn.style.display = "none";
 }
 
 function startLiveMode() {
@@ -916,6 +926,7 @@ function startLiveMode() {
 
   const tick = () => {
     if (!latestSimulationData.length) { stopLiveMode(); return; }
+    _liveCheckDateMismatch();
     update2DFrame(_liveCurrentIndex());
   };
   tick();                   // jump immediately
