@@ -287,6 +287,7 @@ function updateLocationPreviewFromInputs() {
 }
 
 function getPayload() {
+  const soilingPct = parseFloat(document.getElementById("soiling_loss")?.value || "0");
   return {
     latitude: parseFloat(document.getElementById("latitude").value),
     longitude: parseFloat(document.getElementById("longitude").value),
@@ -298,7 +299,9 @@ function getPayload() {
     row_spacing: parseFloat(document.getElementById("row_spacing").value),
     panel_efficiency: parseFloat(document.getElementById("panel_efficiency").value),
     max_angle: parseFloat(document.getElementById("max_angle").value),
-    backtracking: document.getElementById("backtracking").checked
+    backtracking: document.getElementById("backtracking").checked,
+    use_real_weather: document.getElementById("use_real_weather")?.checked ?? false,
+    soiling_loss: Math.min(0.5, Math.max(0, soilingPct / 100.0))
   };
 }
 
@@ -369,6 +372,62 @@ function updateSummary(result) {
 
   const gcr = calculateGcr();
   document.getElementById("gcrValue").textContent = `${gcr.ratio.toFixed(3)} (${gcr.percent.toFixed(1)}%)`;
+}
+
+/* ── Financial calculator ──────────────────────────────────────────── */
+function updateFinancialCalc(result) {
+  const placeholder = document.getElementById("financialPlaceholder");
+  const table = document.getElementById("financialResult");
+  if (!result) {
+    placeholder?.classList.remove("hidden");
+    table?.classList.add("hidden");
+    return;
+  }
+
+  const rate = parseFloat(document.getElementById("elec_rate")?.value || "0.30");
+  const panels = Math.max(1, parseInt(document.getElementById("num_panels")?.value || "1", 10));
+
+  const kwhFixed  = (Number(result.daily_energy_fixed  || 0) * panels);
+  const kwhNoBt   = (Number(result.daily_energy_without_backtracking || 0) * panels);
+  const kwhBt     = (Number(result.daily_energy_with_backtracking    || 0) * panels);
+
+  const annFixed  = kwhFixed  * 365;
+  const annNoBt   = kwhNoBt   * 365;
+  const annBt     = kwhBt     * 365;
+
+  const valFixed  = kwhFixed  * rate;
+  const valNoBt   = kwhNoBt   * rate;
+  const valBt     = kwhBt     * rate;
+  const avalFixed = annFixed  * rate;
+  const avalNoBt  = annNoBt   * rate;
+  const avalBt    = annBt     * rate;
+
+  const gainNoBt  = avalNoBt  - avalFixed;
+  const gainBt    = avalBt    - avalFixed;
+
+  const fmt2  = (n) => n.toFixed(2);
+  const fmtM  = (n) => n >= 1000 ? `${(n / 1000).toFixed(2)} k` : n.toFixed(0);
+  const fmtD  = (n) => `$${fmt2(n)}`;
+  const fmtA  = (n) => `$${fmtM(n)}`;
+  const sign  = (n) => `${n >= 0 ? "+" : ""}$${fmtM(Math.abs(n))}`;
+
+  document.getElementById("fin_kwh_fixed").textContent  = fmt2(kwhFixed);
+  document.getElementById("fin_kwh_nobt").textContent   = fmt2(kwhNoBt);
+  document.getElementById("fin_kwh_bt").textContent     = fmt2(kwhBt);
+  document.getElementById("fin_ann_fixed").textContent  = fmtM(annFixed);
+  document.getElementById("fin_ann_nobt").textContent   = fmtM(annNoBt);
+  document.getElementById("fin_ann_bt").textContent     = fmtM(annBt);
+  document.getElementById("fin_val_fixed").textContent  = fmtD(valFixed);
+  document.getElementById("fin_val_nobt").textContent   = fmtD(valNoBt);
+  document.getElementById("fin_val_bt").textContent     = fmtD(valBt);
+  document.getElementById("fin_aval_fixed").textContent = fmtA(avalFixed);
+  document.getElementById("fin_aval_nobt").textContent  = fmtA(avalNoBt);
+  document.getElementById("fin_aval_bt").textContent    = fmtA(avalBt);
+  document.getElementById("fin_gain_nobt").textContent  = sign(gainNoBt);
+  document.getElementById("fin_gain_bt").textContent    = sign(gainBt);
+
+  placeholder?.classList.add("hidden");
+  table?.classList.remove("hidden");
 }
 
 function destroyCharts() {
@@ -1049,10 +1108,21 @@ preview.textContent = JSON.stringify(
 );
 
     updateSummary(result);
+    updateFinancialCalc(result);
     buildCharts(latestSimulationData);
     if (timeSlider) timeSlider.max = String(Math.max(0, latestSimulationData.length - 1));
     update2DFrame(Math.min(720, Math.max(0, latestSimulationData.length - 1)));
     stop2DPlayback();
+
+    // Weather source badge
+    const src = result.weather_source || "clearsky (ineichen)";
+    const isReal = src.startsWith("Open-Meteo");
+    setBadge(
+      document.getElementById("badgeWeather"),
+      `Weather: ${isReal ? "Real" : "Clear-sky"}`,
+      isReal ? "badge-green" : "badge-gray"
+    );
+
     showPopup("Simulation completed.", "success");
   } catch (error) {
     setBadge(badgeApi, "API: Error", "badge-red");
@@ -1958,6 +2028,13 @@ window.onload = function () {
   });
 
   setBadge(badgeApi, "API: Not checked", "badge-gray");
+
+  // Financial calculator — recalculate when rate or panel count changes
+  ["elec_rate", "num_panels"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", () => {
+      if (latestSimulationResult) updateFinancialCalc(latestSimulationResult);
+    });
+  });
 
   // Keep-alive ping — prevents Render free tier backend from sleeping.
   // Calls /health silently every 10 min; no UI impact if it fails.

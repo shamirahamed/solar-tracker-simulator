@@ -18,6 +18,10 @@ class SimulationRequest(BaseModel):
     max_angle: float = Field(..., gt=0, le=90)
     backtracking: bool = True
 
+    # v1.2 additions
+    use_real_weather: bool = False
+    soiling_loss: float = Field(default=0.0, ge=0, le=0.5)
+
 
 class SimulationPoint(BaseModel):
     timestamp: str
@@ -68,5 +72,9 @@ class SimulationResponse(BaseModel):
     daily_irradiance_bt: float
     irradiance_gain_bt_vs_fixed: float
     irradiance_gain_bt_vs_no_bt: float
+
+    # v1.2 additions
+    weather_source: str = "clearsky (ineichen)"
+    daily_energy_fixed: float = 0.0
 
     data: List[SimulationPoint]

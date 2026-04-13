@@ -35,6 +35,7 @@
         <span id="badgeShading" class="badge badge-gray">Shading: --</span>
         <span id="badgeScale" class="badge badge-gray">View: --</span>
         <span id="badgeApi" class="badge badge-gray">API: Not checked</span>
+        <span id="badgeWeather" class="badge badge-gray">Weather: --</span>
       </div>
     </section>
 
@@ -84,7 +85,8 @@
             <li><strong>Settings → Accent Color</strong> — Choose from 5 colour themes.</li>
             <li><strong>Device bar</strong> (bottom) — Preview mobile / tablet / desktop layout.</li>
             <li><strong>Download PDF</strong> — 4-page report with metrics and charts.</li>
-            <li>Clear-sky model only — no real weather data in this version.</li>
+            <li><strong>Weather &amp; Losses</strong> — toggle real weather (Open-Meteo) and set soiling loss %.</li>
+            <li><strong>Financial Estimate</strong> — set electricity rate and panel count for annual value.</li>
           </ul>
         </div>
       </div>
@@ -235,7 +237,26 @@
             </div>
           </div>
           
-          <div id="validationHints" class="validation-hints hidden"></div>
+            <!-- Weather & Losses -->
+          <details class="weather-details">
+            <summary class="weather-summary">Weather &amp; Losses</summary>
+            <div class="input-grid compact-grid weather-inner">
+              <div class="checkbox-row full-span">
+                <label class="checkbox-inline" for="use_real_weather">
+                  <input type="checkbox" id="use_real_weather" />
+                  <span>Use real weather data</span>
+                </label>
+                <small class="helper-text">Fetches actual cloud cover from <strong>Open-Meteo</strong> (free, no API key). Slightly slower.</small>
+              </div>
+              <div>
+                <label for="soiling_loss">Soiling Loss (%)</label>
+                <input type="number" step="0.5" id="soiling_loss" value="0" min="0" max="50" />
+                <small class="helper-text">Dust / soiling applied to all irradiance.</small>
+              </div>
+            </div>
+          </details>
+
+        <div id="validationHints" class="validation-hints hidden"></div>
 
           <div class="button-row">
             <button type="submit">Run Simulation</button>
@@ -348,6 +369,75 @@
         </div>
         <div class="chart-legend-note">Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading.</div>
         <div class="chart-container"><canvas id="powerChart"></canvas></div>
+      </section>
+
+      <!-- Financial Estimate card -->
+      <section class="card">
+        <div class="section-head">
+          <h2>Financial Estimate</h2>
+          <span class="section-note">Annual energy value — run simulation first</span>
+        </div>
+
+        <div class="input-grid compact-grid">
+          <div>
+            <label for="elec_rate">Electricity Rate ($/kWh)</label>
+            <input type="number" step="0.01" id="elec_rate" value="0.30" min="0" />
+          </div>
+          <div>
+            <label for="num_panels">Number of Panels</label>
+            <input type="number" step="1" id="num_panels" value="1" min="1" />
+          </div>
+        </div>
+
+        <div id="financialResult" class="financial-result hidden">
+          <table class="fin-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Fixed Panel</th>
+                <th>Tracker (No BT)</th>
+                <th>Tracker (BT)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Daily energy (kWh)</td>
+                <td id="fin_kwh_fixed">-</td>
+                <td id="fin_kwh_nobt">-</td>
+                <td id="fin_kwh_bt">-</td>
+              </tr>
+              <tr>
+                <td>Annual energy (kWh)</td>
+                <td id="fin_ann_fixed">-</td>
+                <td id="fin_ann_nobt">-</td>
+                <td id="fin_ann_bt">-</td>
+              </tr>
+              <tr>
+                <td>Daily value ($)</td>
+                <td id="fin_val_fixed">-</td>
+                <td id="fin_val_nobt">-</td>
+                <td id="fin_val_bt">-</td>
+              </tr>
+              <tr>
+                <td>Annual value ($)</td>
+                <td id="fin_aval_fixed">-</td>
+                <td id="fin_aval_nobt">-</td>
+                <td id="fin_aval_bt">-</td>
+              </tr>
+              <tr class="fin-highlight">
+                <td>BT gain vs Fixed (annual)</td>
+                <td>—</td>
+                <td id="fin_gain_nobt">-</td>
+                <td id="fin_gain_bt">-</td>
+              </tr>
+            </tbody>
+          </table>
+          <small class="helper-text" style="margin-top:8px;display:block">
+            Based on simulation date only — actual annual yield varies with season &amp; weather.
+            Temperature derating (NOCT model) included in power values.
+          </small>
+        </div>
+        <div id="financialPlaceholder" class="comparison-summary">Run simulation to see financial estimate.</div>
       </section>
 
       <section class="card full-width">

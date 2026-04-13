@@ -13,6 +13,12 @@ SURFACE_TO_AXIS_OFFSET = 0.10
 ALBEDO = 0.2
 TRANSPOSITION_MODEL = "haydavies"
 
+# Temperature derating (NOCT model)
+# T_cell = T_ambient + (NOCT - 20) / 800 * G_poa
+# Power factor = 1 + TEMP_COEFF * (T_cell - 25)
+NOCT = 45.0          # nominal operating cell temperature (°C)
+TEMP_COEFF = -0.004  # power temperature coefficient (%/°C), typical c-Si
+
 
 def _ground_shadow_length(
     sun_elevation: float,
@@ -135,6 +141,7 @@ def _mode_results(
     row_spacing: float,
     panel_area: float,
     panel_efficiency: float,
+    t_ambient: float = 20.0,
 ) -> Tuple[float, bool, float, float, float]:
     solar_zenith = float(row["apparent_zenith"])
     solar_azimuth = float(row["sun_azimuth"])
@@ -182,10 +189,15 @@ def _mode_results(
 
     poa_global = max(0.0, poa.get("poa_global", 0.0))
 
-    # Practical current model:
-    # apply shading penalty to total POA
+    # Apply shading penalty to total POA
     poa_after_shading = max(0.0, poa_global * (1 - shaded_fraction))
-    power = poa_after_shading * panel_area * panel_efficiency
+
+    # Temperature derating (NOCT model)
+    # Cell temperature rises with irradiance above ambient
+    t_cell = t_ambient + (NOCT - 20.0) / 800.0 * poa_after_shading
+    temp_factor = max(0.0, 1.0 + TEMP_COEFF * (t_cell - 25.0))
+
+    power = poa_after_shading * panel_area * panel_efficiency * temp_factor
 
     return shadow_length, shaded, shaded_fraction * 100.0, poa_after_shading, power
 
@@ -219,6 +231,8 @@ def run_full_simulation(
             irradiance_raw = 0.0
             irradiance_fixed = 0.0
         else:
+            t_amb = float(row.get("temp", 20.0))
+
             (
                 shadow_length_without,
                 shaded_without,
@@ -235,6 +249,7 @@ def run_full_simulation(
                 row_spacing=row_spacing,
                 panel_area=panel_area,
                 panel_efficiency=panel_efficiency,
+                t_ambient=t_amb,
             )
 
             # Raw BT result (keep these for display / charts)
@@ -254,6 +269,7 @@ def run_full_simulation(
                 row_spacing=row_spacing,
                 panel_area=panel_area,
                 panel_efficiency=panel_efficiency,
+                t_ambient=t_amb,
             )
 
             # BT irradiance and power are kept as-is from the backtracking calculation.

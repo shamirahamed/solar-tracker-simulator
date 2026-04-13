@@ -1211,3 +1211,84 @@ body[data-preview="tablet-l"] .chart-container     { height: 265px; }
 
 /* desktop: restore defaults */
 body[data-preview="desktop"] .app-shell            { max-width: 960px !important; }
+
+/* ─── Weather & Losses collapsible ──────────────── */
+.weather-details {
+  border: 1px solid var(--line-bright);
+  border-radius: 8px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.weather-summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  color: var(--muted2);
+  padding: 8px 12px;
+  user-select: none;
+  display: block;
+  list-style: none;
+}
+.weather-summary::-webkit-details-marker { display: none; }
+.weather-summary::before {
+  content: "▶ ";
+  font-size: 10px;
+  transition: transform 0.15s;
+}
+.weather-details[open] .weather-summary::before { content: "▼ "; }
+.weather-summary:hover { color: var(--accent); }
+
+.weather-inner {
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+}
+
+[data-theme="light"] .weather-details { border-color: #cbd5e1; }
+[data-theme="light"] .weather-inner   { border-top-color: #e2e8f0; }
+[data-theme="light"] .weather-summary { color: #475569; }
+
+/* ─── Financial Estimate table ───────────────────── */
+.financial-result { margin-top: 14px; }
+
+.fin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.fin-table th,
+.fin-table td {
+  padding: 6px 8px;
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted2);
+}
+
+.fin-table th:first-child,
+.fin-table td:first-child {
+  text-align: left;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+.fin-table th {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fin-table tr:last-child td { border-bottom: none; }
+
+.fin-highlight td {
+  color: var(--accent) !important;
+  font-weight: 700;
+}
+
+[data-theme="light"] .fin-table th,
+[data-theme="light"] .fin-table td  { color: #475569; border-color: #e2e8f0; }
+[data-theme="light"] .fin-table th:first-child,
+[data-theme="light"] .fin-table td:first-child { color: #64748b; }
+[data-theme="light"] .fin-highlight td { color: var(--accent) !important; }

@@ -42,7 +42,31 @@ def health():
     return {"status": "ok"}
 
 
-def _build_simulation_rows(payload: SimulationRequest) -> List[Dict]:
+def _fetch_weather(payload: SimulationRequest):
+    """Fetch hourly weather from Open-Meteo; returns (data_dict, source_label)."""
+    try:
+        from app.services.weather import fetch_hourly_weather, _choose_url, _ARCHIVE_URL
+        data = fetch_hourly_weather(payload.latitude, payload.longitude, payload.date)
+        source = (
+            "Open-Meteo (archive)"
+            if _choose_url(payload.date) == _ARCHIVE_URL
+            else "Open-Meteo (forecast)"
+        )
+        return data, source
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Weather fetch failed, using clearsky: %s", exc)
+        return None, "clearsky (ineichen) — weather fetch failed"
+
+
+def _build_simulation_rows(payload: SimulationRequest):
+    """Returns (simulation_rows, weather_source_label)."""
+    weather_data = None
+    weather_source = "clearsky (ineichen)"
+
+    if payload.use_real_weather:
+        weather_data, weather_source = _fetch_weather(payload)
+
     tracker_data = get_tracker_day_profile(
         latitude=payload.latitude,
         longitude=payload.longitude,
@@ -51,9 +75,11 @@ def _build_simulation_rows(payload: SimulationRequest) -> List[Dict]:
         panel_width=payload.panel_width,
         row_spacing=payload.row_spacing,
         max_angle=payload.max_angle,
+        weather_override=weather_data,
+        soiling_loss=payload.soiling_loss,
     )
 
-    return run_full_simulation(
+    rows = run_full_simulation(
         tracker_data=tracker_data,
         panel_width=payload.panel_width,
         panel_height=payload.panel_height,
@@ -62,10 +88,11 @@ def _build_simulation_rows(payload: SimulationRequest) -> List[Dict]:
         panel_efficiency=payload.panel_efficiency,
         backtracking_enabled=payload.backtracking,
     )
+    return rows, weather_source
 
 
 def _build_response(payload: SimulationRequest) -> Dict:
-    simulation_data = _build_simulation_rows(payload)
+    simulation_data, weather_source = _build_simulation_rows(payload)
     interval_hours = 1.0 / 60.0
 
     daily_energy_without_backtracking = (
@@ -96,6 +123,11 @@ def _build_response(payload: SimulationRequest) -> Dict:
         if daily_irr_no_bt > 0 else 0.0
     )
 
+    panel_area = payload.panel_width * payload.panel_height
+    daily_energy_fixed = round(
+        daily_irr_fixed * panel_area * payload.panel_efficiency / 1000.0, 3
+    )
+
     return {
         "latitude": payload.latitude,
         "longitude": payload.longitude,
@@ -111,6 +143,8 @@ def _build_response(payload: SimulationRequest) -> Dict:
         "daily_irradiance_bt":         round(daily_irr_bt, 1),
         "irradiance_gain_bt_vs_fixed": round(gain_bt_vs_fixed, 2),
         "irradiance_gain_bt_vs_no_bt": round(gain_bt_vs_no_bt, 2),
+        "weather_source": weather_source,
+        "daily_energy_fixed": daily_energy_fixed,
         "data": simulation_data,
     }
 
@@ -122,7 +156,7 @@ def simulate_day(payload: SimulationRequest):
 
 @router.post("/simulate/day.csv")
 def simulate_day_csv(payload: SimulationRequest):
-    simulation_data = _build_simulation_rows(payload)
+    simulation_data, _ = _build_simulation_rows(payload)
 
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=CSV_FIELDS)
