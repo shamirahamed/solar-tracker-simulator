@@ -1,3 +1,4 @@
+// ⚠ Bump this string on every frontend deploy to invalidate old cache
 const CACHE = "solar-tracker-v1.1";
 const PRECACHE = [
   "/",
