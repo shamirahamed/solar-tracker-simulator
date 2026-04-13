@@ -1899,7 +1899,7 @@ function buildModalScales(srcScales, gridColor, tickColor, titleColor) {
         color: tickColor,
         font: { size: 11 },
         padding: isX ? 6 : 4,
-        ...(isX ? { maxTicksLimit: 6, maxRotation: 50, minRotation: 0 } : {}),
+        ...(isX ? { maxTicksLimit: 5, maxRotation: 35, minRotation: 35 } : {}),
       },
       grid:  { ...(scale.grid  || {}), color: gridColor },
       title: { ...(scale.title || {}), color: titleColor, font: { size: 13 } },
