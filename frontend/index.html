@@ -398,8 +398,10 @@
     <div class="chart-modal-content">
       <div class="chart-modal-header">
         <span id="chartModalTitle" class="chart-modal-title"></span>
-        <span class="chart-modal-hint">Hover for tooltips · ESC to close</span>
+        <button class="info-toggle" id="chartModalInfoBtn" aria-label="Chart info" title="Chart info">ⓘ</button>
+        <span class="chart-modal-hint modal-hint-desktop">Hover for tooltips · ESC to close</span>
       </div>
+      <div id="chartModalInfoText" class="chart-legend-note" style="display:none;margin-bottom:4px;"></div>
       <div class="chart-yaxis-label" id="chartModalYLabel" style="margin-bottom:3px;"></div>
       <div class="chart-modal-body">
         <canvas id="chartModalCanvas"></canvas>

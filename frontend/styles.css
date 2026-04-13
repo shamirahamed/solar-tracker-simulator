@@ -1150,6 +1150,8 @@ canvas { width: 100% !important; height: 100% !important; }
   /* Hide y-axis label + form helper text on mobile — saves vertical space */
   .chart-yaxis-label { display: none; }
   .helper-text { display: none; }
+  .modal-hint-desktop { display: none; }
+  #chartModalInfoBtn { display: inline-flex; }
 
   input[type="number"],
   input[type="text"],

@@ -474,10 +474,10 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "No BT", data: shadowNoBtDisplay, borderWidth: 2, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "BT", data: shadowBtDisplay, borderWidth: 2, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "% No BT", data: data.map((r) => r.shading_percent_without_backtracking), borderWidth: 2, borderDash: [6, 5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "% BT", data: data.map((r) => r.shading_percent_with_backtracking), borderWidth: 2, borderDash: [6, 5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "No BT",   data: shadowNoBtDisplay,                                          borderColor: "#38bdf8", borderWidth: 2,   pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "BT",      data: shadowBtDisplay,                                             borderColor: "#f472b6", borderWidth: 2,   pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "% No BT", data: data.map((r) => r.shading_percent_without_backtracking),     borderColor: "#fb923c", borderWidth: 1.8, pointRadius: 0, tension: 0.18, borderDash: [8, 4], yAxisID: "y1" },
+        { label: "% BT",    data: data.map((r) => r.shading_percent_with_backtracking),        borderColor: "#a78bfa", borderWidth: 1.8, pointRadius: 0, tension: 0.18, borderDash: [3, 3], yAxisID: "y1" }
       ]
     },
     options: {
@@ -1570,10 +1570,10 @@ async function downloadPdf() {
     const shadingImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#0891b2", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _ds.map(r => r.shading_percent_without_backtracking), borderColor: "#dc2626", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#ea580c", borderWidth: 1.5, borderDash: [8,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#38bdf8", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#f472b6", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _ds.map(r => r.shading_percent_without_backtracking), borderColor: "#fb923c", borderWidth: 1.5, borderDash: [8,4], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#a78bfa", borderWidth: 1.5, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
@@ -1809,10 +1809,10 @@ document.getElementById("pdfModalExport")?.addEventListener("click", async () =>
 let _modalChart = null;
 
 const CHART_MAP = {
-  anglesChart:  { get: () => anglesChart,  title: "Tracker Angle",        yLabel: "Angle (deg)" },
-  sunChart:     { get: () => sunChart,     title: "Solar Position",        yLabel: "Sun Angle (deg)" },
-  shadingChart: { get: () => shadingChart, title: "Inter-row Shadowing",   yLabel: "Shadow Length (scaled)", yLabelR: "Shading (%)" },
-  powerChart:   { get: () => powerChart,   title: "Irradiance Comparison", yLabel: "Irradiance (W/m²)" },
+  anglesChart:  { get: () => anglesChart,  title: "Tracker Angle",        yLabel: "Angle (deg)",            info: "Ideal = unconstrained, Limited = max-angle limited, BT = backtracking." },
+  sunChart:     { get: () => sunChart,     title: "Solar Position",        yLabel: "Sun Angle (deg)",        info: "Shows solar elevation and azimuth movement through the day." },
+  shadingChart: { get: () => shadingChart, title: "Inter-row Shadowing",   yLabel: "Shadow Length (scaled)", yLabelR: "Shading (%)", info: "Displayed shadow is scaled for readability. Shading % better represents actual panel-to-panel impact." },
+  powerChart:   { get: () => powerChart,   title: "Irradiance Comparison", yLabel: "Irradiance (W/m²)",      info: "Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading." },
 };
 
 function openChartModal(canvasId) {
@@ -1822,10 +1822,26 @@ function openChartModal(canvasId) {
   if (!source) return;
 
   document.getElementById("chartModalTitle").textContent = entry.title;
+
+  // y-axis label (always show in modal regardless of mobile CSS)
   const yEl = document.getElementById("chartModalYLabel");
+  yEl.style.display = "flex";
   yEl.innerHTML = entry.yLabelR
     ? `<span>${entry.yLabel}</span><span class="chart-yaxis-label-r">${entry.yLabelR}</span>`
     : `<span>${entry.yLabel || ""}</span>`;
+
+  // ⓘ info button — replaces hint text on mobile
+  const infoBtn = document.getElementById("chartModalInfoBtn");
+  const infoText = document.getElementById("chartModalInfoText");
+  if (infoBtn && infoText) {
+    infoText.textContent = entry.info || "";
+    infoText.style.display = "none";
+    infoBtn.onclick = () => {
+      const visible = infoText.style.display === "none";
+      infoText.style.display = visible ? "block" : "none";
+      infoBtn.classList.toggle("active", visible);
+    };
+  }
 
   // destroy previous modal chart
   if (_modalChart) { _modalChart.destroy(); _modalChart = null; }
