@@ -1864,6 +1864,7 @@ function openChartModal(canvasId) {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
+      layout: { padding: { top: 8, right: 16, bottom: 10, left: 8 } },
       plugins: {
         ...(srcOptions.plugins || {}),
         legend: {
@@ -1890,11 +1891,17 @@ function buildModalScales(srcScales, gridColor, tickColor, titleColor) {
   if (!srcScales) return {};
   const result = {};
   for (const [key, scale] of Object.entries(srcScales)) {
+    const isX = key === "x";
     result[key] = {
       ...JSON.parse(JSON.stringify(scale)),
-      ticks:  { ...(scale.ticks  || {}), color: tickColor,  font: { size: 12 } },
-      grid:   { ...(scale.grid   || {}), color: gridColor },
-      title:  { ...(scale.title  || {}), color: titleColor, font: { size: 13 } },
+      ticks: {
+        ...(scale.ticks || {}),
+        color: tickColor,
+        font: { size: 12 },
+        padding: isX ? 8 : 4,   // extra breathing room between x labels and chart
+      },
+      grid:  { ...(scale.grid  || {}), color: gridColor },
+      title: { ...(scale.title || {}), color: titleColor, font: { size: 13 } },
     };
   }
   return result;
