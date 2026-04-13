@@ -303,9 +303,13 @@ html, body {
 .section-head {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 14px;
+}
+
+.section-head h2 + .info-toggle {
+  margin-right: auto; /* push section-note to the right */
 }
 
 .section-head h2 {
@@ -660,17 +664,20 @@ button:hover {
   background: none;
   border: none;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
-  padding: 0 2px;
-  vertical-align: middle;
+  padding: 0 0 0 4px;
   line-height: 1;
+  flex-shrink: 0;
   transition: color 0.15s;
 }
 .info-toggle:hover, .info-toggle.active { color: var(--accent); }
+.section-note-mobile { display: none; }
 
 @media (max-width: 640px) {
-  .info-toggle { display: inline; }
+  .info-toggle { display: inline-flex; align-items: center; }
+  .section-note-desktop { display: none; }
+  .section-note-mobile { display: inline; color: var(--muted); font-size: var(--fs-sm); }
   .chart-legend-note { display: none; }
   .chart-legend-note.info-visible { display: block; }
 }
