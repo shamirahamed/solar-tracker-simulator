@@ -1129,6 +1129,11 @@ canvas { width: 100% !important; height: 100% !important; }
   .section-head h2 { font-size: 13px; }
   .section-note { font-size: 10px; line-height: 1.3; }
 
+  /* Compact chart legend on mobile — 4 items fit on one row */
+  .legend-row { gap: 8px; margin-bottom: 6px; }
+  .legend-item { font-size: 10px; gap: 4px; }
+  .legend-swatch { width: 10px; height: 10px; }
+
   input[type="number"],
   input[type="text"],
   input[type="date"],
@@ -1278,6 +1283,18 @@ body[data-preview="mobile"] .checkbox-row          { grid-column: 1 / -1; }
 body[data-preview="mobile"] #getLocation           { width: 100%; }
 body[data-preview="mobile"] .topbar h1             { font-size: 19px; }
 body[data-preview="mobile"] .device-bar-label      { display: none; }
+/* mirror mobile media query for info toggle + section headers in preview mode */
+body[data-preview="mobile"] .info-toggle           { display: inline-flex; align-items: center; }
+body[data-preview="mobile"] .section-note-desktop  { display: none; }
+body[data-preview="mobile"] .section-note-mobile   { display: inline; color: var(--muted); font-size: var(--fs-sm); }
+body[data-preview="mobile"] .chart-legend-note     { display: none; }
+body[data-preview="mobile"] .chart-legend-note.info-visible { display: block; }
+body[data-preview="mobile"] .section-head          { margin-bottom: 6px; gap: 6px; }
+body[data-preview="mobile"] .section-head h2       { font-size: 13px; }
+body[data-preview="mobile"] .section-note          { font-size: 10px; line-height: 1.3; }
+body[data-preview="mobile"] .legend-row            { gap: 8px; margin-bottom: 6px; }
+body[data-preview="mobile"] .legend-item           { font-size: 10px; gap: 4px; }
+body[data-preview="mobile"] .legend-swatch         { width: 10px; height: 10px; }
 
 /* tablet portrait: 768px */
 body[data-preview="tablet-p"] .app-shell           { max-width: 768px !important; padding: 16px 14px; }
