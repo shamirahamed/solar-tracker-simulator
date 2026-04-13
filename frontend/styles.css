@@ -1124,7 +1124,8 @@ canvas { width: 100% !important; height: 100% !important; }
   .slider-row { grid-template-columns: 40px 1fr 52px; }
   .playback-controls { grid-template-columns: 1fr 1fr auto; }
 
-  /* Compact chart headers on mobile */
+  /* Compact cards + headers on mobile */
+  .card { padding: 12px; }
   .section-head { margin-bottom: 6px; gap: 6px; }
   .section-head h2 { font-size: 13px; }
   .section-note { font-size: 10px; line-height: 1.3; }
@@ -1190,6 +1191,29 @@ canvas { width: 100% !important; height: 100% !important; }
   .tracker-canvas-wrap { height: 200px; }
   .chart-container     { height: 210px; }
   .topbar h1           { font-size: 20px; }
+  .card                { padding: 10px 12px; }
+  .section-head        { margin-bottom: 6px; }
+  .section-head h2     { font-size: 13px; }
+  .section-note        { font-size: 10px; }
+
+  /* 2-column input grid in landscape so form doesn't fill entire screen */
+  .input-grid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 6px 10px;
+  }
+  .location-row, .full-span,
+  .timezone-search-wrap, .timezone-col,
+  .date-col, .checkbox-row { grid-column: 1 / -1; }
+
+  input[type="number"],
+  input[type="text"],
+  input[type="date"],
+  select { min-height: 34px; font-size: 14px; padding: 5px 10px; }
+
+  .preset-row { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .button-row { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .button-row button:first-child { grid-column: auto; }
+  .kpi-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
 }
 
 /* ─── Device preview bar ─────────────────────────── */
@@ -1289,6 +1313,7 @@ body[data-preview="mobile"] .section-note-desktop  { display: none; }
 body[data-preview="mobile"] .section-note-mobile   { display: inline; color: var(--muted); font-size: var(--fs-sm); }
 body[data-preview="mobile"] .chart-legend-note     { display: none; }
 body[data-preview="mobile"] .chart-legend-note.info-visible { display: block; }
+body[data-preview="mobile"] .card                  { padding: 12px; }
 body[data-preview="mobile"] .section-head          { margin-bottom: 6px; gap: 6px; }
 body[data-preview="mobile"] .section-head h2       { font-size: 13px; }
 body[data-preview="mobile"] .section-note          { font-size: 10px; line-height: 1.3; }
