@@ -120,6 +120,9 @@ let powerChart = null;
 let latestSimulationResult = null;
 let latestSimulationData = [];
 let playTimer = null;
+let _canvasDate = "";
+let _canvasSunrise = "";
+let _canvasSunset  = "";
 
 const MAX_SHADOW_CHART_DISPLAY_M = 40;
 const MAX_SHADOW_2D_DISPLAY_M = 18;
@@ -424,6 +427,12 @@ function updateSummary(result) {
   const gcr = calculateGcr();
   document.getElementById("gcrValue").textContent = `${gcr.ratio.toFixed(3)} (${gcr.percent.toFixed(1)}%)`;
 
+  // store for canvas info panel
+  const _MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const _dv = document.getElementById("date")?.value || "";
+  if (_dv) { const [y,m,d] = _dv.split("-"); _canvasDate = `${parseInt(d)} ${_MONTHS[parseInt(m)-1]} ${y}`; }
+  _canvasSunrise = sunTimes.sunrise ? formatTimeLabel(sunTimes.sunrise) : "--";
+  _canvasSunset  = sunTimes.sunset  ? formatTimeLabel(sunTimes.sunset)  : "--";
 }
 
 function destroyCharts() {
@@ -991,14 +1000,35 @@ function draw2DScene(row, overrideCtx, overrideW, overrideH) {
     compressed ? "badge-gray" : "badge-green"
   );
 
-  // top info
-  ctx.fillStyle = isLight ? "#1e3a5f" : "#94a3b8";
-  ctx.font = width < 500 ? "11px Arial" : "12px Arial";
-  ctx.fillText(`Time: ${formatTimeLabel(row.timestamp)}`, 16, 18);
-  ctx.fillText(`Sun Elevation: ${elevation.toFixed(1)}°`, 16, 32);
-  ctx.fillText(`Sun Azimuth: ${azimuth.toFixed(1)}°`, 16, 46);
-  ctx.fillText(`Tracker Angle: ${trackerAngle.toFixed(1)}°`, 16, 60);
-  ctx.fillText(`Shadow: ${formatShadowMetric(shownShadowRaw)}`, 16, 74);
+  // ── Top info panel ───────────────────────────────────────────────────
+  const _fs   = width < 500 ? 10 : 11;
+  const _lh   = _fs + 5;
+  const _pad  = 8;
+  const _irrBt = Number(row.irradiance_with_backtracking || 0).toFixed(0);
+  const _infoLines = width < 600
+    ? [
+        { text: _canvasDate ? `${_canvasDate}  ↑${_canvasSunrise}  ↓${_canvasSunset}` : "Run simulation", accent: true },
+        { text: `${formatTimeLabel(row.timestamp)}  El:${elevation.toFixed(1)}°  Trk:${trackerAngle.toFixed(1)}°` },
+        { text: `Shading BT:${shadingBt.toFixed(1)}%  Irr BT:${_irrBt} W/m²  Shadow:${formatShadowMetric(shownShadowRaw)}` },
+      ]
+    : [
+        { text: _canvasDate ? `${_canvasDate}   ↑ ${_canvasSunrise}   ↓ ${_canvasSunset}` : "Run simulation to see data", accent: true },
+        { text: `Time: ${formatTimeLabel(row.timestamp)}   Sun El: ${elevation.toFixed(1)}°   Azi: ${azimuth.toFixed(1)}°` },
+        { text: `Tracker: ${trackerAngle.toFixed(1)}°   Shading BT: ${shadingBt.toFixed(1)}%   Irr BT: ${_irrBt} W/m²   Shadow: ${formatShadowMetric(shownShadowRaw)}` },
+      ];
+
+  ctx.font = `${_fs}px Arial`;
+  const _pw = Math.max(..._infoLines.map(l => ctx.measureText(l.text).width)) + _pad * 2;
+  const _ph = _infoLines.length * _lh + _pad + 2;
+  ctx.fillStyle = isLight ? "rgba(232,245,255,0.92)" : "rgba(1,5,14,0.82)";
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(6, 6, _pw, _ph, 5); else ctx.rect(6, 6, _pw, _ph);
+  ctx.fill();
+  _infoLines.forEach((line, i) => {
+    ctx.fillStyle = line.accent ? getAccentColor() : (isLight ? "#1e3a5f" : "#94a3b8");
+    ctx.font = `${line.accent ? "600 " : ""}${_fs}px Arial`;
+    ctx.fillText(line.text, 6 + _pad, 6 + _pad + (i + 1) * _lh - 1);
+  });
 
   // Dark info strip — gives the Row labels + shading text a clean background
   ctx.fillStyle = isLight ? "rgba(170,205,140,0.55)" : "rgba(2,5,10,0.75)";
