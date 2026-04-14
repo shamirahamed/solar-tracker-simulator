@@ -1091,22 +1091,40 @@ canvas { width: 100% !important; height: 100% !important; }
   top: 12px;
   right: 12px;
   z-index: 40;
-  padding: 8px 14px;
+  padding: 10px 14px;
   border-radius: 8px;
   color: #fff;
-  font-weight: 700;
+  font-weight: 600;
   font-size: var(--fs-sm);
-  line-height: 1.3;
+  line-height: 1.4;
   width: auto;
-  max-width: 240px;
+  max-width: 300px;
   word-break: break-word;
   box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .status-popup.hidden  { display: none; }
 .status-popup.info    { background: #0ea5e9; }
 .status-popup.success { background: var(--accent); color: #000; }
 .status-popup.error   { background: var(--red); }
+
+.popup-action-btn {
+  align-self: flex-start;
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 5px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.popup-action-btn:hover { background: rgba(255,255,255,0.35); }
 
 /* ─── Playback controls ──────────────────────── */
 .playback-controls {

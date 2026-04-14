@@ -125,14 +125,64 @@ const MAX_SHADOW_CHART_DISPLAY_M = 40;
 const MAX_SHADOW_2D_DISPLAY_M = 18;
 const MIN_SHADING_VISUAL_PERCENT = 0.2;
 
-function showPopup(message, type = "info", timeout = 3200) {
+function showPopup(message, type = "info", timeout = 3200, action = null) {
   const el = document.getElementById("statusPopup");
   if (!el) return;
-  el.textContent = message;
+  clearTimeout(el._popupTimer);
+
+  el.innerHTML = "";
+  const msgEl = document.createElement("span");
+  msgEl.textContent = message;
+  el.appendChild(msgEl);
+
+  if (action) {
+    const btn = document.createElement("button");
+    btn.className = "popup-action-btn";
+    btn.textContent = action.label;
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      el.className = "status-popup hidden";
+      action.fn();
+    });
+    el.appendChild(btn);
+  }
+
   el.className = `status-popup ${type}`;
-  setTimeout(() => {
-    el.className = "status-popup hidden";
-  }, timeout);
+  el.onclick = () => { el.className = "status-popup hidden"; };
+
+  if (timeout > 0) {
+    el._popupTimer = setTimeout(() => { el.className = "status-popup hidden"; }, timeout);
+  }
+}
+
+async function handleApiError(error) {
+  setBadge(badgeApi, "API: Error", "badge-red");
+
+  // Quick health ping to distinguish offline vs server-side error
+  let online = false;
+  try {
+    const r = await fetch(
+      `${API_BASE.replace(/\/api\/v1$/, "")}/api/v1/health`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    online = r.ok;
+  } catch (_) {}
+
+  if (error?.name === "AbortError") {
+    showPopup("Server is waking up — please try again in ~30s", "error", 10000);
+  } else if (!online) {
+    showPopup(
+      "API server unreachable — check or update URL",
+      "error", 0,
+      { label: "⚙ Open Settings", fn: openSettings }
+    );
+  } else {
+    showPopup(
+      "API returned an error — server is up but request failed",
+      "error", 7000,
+      { label: "⚙ Open Settings", fn: openSettings }
+    );
+  }
 }
 
 function setBadge(el, text, klass) {
@@ -1143,10 +1193,8 @@ async function runSimulation() {
 
     if (!response.ok) {
       const text = await response.text();
-      setBadge(badgeApi, "API: Error", "badge-red");
       preview.textContent = `API Error:\n${text}`;
-      showPopup("Simulation failed. Check API URL or backend logs.", "error");
-      openSettings();
+      await handleApiError(null);
       return;
     }
 
@@ -1185,15 +1233,8 @@ preview.textContent = JSON.stringify(
     stop2DPlayback();
     showPopup("Simulation completed.", "success");
   } catch (error) {
-    setBadge(badgeApi, "API: Error", "badge-red");
-    if (error.name === "AbortError") {
-      preview.textContent = "Request timed out. The server may be waking up — please try again in 30 seconds.";
-      showPopup("Server is waking up — try again in 30s.", "error", 6000);
-    } else {
-      preview.textContent = `Request failed:\n${error.message}`;
-      showPopup("Unable to connect to API.", "error");
-      openSettings();
-    }
+    preview.textContent = `Request failed:\n${error.message}`;
+    await handleApiError(error);
   }
 }
 
@@ -1208,8 +1249,7 @@ async function downloadCsv() {
 
     if (!response.ok) {
       preview.textContent = `CSV Error:\n${await response.text()}`;
-      showPopup("CSV download failed.", "error");
-      openSettings();
+      await handleApiError(null);
       return;
     }
 
@@ -1225,8 +1265,7 @@ async function downloadCsv() {
     showPopup("CSV downloaded successfully.", "success");
   } catch (error) {
     preview.textContent = `CSV download failed:\n${error.message}`;
-    showPopup("CSV download failed.", "error");
-    openSettings();
+    await handleApiError(error);
   }
 }
 
