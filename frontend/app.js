@@ -2203,7 +2203,7 @@ function openChartModal(canvasId) {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
-      layout: { padding: { top: 8, right: 16, bottom: 10, left: 8 } },
+      layout: { padding: { top: 8, right: 20, bottom: 10, left: 16 } },
       plugins: {
         ...(srcOptions.plugins || {}),
         legend: {

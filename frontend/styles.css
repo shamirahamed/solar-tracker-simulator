@@ -814,7 +814,7 @@ input[type="range"] { accent-color: var(--accent); }
 
 .chart-modal-body {
   position: relative;
-  height: 45vh;
+  height: 52vh;
   background: var(--bg2);
   border: 1px solid var(--line);
   border-radius: 8px;
