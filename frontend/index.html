@@ -340,6 +340,12 @@
           <h2>2D Tracker View</h2>
           <span class="section-note section-note-desktop">Displayed ground shadow is limited to row spacing for readability. Red shows actual panel shading.</span>
           <button class="info-toggle" aria-label="More info" data-target="info-2d">ⓘ</button>
+          <div class="tracker2d-header-controls">
+            <button type="button" id="play2d">▶ Play</button>
+            <button type="button" id="pause2d">⏸ Pause</button>
+            <button type="button" id="liveMode" class="live-btn" title="Sync to current real time">🔴 Live</button>
+            <span id="liveDateWarn" style="display:none;font-size:0.75rem;color:#f59e0b;" title="Simulation date does not match today — re-run for accurate live tracking">⚠</span>
+          </div>
         </div>
         <div class="chart-legend-note" id="info-2d"><span class="section-note section-note-mobile">Displayed ground shadow limited to row spacing. Red = actual panel shading.</span><br class="section-note-mobile">Black shadow is a displayed helper. Red shading % is the main indicator of actual row-to-row shading.</div>
 
@@ -359,15 +365,6 @@
           <input type="range" id="timeSlider" min="0" max="1439" value="720" />
           <strong id="timeLabel">--:--</strong>
         </div>
-
-
-
-      <div class="playback-controls">
-        <button type="button" id="play2d">Play</button>
-        <button type="button" id="pause2d">Pause</button>
-        <button type="button" id="liveMode" class="live-btn" title="Sync to current real time">🔴 Live</button>
-        <span id="liveDateWarn" style="display:none;font-size:0.75rem;color:#f59e0b;margin-left:6px;" title="Simulation date does not match today — re-run for accurate live tracking">⚠ Wrong date</span>
-      </div>
 
       </section>
 

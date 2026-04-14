@@ -920,10 +920,10 @@ function draw2DScene(row, overrideCtx, overrideW, overrideH) {
 
     const sunMinHeight = width < 640 ? 38 : 58;
     const _preFs  = width < 500 ? 10 : 11;
-    const _preLines = width < 600 ? 2 : 3; // mobile uses 2-line panel
+    const _preLines = 2; // always 2-line info panel (fits mobile, tablet, desktop)
     const _prePh  = _preLines * (_preFs + 5) + 10;
     const sunYRaw = groundY - sunMinHeight - elevNorm * skyHeight;
-    const sunR    = width < 640 ? 8 : 13;
+    const sunR    = width < 640 ? 6 : 13;  // smaller on mobile so it stays clear of panel
     const sunY    = Math.max(6 + _prePh + sunR + 6, sunYRaw); // never inside info panel
 
     drawSunIcon(ctx, sunX, sunY, sunR);
@@ -1016,16 +1016,11 @@ function draw2DScene(row, overrideCtx, overrideW, overrideH) {
   const _lh   = _fs + 5;
   const _pad  = 8;
   const _irrBt = Number(row.irradiance_with_backtracking || 0).toFixed(0);
-  const _infoLines = width < 600
-    ? [
-        { text: _canvasDate ? `${_canvasDate}  ↑${_canvasSunrise}  ↓${_canvasSunset}` : "Run simulation", accent: true },
-        { text: `${formatTimeLabel(row.timestamp)}  El:${elevation.toFixed(1)}°  Trk:${trackerAngle.toFixed(1)}°  BT:${shadingBt.toFixed(1)}%  Irr:${_irrBt}W/m²` },
-      ]
-    : [
-        { text: _canvasDate ? `${_canvasDate}   ↑ ${_canvasSunrise}   ↓ ${_canvasSunset}` : "Run simulation to see data", accent: true },
-        { text: `Time: ${formatTimeLabel(row.timestamp)}   Sun El: ${elevation.toFixed(1)}°   Azi: ${azimuth.toFixed(1)}°` },
-        { text: `Tracker: ${trackerAngle.toFixed(1)}°   Shading BT: ${shadingBt.toFixed(1)}%   Irr BT: ${_irrBt} W/m²   Shadow: ${formatShadowMetric(shownShadowRaw)}` },
-      ];
+  // Always 2-line panel — works on phones, tablets (portrait/landscape), and desktop
+  const _infoLines = [
+    { text: _canvasDate ? `${_canvasDate}  ↑${_canvasSunrise}  ↓${_canvasSunset}` : "Run simulation to see data", accent: true },
+    { text: `${formatTimeLabel(row.timestamp)}  El:${elevation.toFixed(1)}°  Trk:${trackerAngle.toFixed(1)}°  BT:${shadingBt.toFixed(1)}%  Irr:${_irrBt}W/m²` },
+  ];
 
   ctx.font = `${_fs}px Arial`;
   const _pw = Math.min(width - 12, Math.max(..._infoLines.map(l => ctx.measureText(l.text).width)) + _pad * 2);
@@ -1753,10 +1748,20 @@ async function downloadPdf() {
     const sunImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Elevation", hidden: !_chk("pdf_elevation"), data: _ds.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Azimuth",   hidden: !_chk("pdf_azimuth"),   data: _ds.map(r => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
+        { label: "Elevation", hidden: !_chk("pdf_elevation"), data: _ds.map(r => r.sun_elevation), yAxisID: "y",  borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
+        { label: "Azimuth",   hidden: !_chk("pdf_azimuth"),   data: _ds.map(r => r.sun_azimuth),   yAxisID: "y1", borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
       ]},
-      options: _pdfChartOpts("Sun Angle (deg)")
+      options: { ..._pdfChartOpts("Elevation (deg)"),
+        scales: {
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y:  { type: "linear", position: "left",
+                title: { display: true, text: "Elevation (deg)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y1: { type: "linear", position: "right", min: 0, max: 360,
+                title: { display: true, text: "Azimuth (°)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+                ticks: { maxTicksLimit: 5, font: { size: 22 }, color: "#1e293b" }, grid: { drawOnChartArea: false } }
+        }
+      }
     });
 
     const _snoBt  = _ds.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking));
