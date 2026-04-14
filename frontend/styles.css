@@ -1185,6 +1185,12 @@ canvas { width: 100% !important; height: 100% !important; }
   .modal-hint-desktop { display: none; }
   #chartModalInfoBtn { display: inline-flex; }
 
+  /* Compact modal on mobile */
+  .chart-modal-content { width: 100vw; border-radius: 12px 12px 0 0; padding: 12px; gap: 8px; }
+  .chart-modal-title   { font-size: 13px; }
+  .chart-modal-body    { height: 48vh; }
+  #chartModalYLabel    { font-size: 9px; margin-bottom: 2px; }
+
   input[type="number"],
   input[type="text"],
   input[type="date"],
