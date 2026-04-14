@@ -905,8 +905,17 @@ input[type="range"] { accent-color: var(--accent); }
 
 .chart-modal-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
+}
+
+/* Close button lives in the header row — pushed to far right */
+.chart-modal-close-inline {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-height: 30px;
+  font-size: 12px;
+  padding: 3px 12px;
 }
 
 .chart-modal-title {
@@ -922,7 +931,7 @@ input[type="range"] { accent-color: var(--accent); }
 
 .chart-modal-body {
   position: relative;
-  height: 42vh;
+  height: 50vh;
   background: var(--bg2);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1323,8 +1332,9 @@ canvas { width: 100% !important; height: 100% !important; }
   /* Compact modal on mobile */
   .chart-modal-content { width: 100vw; border-radius: 12px 12px 0 0; padding: 12px; gap: 8px; }
   .chart-modal-title   { font-size: 13px; }
-  .chart-modal-body    { height: 48vh; }
+  .chart-modal-body    { height: 55vh; }
   #chartModalYLabel    { font-size: 9px; margin-bottom: 2px; }
+  .chart-modal-close-inline { min-height: 26px; font-size: 11px; padding: 2px 10px; }
 
   input[type="number"],
   input[type="text"],
@@ -1379,14 +1389,19 @@ canvas { width: 100% !important; height: 100% !important; }
 
 /* ─── Landscape mobile (short screen) ────────────── */
 @media (orientation: landscape) and (max-height: 520px) {
-  .tracker-canvas-wrap { height: 200px; }
-  .chart-container     { height: 180px; }
-  .chart-modal-body    { height: 38vh; }
+  /* 2D canvas: use as much vertical space as possible */
+  .tracker-canvas-wrap { height: calc(100vh - 155px); min-height: 180px; }
+  /* Inline charts: tall enough to see the curves clearly */
+  .chart-container     { height: calc(100vh - 80px); min-height: 200px; }
+  /* Chart popup modal: fill almost the entire landscape viewport */
+  .chart-modal-body    { height: calc(100vh - 100px); }
   .topbar h1           { font-size: 20px; }
-  .card                { padding: 10px; }
+  .card                { padding: 8px 10px; }
   .section-head        { margin-bottom: 4px; }
   .section-note        { font-size: 10px; }
-  .playback-controls button { min-height: 28px; font-size: 11px; padding: 3px 6px; }
+  /* Very compact playback buttons in landscape */
+  .playback-controls button { min-height: 24px; font-size: 10px; padding: 2px 7px; }
+  .playback-controls         { gap: 5px; margin-top: 4px; }
 
   /* 2-column input grid in landscape so form doesn't fill entire screen */
   .input-grid {
