@@ -1082,6 +1082,7 @@ input[type="range"] { accent-color: var(--accent); }
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 8px;
+  overflow: hidden;
   cursor: default;     /* no zoom-in cursor — expand via button only */
 }
 
@@ -1199,9 +1200,9 @@ canvas { width: 100% !important; height: 100% !important; }
 
 @media (max-width: 640px) {
   .playback-controls button {
-    min-height: 32px;
-    font-size: 12px;
-    padding: 4px 8px;
+    min-height: 28px;
+    font-size: 11px;
+    padding: 3px 8px;
   }
 }
 
@@ -1379,11 +1380,13 @@ canvas { width: 100% !important; height: 100% !important; }
 /* ─── Landscape mobile (short screen) ────────────── */
 @media (orientation: landscape) and (max-height: 520px) {
   .tracker-canvas-wrap { height: 200px; }
-  .chart-container     { height: 210px; }
+  .chart-container     { height: 180px; }
+  .chart-modal-body    { height: 38vh; }
   .topbar h1           { font-size: 20px; }
   .card                { padding: 10px; }
   .section-head        { margin-bottom: 4px; }
   .section-note        { font-size: 10px; }
+  .playback-controls button { min-height: 28px; font-size: 11px; padding: 3px 6px; }
 
   /* 2-column input grid in landscape so form doesn't fill entire screen */
   .input-grid {

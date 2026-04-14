@@ -912,9 +912,9 @@ function draw2DScene(row, overrideCtx, overrideW, overrideH) {
 
 
     const sunMinHeight = width < 640 ? 38 : 58;
-    const _preInfoLines = width < 400 ? 3 : 3; // always 3 lines — pre-compute panel bottom
     const _preFs  = width < 500 ? 10 : 11;
-    const _prePh  = _preInfoLines * (_preFs + 5) + 10;
+    const _preLines = width < 600 ? 2 : 3; // mobile uses 2-line panel
+    const _prePh  = _preLines * (_preFs + 5) + 10;
     const sunYRaw = groundY - sunMinHeight - elevNorm * skyHeight;
     const sunR    = width < 640 ? 8 : 13;
     const sunY    = Math.max(6 + _prePh + sunR + 6, sunYRaw); // never inside info panel
@@ -1009,17 +1009,10 @@ function draw2DScene(row, overrideCtx, overrideW, overrideH) {
   const _lh   = _fs + 5;
   const _pad  = 8;
   const _irrBt = Number(row.irradiance_with_backtracking || 0).toFixed(0);
-  const _infoLines = width < 420
-    ? [
-        { text: _canvasDate ? `${_canvasDate}  ↑${_canvasSunrise} ↓${_canvasSunset}` : "Run simulation", accent: true },
-        { text: `${formatTimeLabel(row.timestamp)}  El:${elevation.toFixed(0)}°  Trk:${trackerAngle.toFixed(0)}°` },
-        { text: `BT:${shadingBt.toFixed(1)}%  Irr:${_irrBt}W/m²` },
-      ]
-    : width < 600
+  const _infoLines = width < 600
     ? [
         { text: _canvasDate ? `${_canvasDate}  ↑${_canvasSunrise}  ↓${_canvasSunset}` : "Run simulation", accent: true },
-        { text: `${formatTimeLabel(row.timestamp)}  El:${elevation.toFixed(1)}°  Trk:${trackerAngle.toFixed(1)}°` },
-        { text: `Shading BT:${shadingBt.toFixed(1)}%  Irr:${_irrBt} W/m²` },
+        { text: `${formatTimeLabel(row.timestamp)}  El:${elevation.toFixed(1)}°  Trk:${trackerAngle.toFixed(1)}°  BT:${shadingBt.toFixed(1)}%  Irr:${_irrBt}W/m²` },
       ]
     : [
         { text: _canvasDate ? `${_canvasDate}   ↑ ${_canvasSunrise}   ↓ ${_canvasSunset}` : "Run simulation to see data", accent: true },
