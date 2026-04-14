@@ -162,6 +162,18 @@
         </div>
       </div>
 
+      <!-- Layout Preview -->
+      <div class="settings-section">
+        <h3>Layout Preview</h3>
+        <div class="dev-btn-group">
+          <button class="dev-btn active" data-device="desktop"  title="Desktop (full width)">🖥 Desktop</button>
+          <button class="dev-btn"        data-device="tablet-l" title="Tablet Landscape 1024px">⬜ Tab L</button>
+          <button class="dev-btn"        data-device="tablet-p" title="Tablet Portrait 768px">📋 Tab P</button>
+          <button class="dev-btn"        data-device="mobile"   title="Mobile 375px">📱 Mobile</button>
+        </div>
+        <small class="helper-text" style="display:block;margin-top:8px">Simulates how the page looks at different screen widths.</small>
+      </div>
+
       <!-- API URL -->
       <div class="settings-section">
         <h3>API</h3>
@@ -495,15 +507,6 @@
         <button type="button" id="pdfModalExport" class="primary-btn">⬇ Export PDF</button>
       </div>
     </div>
-  </div>
-
-  <!-- ── Device preview bar (fixed bottom) ───────── -->
-  <div class="device-bar" id="deviceBar">
-    <span class="device-bar-label">Preview:</span>
-    <button class="dev-btn active" data-device="desktop"  title="Desktop (full width)">🖥 Desktop</button>
-    <button class="dev-btn"        data-device="tablet-l" title="Tablet Landscape 1024px">⬜ Tab L</button>
-    <button class="dev-btn"        data-device="tablet-p" title="Tablet Portrait 768px">📋 Tab P</button>
-    <button class="dev-btn"        data-device="mobile"   title="Mobile 375px">📱 Mobile</button>
   </div>
 
   <script src="app.js"></script>
