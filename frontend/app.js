@@ -1976,7 +1976,9 @@ function openChartModal(canvasId) {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
-      layout: { padding: { top: 8, right: 20, bottom: 10, left: 16 } },
+      layout: { padding: window.innerWidth <= 640
+        ? { top: 4, right: 2, bottom: 6, left: 0 }
+        : { top: 8, right: 20, bottom: 10, left: 16 } },
       plugins: {
         ...(srcOptions.plugins || {}),
         legend: {
