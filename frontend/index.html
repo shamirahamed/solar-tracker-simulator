@@ -368,6 +368,21 @@
         <button type="button" id="liveMode" class="live-btn" title="Sync to current real time">🔴 Live</button>
         <span id="liveDateWarn" style="display:none;font-size:0.75rem;color:#f59e0b;margin-left:6px;" title="Simulation date does not match today — re-run for accurate live tracking">⚠ Wrong date</span>
       </div>
+
+      <!-- 2D tracker info strip -->
+      <div class="tracker-info-bar">
+        <div class="tib-row">
+          <div class="tib-chip tib-accent"><span class="tib-l">Date</span><strong id="tib_date">—</strong></div>
+          <div class="tib-chip tib-accent"><span class="tib-l">Sunrise</span><strong id="tib_sunrise">—</strong></div>
+          <div class="tib-chip tib-accent"><span class="tib-l">Sunset</span><strong id="tib_sunset">—</strong></div>
+        </div>
+        <div class="tib-row">
+          <div class="tib-chip"><span class="tib-l">Sun El.</span><strong id="tib_elevation">—</strong></div>
+          <div class="tib-chip"><span class="tib-l">Tracker Angle</span><strong id="tib_angle">—</strong></div>
+          <div class="tib-chip"><span class="tib-l">Shading BT</span><strong id="tib_shading">—</strong></div>
+          <div class="tib-chip"><span class="tib-l">Irr. BT</span><strong id="tib_irr">—</strong></div>
+        </div>
+      </div>
       </section>
 
       <div class="section-divider full-width"><span>Charts</span></div>
