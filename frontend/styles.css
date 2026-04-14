@@ -827,6 +827,49 @@ button:hover {
 
 input[type="range"] { accent-color: var(--accent); }
 
+/* ─── Range slider — fat touch target on mobile ─── */
+@media (max-width: 900px) {
+  /* taller row so thumb has room */
+  .slider-row,
+  .tracker2d-modal-slider { padding: 6px 0; }
+
+  input[type="range"] {
+    height: 36px;          /* tall hit area */
+    cursor: pointer;
+  }
+
+  /* WebKit/Blink (Chrome, Safari, iOS) */
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line-bright);
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-top: -11px;     /* center on 6px track: (6-28)/2 */
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+
+  /* Firefox */
+  input[type="range"]::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line-bright);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+}
+
 /* ─── pvlib credit banner ─────────────────────── */
 .pvlib-credit {
   display: flex;
