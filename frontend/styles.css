@@ -378,6 +378,16 @@ html, body {
   height: 1px;
   background: var(--line-bright);
 }
+/* mobile-only accent divider — hidden on desktop side-by-side layout */
+.section-divider.mobile-only { display: none; }
+@media (max-width: 900px) {
+  .section-divider.mobile-only {
+    display: flex;
+    margin: 6px 0 2px;
+  }
+  .section-divider.mobile-only span { color: var(--accent); }
+  .section-divider.mobile-only::after { background: var(--accent); opacity: 0.4; height: 1.5px; }
+}
 
 /* ─── Layout grid ────────────────────────────── */
 .layout-grid {
