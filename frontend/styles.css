@@ -1197,6 +1197,14 @@ canvas { width: 100% !important; height: 100% !important; }
   font-size: var(--fs-base);
 }
 
+@media (max-width: 640px) {
+  .playback-controls button {
+    min-height: 32px;
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+}
+
 .playback-controls button.active {
   background: var(--accent-glow);
   border-color: var(--accent);
