@@ -424,18 +424,6 @@ function updateSummary(result) {
   const gcr = calculateGcr();
   document.getElementById("gcrValue").textContent = `${gcr.ratio.toFixed(3)} (${gcr.percent.toFixed(1)}%)`;
 
-  // 2D info bar — static fields
-  const _MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const dateVal = document.getElementById("date")?.value || "";
-  if (dateVal) {
-    const [y, m, d] = dateVal.split("-");
-    const tibDate = document.getElementById("tib_date");
-    if (tibDate) tibDate.textContent = `${parseInt(d)} ${_MONTHS[parseInt(m) - 1]} ${y}`;
-  }
-  const tibSunrise = document.getElementById("tib_sunrise");
-  const tibSunset  = document.getElementById("tib_sunset");
-  if (tibSunrise) tibSunrise.textContent = sunTimes.sunrise ? formatTimeLabel(sunTimes.sunrise) : "--";
-  if (tibSunset)  tibSunset.textContent  = sunTimes.sunset  ? formatTimeLabel(sunTimes.sunset)  : "--";
 }
 
 function destroyCharts() {
@@ -1046,16 +1034,6 @@ function update2DFrame(index) {
   if (_tracker2dModalOpen) _drawTracker2dModal();
   _refreshChartLines();
 
-  // 2D info bar — live fields
-  const _row = latestSimulationData[safeIndex];
-  const tibEl  = document.getElementById("tib_elevation");
-  const tibAng = document.getElementById("tib_angle");
-  const tibShd = document.getElementById("tib_shading");
-  const tibIrr = document.getElementById("tib_irr");
-  if (tibEl)  tibEl.textContent  = `${Number(_row.sun_elevation || 0).toFixed(1)}°`;
-  if (tibAng) tibAng.textContent = `${Number(_row.backtracking_angle || 0).toFixed(1)}°`;
-  if (tibShd) tibShd.textContent = `${Number(_row.shading_percent_with_backtracking || 0).toFixed(1)}%`;
-  if (tibIrr) tibIrr.textContent = `${Number(_row.irradiance_with_backtracking || 0).toFixed(0)} W/m²`;
 }
 
 function setPlaybackState(isPlaying) {
