@@ -48,6 +48,7 @@
     <section id="aboutPanel" class="panel hidden">
       <div class="panel-header">
         <h2>About / Notes</h2>
+        <button type="button" id="close-about" class="panel-close-btn" aria-label="Close">×</button>
       </div>
 
       <div class="about-grid">
@@ -105,13 +106,14 @@
       </div>
 
       <div class="panel-footer">
-        <button type="button" id="close-about" class="secondary-btn">Close</button>
+        <button type="button" class="secondary-btn" onclick="document.getElementById('aboutPanel').classList.add('hidden')">Close</button>
       </div>
     </section>
 
     <section id="settingsPanel" class="panel hidden">
       <div class="panel-header">
         <h2>Settings</h2>
+        <button type="button" id="close-settings" class="panel-close-btn" aria-label="Close">×</button>
       </div>
 
       <!-- Theme -->
@@ -189,7 +191,7 @@
       </div>
 
       <div class="panel-footer">
-        <button type="button" id="close-settings" class="secondary-btn">Close</button>
+        <button type="button" class="secondary-btn" onclick="document.getElementById('settingsPanel').classList.add('hidden')">Close</button>
       </div>
     </section>
 
@@ -296,6 +298,8 @@
         </form>
       </section>
 
+      <div class="section-divider full-width"><span>Metrics</span></div>
+
       <section class="card">
         <div class="section-head">
           <h2>Key Metrics</h2>
@@ -326,6 +330,8 @@
           <div class="kpi"><span>Power BT</span><strong id="maxPowerWith">-</strong></div>
         </div>
       </section>
+
+      <div class="section-divider full-width"><span>2D View</span></div>
 
       <section class="card full-width">
         <div class="section-head">
@@ -362,7 +368,7 @@
       </div>
       </section>
 
-
+      <div class="section-divider full-width"><span>Charts</span></div>
 
       <section class="card">
         <div class="section-head">

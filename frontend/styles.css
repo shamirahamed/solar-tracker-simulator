@@ -76,7 +76,7 @@ html, body {
   padding: 20px 18px;
 }
 
-/* ─── Topbar ─────────────────────────────────── */
+/* ─── Topbar (sticky so ⚙ and ℹ️ stay accessible) */
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -85,6 +85,15 @@ html, body {
   margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  margin-left: -18px;
+  margin-right: -18px;
+  padding-left: 18px;
+  padding-right: 18px;
+  padding-top: 12px;
 }
 
 .topbar h1 {
@@ -191,6 +200,25 @@ html, body {
 }
 
 .panel-header h2 { margin: 0; font-size: 16px; color: var(--accent); }
+
+.panel-close-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--line-bright);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.panel-close-btn:hover { color: var(--text); border-color: var(--accent); }
 
 .about-grid {
   display: grid;
@@ -326,6 +354,29 @@ html, body {
 .theme-row .theme-status {
   font-size: var(--fs-sm);
   color: var(--muted2);
+}
+
+/* ─── Section dividers ───────────────────────── */
+.section-divider {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 0;
+}
+.section-divider span {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.section-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line-bright);
 }
 
 /* ─── Layout grid ────────────────────────────── */
@@ -803,7 +854,7 @@ input[type="range"] { accent-color: var(--accent); }
   .pvlib-credit-version { display: none; }
 }
 
-/* ─── Panel footer (Close button at bottom) ─────── */
+/* ─── Panel footer (kept for spacing if needed) ─── */
 .panel-footer {
   display: flex;
   justify-content: flex-end;

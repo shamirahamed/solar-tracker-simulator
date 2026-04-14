@@ -224,9 +224,13 @@ function setupTopButtons() {
     btn.addEventListener("click", () => applyAccent(btn.dataset.accent));
   });
 
-  settingsBtn?.addEventListener("click", openSettings);
+  settingsBtn?.addEventListener("click", () =>
+    settingsPanel?.classList.contains("hidden") ? openSettings() : closeSettings()
+  );
   closeSettingsBtn?.addEventListener("click", closeSettings);
-  aboutBtn?.addEventListener("click", openAbout);
+  aboutBtn?.addEventListener("click", () =>
+    aboutPanel?.classList.contains("hidden") ? openAbout() : closeAbout()
+  );
   closeAboutBtn?.addEventListener("click", closeAbout);
 
   saveApiBtn?.addEventListener("click", () => {
