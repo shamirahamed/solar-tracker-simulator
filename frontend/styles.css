@@ -296,7 +296,7 @@ html, body {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 18px;
+  padding: 14px 12px;
   box-shadow: var(--shadow);
 }
 
@@ -305,7 +305,7 @@ html, body {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .section-head h2 + .info-toggle {
@@ -314,7 +314,7 @@ html, body {
 
 .section-head h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: 0.01em;
@@ -670,9 +670,10 @@ button:hover {
   line-height: 1.4;
 }
 
-/* ⓘ info toggle button (mobile: hides description, tap to reveal) */
+/* ⓘ info toggle — always visible; descriptions hidden by default, tap to reveal */
 .info-toggle {
-  display: none;
+  display: inline-flex;
+  align-items: center;
   background: none;
   border: none;
   color: var(--muted);
@@ -684,14 +685,13 @@ button:hover {
   transition: color 0.15s;
 }
 .info-toggle:hover, .info-toggle.active { color: var(--accent); }
-.section-note-mobile { display: none; }
+.section-note-desktop { display: none; }
+.section-note-mobile  { display: none; }
+.chart-legend-note    { display: none; }
+.chart-legend-note.info-visible { display: block; }
 
 @media (max-width: 640px) {
-  .info-toggle { display: inline-flex; align-items: center; }
-  .section-note-desktop { display: none; }
   .section-note-mobile { display: inline; color: var(--muted); font-size: var(--fs-sm); }
-  .chart-legend-note { display: none; }
-  .chart-legend-note.info-visible { display: block; }
 }
 
 .slider-row {
@@ -1170,9 +1170,8 @@ canvas { width: 100% !important; height: 100% !important; }
   .playback-controls { grid-template-columns: 1fr 1fr auto; }
 
   /* Compact cards + headers on mobile */
-  .card { padding: 12px; }
-  .section-head { margin-bottom: 6px; gap: 6px; }
-  .section-head h2 { font-size: 13px; }
+  .card { padding: 10px; }
+  .section-head { margin-bottom: 4px; gap: 6px; }
   .section-note { font-size: 10px; line-height: 1.3; }
 
   /* Compact chart legend on mobile — 4 items fit on one row */
@@ -1242,9 +1241,8 @@ canvas { width: 100% !important; height: 100% !important; }
   .tracker-canvas-wrap { height: 200px; }
   .chart-container     { height: 210px; }
   .topbar h1           { font-size: 20px; }
-  .card                { padding: 10px 12px; }
-  .section-head        { margin-bottom: 6px; }
-  .section-head h2     { font-size: 13px; }
+  .card                { padding: 10px; }
+  .section-head        { margin-bottom: 4px; }
   .section-note        { font-size: 10px; }
 
   /* 2-column input grid in landscape so form doesn't fill entire screen */
@@ -1358,15 +1356,9 @@ body[data-preview="mobile"] .checkbox-row          { grid-column: 1 / -1; }
 body[data-preview="mobile"] #getLocation           { width: 100%; }
 body[data-preview="mobile"] .topbar h1             { font-size: 19px; }
 body[data-preview="mobile"] .device-bar-label      { display: none; }
-/* mirror mobile media query for info toggle + section headers in preview mode */
-body[data-preview="mobile"] .info-toggle           { display: inline-flex; align-items: center; }
-body[data-preview="mobile"] .section-note-desktop  { display: none; }
 body[data-preview="mobile"] .section-note-mobile   { display: inline; color: var(--muted); font-size: var(--fs-sm); }
-body[data-preview="mobile"] .chart-legend-note     { display: none; }
-body[data-preview="mobile"] .chart-legend-note.info-visible { display: block; }
-body[data-preview="mobile"] .card                  { padding: 12px; }
-body[data-preview="mobile"] .section-head          { margin-bottom: 6px; gap: 6px; }
-body[data-preview="mobile"] .section-head h2       { font-size: 13px; }
+body[data-preview="mobile"] .card                  { padding: 10px; }
+body[data-preview="mobile"] .section-head          { margin-bottom: 4px; gap: 6px; }
 body[data-preview="mobile"] .section-note          { font-size: 10px; line-height: 1.3; }
 body[data-preview="mobile"] .legend-row            { gap: 8px; margin-bottom: 6px; }
 body[data-preview="mobile"] .legend-item           { font-size: 10px; gap: 4px; }

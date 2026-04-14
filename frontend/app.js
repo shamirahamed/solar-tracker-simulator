@@ -48,6 +48,7 @@ const powerWCtx     = document.getElementById("powerWChart")?.getContext("2d");
 const shadowDirCtx  = document.getElementById("shadowDirChart")?.getContext("2d");
 const tempCtx       = document.getElementById("tempChart")?.getContext("2d");
 const ghiCompCtx    = document.getElementById("ghiCompChart")?.getContext("2d");
+const windCtx       = document.getElementById("windChart")?.getContext("2d");
 
 const trackerCanvas = document.getElementById("tracker2dCanvas");
 const tracker2dCtx = trackerCanvas?.getContext("2d");
@@ -125,6 +126,7 @@ let powerWChart    = null;
 let shadowDirChart = null;
 let tempChart      = null;
 let ghiCompChart   = null;
+let windChart      = null;
 let latestSimulationResult = null;
 let latestSimulationData = [];
 let playTimer = null;
@@ -309,7 +311,8 @@ function getPayload() {
     max_angle: parseFloat(document.getElementById("max_angle").value),
     backtracking: document.getElementById("backtracking").checked,
     use_real_weather: document.getElementById("use_real_weather")?.checked ?? false,
-    soiling_loss: Math.min(0.5, Math.max(0, soilingPct / 100.0))
+    soiling_loss: Math.min(0.5, Math.max(0, soilingPct / 100.0)),
+    wind_stow_speed: parseFloat(document.getElementById("wind_stow_speed")?.value || "15")
   };
 }
 
@@ -447,6 +450,7 @@ function destroyCharts() {
   shadowDirChart?.destroy();
   tempChart?.destroy();
   ghiCompChart?.destroy();
+  windChart?.destroy();
 }
 
 // Plugin: draws a vertical accent line + value labels at the current time slider position
@@ -790,17 +794,85 @@ function buildCharts(data) {
     options: chartBaseOptions("Temperature (°C)")
   });
 
-  // ── GHI: Actual vs Clear-sky ───────────────────────────────────────────
+  // ── Cloud Cover & GHI — dual-axis ─────────────────────────────────────
+  const isLight = document.documentElement.dataset.theme === "light";
+  const gridColor = isLight ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)";
+
   ghiCompChart = new Chart(ghiCompCtx, {
     type: "line",
     data: {
       labels,
       datasets: [
-        { label: "Clear-sky GHI", data: data.map(r => r.clearsky_ghi), borderColor: "#f59e0b", borderWidth: 1.5, borderDash: [5,4], pointRadius: 0, tension: 0.22 },
-        { label: "Actual GHI",    data: data.map(r => r.irradiance_raw), borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.07)", borderWidth: 2, pointRadius: 0, tension: 0.22 },
+        { label: "Clear-sky GHI (W/m²)", data: data.map(r => r.clearsky_ghi),    borderColor: "#f59e0b", borderWidth: 1.5, borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y"  },
+        { label: "Actual GHI (W/m²)",    data: data.map(r => r.irradiance_raw),  borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.07)", borderWidth: 2, pointRadius: 0, tension: 0.22, yAxisID: "y"  },
+        { label: "Cloud Cover (%)",       data: data.map(r => Number(r.cloud_cover || 0)), borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.12)", borderWidth: 1.5, borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" },
       ]
     },
-    options: chartBaseOptions("GHI (W/m²)")
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: compactLegendOptions() },
+      scales: {
+        x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+        y:  { type: "linear", position: "left",  beginAtZero: true, title: { display: true, text: "GHI (W/m²)", font: { size: 10 } }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+        y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100, title: { display: true, text: "Cloud Cover (%)", font: { size: 10 } }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { drawOnChartArea: false } },
+      }
+    }
+  });
+
+  // ── Wind Speed & Stow threshold ────────────────────────────────────────
+  const windStowSpeed = parseFloat(document.getElementById("wind_stow_speed")?.value || "15");
+  const windStowLine  = data.map(() => windStowSpeed > 0 ? windStowSpeed : null);
+  const maxWind = Math.max(...data.map(r => Number(r.wind_speed || 0)), windStowSpeed || 0, 5);
+
+  windChart = new Chart(windCtx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Wind Speed (m/s)",
+          data: data.map(r => Number(r.wind_speed || 0)),
+          borderColor: "#38bdf8",
+          backgroundColor: "rgba(56,189,248,0.08)",
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.22,
+          fill: true,
+          yAxisID: "y"
+        },
+        {
+          label: `Stow threshold (${windStowSpeed > 0 ? windStowSpeed + " m/s" : "disabled"})`,
+          data: windStowLine,
+          borderColor: "#fb923c",
+          borderWidth: 1.5,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          tension: 0,
+          yAxisID: "y"
+        },
+        {
+          label: "Stow active",
+          data: data.map(r => r.wind_stow ? Number(r.wind_speed || 0) : null),
+          borderColor: "#ef4444",
+          backgroundColor: "rgba(239,68,68,0.25)",
+          borderWidth: 0,
+          pointRadius: 3,
+          pointStyle: "circle",
+          showLine: false,
+          yAxisID: "y"
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: compactLegendOptions() },
+      scales: {
+        x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+        y: { type: "linear", position: "left", beginAtZero: true, max: Math.ceil(maxWind * 1.2), title: { display: true, text: "Wind Speed (m/s)", font: { size: 10 } }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } }
+      }
+    }
   });
 }
 
@@ -2136,7 +2208,7 @@ function openChartModal(canvasId) {
         ...(srcOptions.plugins || {}),
         legend: {
           ...(srcOptions.plugins?.legend || {}),
-          labels: { ...(srcOptions.plugins?.legend?.labels || {}), color: titleColor, font: { size: 12 } }
+          labels: { ...(srcOptions.plugins?.legend?.labels || {}), color: titleColor, font: { size: 10 }, boxWidth: 8, boxHeight: 8, padding: 8 }
         },
         tooltip: {
           backgroundColor: isLight ? "rgba(255,255,255,0.97)" : "rgba(13,20,32,0.97)",
