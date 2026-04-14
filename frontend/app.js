@@ -1021,7 +1021,7 @@ function draw2DScene(row, overrideCtx, overrideW, overrideH) {
       ];
 
   ctx.font = `${_fs}px Arial`;
-  const _pw = Math.max(..._infoLines.map(l => ctx.measureText(l.text).width)) + _pad * 2;
+  const _pw = Math.min(width - 12, Math.max(..._infoLines.map(l => ctx.measureText(l.text).width)) + _pad * 2);
   const _ph = _infoLines.length * _lh + _pad + 2;
   ctx.fillStyle = isLight ? "rgba(232,245,255,0.92)" : "rgba(1,5,14,0.82)";
   ctx.beginPath();
