@@ -619,17 +619,24 @@ function buildCharts(data) {
     options: chartBaseOptions("Angle (deg)")
   });
 
+  const _sunOpts = chartBaseOptions("Elevation (deg)");
+  _sunOpts.scales.y1 = {
+    position: "right",
+    min: 0, max: 360,
+    ticks: { font: { size: 10 }, color: "#64748b", maxTicksLimit: 5 },
+    grid: { drawOnChartArea: false }
+  };
   sunChart = new Chart(sunCtx, {
     type: "line",
     plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
-        { label: "Elevation", data: data.map((r) => r.sun_elevation), borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
-        { label: "Azimuth", data: data.map((r) => r.sun_azimuth), borderWidth: 1.5, pointRadius: 0, tension: 0.22 }
+        { label: "Elevation", data: data.map((r) => r.sun_elevation), yAxisID: "y",  borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
+        { label: "Azimuth",   data: data.map((r) => r.sun_azimuth),   yAxisID: "y1", borderWidth: 1.5, pointRadius: 0, tension: 0.22 }
       ]
     },
-    options: chartBaseOptions("Sun Angle (deg)")
+    options: _sunOpts
   });
 
   const shadowNoBtDisplay = data.map((r) => clampShadowForDisplay(r.shadow_length_without_backtracking));
