@@ -1981,7 +1981,7 @@ function openChartModal(canvasId) {
         ...(srcOptions.plugins || {}),
         legend: {
           ...(srcOptions.plugins?.legend || {}),
-          labels: { ...(srcOptions.plugins?.legend?.labels || {}), color: titleColor, font: { size: 12 } }
+          labels: { ...(srcOptions.plugins?.legend?.labels || {}), color: titleColor, font: { size: 10 }, boxWidth: 8, boxHeight: 8, padding: 8 }
         },
         tooltip: {
           backgroundColor: isLight ? "rgba(255,255,255,0.97)" : "rgba(13,20,32,0.97)",
