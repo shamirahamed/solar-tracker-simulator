@@ -341,9 +341,9 @@
           <span class="section-note section-note-desktop">Displayed ground shadow is limited to row spacing for readability. Red shows actual panel shading.</span>
           <button class="info-toggle" aria-label="More info" data-target="info-2d">ⓘ</button>
           <div class="tracker2d-header-controls">
-            <button type="button" id="play2d">▶ Play</button>
-            <button type="button" id="pause2d">⏸ Pause</button>
-            <button type="button" id="liveMode" class="live-btn" title="Sync to current real time">🔴 Live</button>
+            <button type="button" id="play2d" title="Play">▶</button>
+            <button type="button" id="pause2d" title="Pause">⏸</button>
+            <button type="button" id="liveMode" class="live-btn" title="Live mode">🔴</button>
             <span id="liveDateWarn" style="display:none;font-size:0.75rem;color:#f59e0b;" title="Simulation date does not match today — re-run for accurate live tracking">⚠</span>
           </div>
         </div>
@@ -429,6 +429,12 @@
       <div class="chart-modal-header">
         <span class="chart-modal-title">2D Tracker View</span>
         <span class="chart-modal-hint" id="tracker2dModalTime">--:--</span>
+        <div class="tracker2d-header-controls">
+          <button type="button" id="tracker2dModalPlay" class="secondary-btn" title="Play">▶</button>
+          <button type="button" id="tracker2dModalPause" class="secondary-btn" title="Pause">⏸</button>
+          <button type="button" id="tracker2dModalLive" class="live-btn" title="Live mode">🔴</button>
+        </div>
+        <button type="button" id="tracker2dModalClose" class="secondary-btn chart-modal-close-inline" title="Close">✕</button>
       </div>
       <div class="chart-modal-body tracker2d-modal-body">
         <canvas id="tracker2dModalCanvas"></canvas>
@@ -437,14 +443,6 @@
         <span class="tracker2d-modal-slider-label">Time</span>
         <input type="range" id="tracker2dModalSlider" min="0" max="1439" value="720" />
         <strong id="tracker2dModalSliderTime">--:--</strong>
-      </div>
-      <div class="chart-modal-footer tracker2d-modal-footer">
-        <div class="tracker2d-modal-controls">
-          <button type="button" id="tracker2dModalPlay" class="secondary-btn">▶ Play</button>
-          <button type="button" id="tracker2dModalPause" class="secondary-btn">⏸ Pause</button>
-          <button type="button" id="tracker2dModalLive" class="live-btn">🔴 Live</button>
-        </div>
-        <button type="button" id="tracker2dModalClose" class="secondary-btn">✕ Close</button>
       </div>
     </div>
   </div>

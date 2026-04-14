@@ -1218,17 +1218,25 @@ canvas { width: 100% !important; height: 100% !important; }
 
 .tracker2d-header-controls button {
   min-height: 30px;
-  font-size: 12px;
-  padding: 3px 10px;
+  min-width: 30px;
+  font-size: 15px;
+  padding: 3px 7px;
   white-space: nowrap;
 }
 
 @media (max-width: 900px) {
   .tracker2d-header-controls button {
     min-height: 26px;
-    font-size: 11px;
-    padding: 2px 8px;
+    min-width: 26px;
+    font-size: 14px;
+    padding: 2px 6px;
   }
+}
+
+/* Symbol-only close button in modal header */
+.chart-modal-close-inline {
+  min-width: 30px;
+  text-align: center;
 }
 
 @media (max-width: 900px) {
