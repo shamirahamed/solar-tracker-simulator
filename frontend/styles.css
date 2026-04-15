@@ -838,35 +838,36 @@ input[type="range"] { accent-color: var(--accent); }
     cursor: pointer;
   }
 
-  /* WebKit/Blink (Chrome, Safari, iOS) */
+  /* WebKit/Blink (Chrome, Safari, iOS, Android) */
   input[type="range"]::-webkit-slider-runnable-track {
-    height: 6px;
+    height: 5px;
     border-radius: 3px;
     background: var(--line-bright);
   }
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     background: var(--accent);
-    margin-top: -11px;     /* center on 6px track: (6-28)/2 */
-    box-shadow: 0 0 0 3px var(--accent-dim);
+    /* no margin-top — WebKit centres thumb on track by default;
+       adding a negative value pulls it above the track on Android */
+    box-shadow: 0 0 0 4px var(--accent-dim);
   }
 
   /* Firefox */
   input[type="range"]::-moz-range-track {
-    height: 6px;
+    height: 5px;
     border-radius: 3px;
     background: var(--line-bright);
   }
   input[type="range"]::-moz-range-thumb {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border: none;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-dim);
+    box-shadow: 0 0 0 4px var(--accent-dim);
   }
 }
 
@@ -1406,11 +1407,23 @@ canvas { width: 100% !important; height: 100% !important; }
   .chart-yaxis-label { font-size: 9px; margin-top: -2px; margin-bottom: 2px; }
   .modal-hint-desktop { display: none; }
   #chartModalInfoBtn { display: inline-flex; }
+  /* Bottom-sheet: anchor to bottom so rounded top shows, max-height caps growth */
+  .chart-modal { align-items: flex-end; padding: 0; }
 
   /* Compact modal on mobile */
-  .chart-modal-content { width: 100vw; border-radius: 12px 12px 0 0; padding: 12px; gap: 8px; }
+  .chart-modal-content {
+    width: 100vw;
+    border-radius: 12px 12px 0 0;
+    padding: 12px;
+    gap: 8px;
+    /* Cap height so header + close button never scroll off-screen when
+       the ⓘ info panel expands — body shrinks via flex to compensate */
+    max-height: 92dvh;
+    overflow: hidden;
+  }
   .chart-modal-title   { font-size: 13px; }
-  .chart-modal-body    { height: 55vh; }
+  /* Use flex-grow so body shrinks when info text expands, keeping close btn visible */
+  .chart-modal-body    { height: 0; flex: 1 1 0; min-height: 120px; }
   #chartModalYLabel    { font-size: 9px; margin-bottom: 2px; }
   .chart-modal-close-inline { min-height: 26px; font-size: 11px; padding: 2px 10px; }
 
