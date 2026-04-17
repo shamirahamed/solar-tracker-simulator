@@ -923,7 +923,7 @@ function draw2DScene(row, overrideCtx, overrideW, overrideH) {
     const _preLines = 2; // always 2-line info panel (fits mobile, tablet, desktop)
     const _prePh  = _preLines * (_preFs + 5) + 10;
     const sunYRaw = groundY - sunMinHeight - elevNorm * skyHeight;
-    const sunR    = width < 640 ? 6 : 13;  // smaller on mobile so it stays clear of panel
+    const sunR    = width < 640 ? 6 : (height < 300 ? 8 : 13);  // small on mobile; medium in landscape (short canvas)
     const sunY    = Math.max(6 + _prePh + sunR + 6, sunYRaw); // never inside info panel
 
     drawSunIcon(ctx, sunX, sunY, sunR);
