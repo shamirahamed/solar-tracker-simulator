@@ -1211,6 +1211,16 @@ function setup2DControls() {
     if (!latestSimulationData.length) return;
     update2DFrame(parseInt(timeSlider?.value || "0", 10));
   });
+
+  // Prevent iOS from zooming in/out when the device rotates
+  window.addEventListener("orientationchange", () => {
+    const meta = document.querySelector("meta[name='viewport']");
+    if (!meta) return;
+    meta.content = "width=device-width, initial-scale=1, maximum-scale=1";
+    setTimeout(() => {
+      meta.content = "width=device-width, initial-scale=1";
+    }, 500);
+  });
 }
 
 async function runSimulation() {
