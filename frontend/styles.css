@@ -1448,10 +1448,8 @@ canvas { width: 100% !important; height: 100% !important; }
   .tracker-canvas-wrap { height: calc(100vh - 120px); min-height: 180px; }
   /* Inline charts: tall enough to see the curves clearly */
   .chart-container     { height: calc(100vh - 80px); min-height: 200px; }
-  /* Chart popup: bottom-sheet fills landscape screen with flex body */
-  .chart-modal         { align-items: flex-end; padding: 0; }
-  .chart-modal-content { max-height: 92dvh; overflow: hidden; border-radius: 12px 12px 0 0; }
-  .chart-modal-body    { height: 0; flex: 1 1 0; min-height: 120px; }
+  /* Chart popup: centred modal, chart body fills most of landscape height */
+  .chart-modal-body    { height: calc(100vh - 100px); }
   .topbar h1           { font-size: 20px; }
   .card                { padding: 8px 10px; }
   .section-head        { margin-bottom: 4px; }
