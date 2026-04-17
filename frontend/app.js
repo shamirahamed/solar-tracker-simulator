@@ -2094,7 +2094,7 @@ function openChartModal(canvasId) {
 function buildModalScales(srcScales, gridColor, tickColor, titleColor) {
   if (!srcScales) return {};
   const isMobile = window.innerWidth <= 640;
-  const tickSize  = isMobile ? 9  : 11;
+  const tickSize  = isMobile ? 9  : 12;
   const titleSize = isMobile ? 10 : 13;
   const result = {};
   for (const [key, scale] of Object.entries(srcScales)) {
@@ -2106,7 +2106,7 @@ function buildModalScales(srcScales, gridColor, tickColor, titleColor) {
         color: tickColor,
         font: { size: tickSize },
         padding: isX ? 4 : 3,
-        ...(isX ? { maxTicksLimit: isMobile ? 4 : 5, maxRotation: 35, minRotation: 35 } : {}),
+        ...(isX ? { maxTicksLimit: isMobile ? 6 : 8, maxRotation: 0, minRotation: 0 } : {}),
       },
       grid:  { ...(scale.grid  || {}), color: gridColor },
       title: { ...(scale.title || {}), color: titleColor, font: { size: titleSize } },
