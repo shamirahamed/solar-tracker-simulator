@@ -525,40 +525,6 @@ const timeLinePlugin = {
   id: "timeLine",
   afterDraw(chart) {
     if (!latestSimulationData.length || !timeSlider) return;
-    // Live mode: draw a small current-time badge in top-right corner; skip the full marker
-    if (liveTimer) {
-      const idx = parseInt(timeSlider.value || "0", 10);
-      const row = latestSimulationData[idx];
-      if (!row) return;
-      const timeStr = formatTimeLabel(row.timestamp);
-      const xScale = chart.scales?.x;
-      if (!xScale) return;
-      const { top, right } = chart.chartArea;
-      const ctx = chart.ctx;
-      const isLight = document.documentElement.dataset.theme === "light";
-      ctx.save();
-      ctx.font = "bold 11px system-ui,sans-serif";
-      ctx.textAlign = "right";
-      ctx.textBaseline = "top";
-      const tw = ctx.measureText(timeStr).width;
-      // Pill background
-      ctx.globalAlpha = 0.88;
-      ctx.fillStyle = isLight ? "rgba(255,255,255,0.93)" : "rgba(13,20,32,0.90)";
-      ctx.beginPath();
-      ctx.roundRect(right - tw - 14, top + 4, tw + 10, 18, 4);
-      ctx.fill();
-      // Green border
-      ctx.globalAlpha = 0.7;
-      ctx.strokeStyle = "#22c55e";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      // Time text
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = "#22c55e";
-      ctx.fillText(timeStr, right - 7, top + 7);
-      ctx.restore();
-      return;
-    }
     const idx   = parseInt(timeSlider.value || "0", 10);
     const total = latestSimulationData.length;
     const xScale = chart.scales?.x;
@@ -654,6 +620,29 @@ const timeLinePlugin = {
     });
 
     ctx.restore();
+
+    // Time badge — shown in top-right corner during live mode or playback
+    if (liveTimer || playTimer) {
+      const row = latestSimulationData[idx];
+      if (!row) return;
+      const timeStr = formatTimeLabel(row.timestamp);
+      ctx.save();
+      ctx.font = "bold 11px system-ui,sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      const tw = ctx.measureText(timeStr).width;
+      const bw = tw + 10, bh = 18, bx = right - bw - 2, by = top + 4;
+      ctx.globalAlpha = 0.88;
+      ctx.fillStyle = isLight ? "rgba(255,255,255,0.93)" : "rgba(13,20,32,0.90)";
+      ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill();
+      ctx.globalAlpha = 0.7;
+      ctx.strokeStyle = "#22c55e"; ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#22c55e";
+      ctx.fillText(timeStr, right - 7, by + 3);
+      ctx.restore();
+    }
   }
 };
 
