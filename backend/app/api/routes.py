@@ -50,7 +50,7 @@ CSV_FIELDS = [
 
 @router.get("/health")
 def health():
-    return {"status": "ok", "version": "1.2", "features": ["weather", "soiling", "wind_stow", "cell_temp"]}
+    return {"status": "ok", "version": "1.2b", "features": ["weather", "soiling", "wind_stow", "cell_temp", "browser_weather"]}
 
 
 @router.get("/weather-test")
