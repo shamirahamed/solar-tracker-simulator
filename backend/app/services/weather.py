@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import urllib.parse
 import urllib.request
-from datetime import date as dt_date
+from datetime import date as dt_date, timedelta
 from typing import Any, Dict
 
 import pandas as pd
@@ -40,19 +40,33 @@ def fetch_hourly_weather(
     (= DNI * cos zenith); the caller must derive DNI using the solar zenith.
     """
     url = _choose_url(date)
-    params = {
-        "latitude": latitude,
-        "longitude": longitude,
-        "hourly": _VARIABLES,
-        "start_date": date,
-        "end_date": date,
-        "timezone": "UTC",
-    }
-    full_url = f"{url}?{urllib.parse.urlencode(params)}"
+
+    # Fetch ±1 day in UTC so any local timezone is fully covered (UTC+14 to UTC-12).
+    try:
+        _d = dt_date.fromisoformat(date)
+        start_date = (_d - timedelta(days=1)).isoformat()
+        end_date   = (_d + timedelta(days=1)).isoformat()
+    except ValueError:
+        start_date = end_date = date
+
+    # Build URL manually — urllib.parse.urlencode encodes commas as %2C but
+    # Open-Meteo requires literal commas in the `hourly` parameter list.
+    base = urllib.parse.urlencode({
+        "latitude":   latitude,
+        "longitude":  longitude,
+        "start_date": start_date,
+        "end_date":   end_date,
+        "timezone":   "UTC",
+    })
+    full_url = f"{url}?{base}&hourly={_VARIABLES}"
 
     req = urllib.request.Request(full_url, headers={"User-Agent": "solar-tracker-simulator/1.2"})
     with urllib.request.urlopen(req, timeout=20) as resp:
         payload = json.loads(resp.read().decode())
+
+    # Validate API response — Open-Meteo returns {"error": true, "reason": "..."} on failure
+    if payload.get("error"):
+        raise ValueError(f"Open-Meteo API error: {payload.get('reason', 'unknown')}")
 
     hourly   = payload.get("hourly", {})
     times    = hourly.get("time", [])

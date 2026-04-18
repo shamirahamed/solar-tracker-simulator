@@ -64,7 +64,8 @@ def _fetch_weather(payload: SimulationRequest):
     except Exception as exc:
         import logging
         logging.getLogger(__name__).warning("Weather fetch failed, using clearsky: %s", exc)
-        return None, "clearsky (ineichen) — weather fetch failed"
+        short_err = str(exc)[:120]
+        return None, f"clearsky (ineichen) — weather fetch failed: {short_err}"
 
 
 def _build_simulation_rows(payload: SimulationRequest):
