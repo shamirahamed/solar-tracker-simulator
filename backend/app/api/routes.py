@@ -47,7 +47,39 @@ CSV_FIELDS = [
 
 @router.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": "1.2", "features": ["weather", "soiling", "wind_stow", "cell_temp"]}
+
+
+@router.get("/weather-test")
+def weather_test(latitude: float = 51.5, longitude: float = -0.1, date: str = "2025-06-15"):
+    """
+    Diagnostic endpoint — tests Open-Meteo connectivity and returns raw hourly data.
+    Call: /api/v1/weather-test?latitude=51.5&longitude=-0.1&date=2025-06-15
+    """
+    from datetime import date as dt_date
+    try:
+        from app.services.weather import fetch_hourly_weather, _choose_url, _ARCHIVE_URL, _FORECAST_URL
+        api_url = _choose_url(date)
+        data = fetch_hourly_weather(latitude, longitude, date)
+        sample_hour = None
+        if data:
+            first_key = next(iter(data))
+            sample_hour = {first_key: data[first_key]}
+        return {
+            "status": "ok",
+            "api_used": api_url,
+            "hours_returned": len(data),
+            "sample_first_hour": sample_hour,
+            "date_requested": date,
+            "server_utc_date": dt_date.today().isoformat(),
+        }
+    except Exception as exc:
+        return {
+            "status": "error",
+            "error": str(exc),
+            "date_requested": date,
+            "server_utc_date": dt_date.today().isoformat(),
+        }
 
 
 def _fetch_weather(payload: SimulationRequest):
