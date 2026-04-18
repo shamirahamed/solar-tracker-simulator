@@ -607,7 +607,8 @@ const timeLinePlugin = {
 };
 
 function _refreshChartLines() {
-  [anglesChart, sunChart, shadingChart, powerChart].forEach(c => {
+  [anglesChart, sunChart, shadingChart, powerChart,
+   powerWChart, shadowDirChart, tempChart, ghiCompChart, windChart].forEach(c => {
     try { if (c) c.update("none"); } catch (e) {}
   });
 }
@@ -798,6 +799,7 @@ function buildCharts(data) {
   // ── Power Output (W) — temperature-derated via pvlib noct_sam ─────────
   powerWChart = new Chart(powerWCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -822,6 +824,7 @@ function buildCharts(data) {
 
   shadowDirChart = new Chart(shadowDirCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -845,6 +848,7 @@ function buildCharts(data) {
   // ── Cell Temperature — pvlib noct_sam ─────────────────────────────────
   tempChart = new Chart(tempCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -861,6 +865,7 @@ function buildCharts(data) {
 
   ghiCompChart = new Chart(ghiCompCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -888,6 +893,7 @@ function buildCharts(data) {
 
   windChart = new Chart(windCtx, {
     type: "line",
+    plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
@@ -1986,6 +1992,68 @@ async function downloadPdf() {
       options: _pdfChartOpts("Irradiance (W/m²)")
     });
 
+    const windStowSpeedPdf = document.getElementById("wind_stow_enable")?.checked
+      ? parseFloat(document.getElementById("wind_stow_speed")?.value || "15") : 0;
+    const _maxWindPdf = Math.max(..._ds.map(r => Number(r.wind_speed || 0)), windStowSpeedPdf || 0, 5);
+
+    const powerWImg = pdfOffscreenChart({
+      type: "line",
+      data: { labels: _lbl, datasets: [
+        { label: "Fixed Panel",     hidden: !_chk("pdf_pow_fixed"), data: _ds.map(r => r.power_fixed),                borderColor: "#16a34a", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", hidden: !_chk("pdf_pow_nobt"),  data: _ds.map(r => r.power_without_backtracking), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",    hidden: !_chk("pdf_pow_bt"),    data: _ds.map(r => r.power_with_backtracking),    borderColor: "#00e5ff", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
+      ]},
+      options: _pdfChartOpts("Power (W)")
+    });
+
+    const tempImg = pdfOffscreenChart({
+      type: "line",
+      data: { labels: _lbl, datasets: [
+        { label: "Ambient (°C)",   hidden: !_chk("pdf_temp_amb"),  data: _ds.map(r => r.temp),      borderColor: "#94a3b8", borderWidth: 2.2, borderDash: [4,3], pointRadius: 0, tension: 0.22 },
+        { label: "Cell Temp (°C)", hidden: !_chk("pdf_temp_cell"), data: _ds.map(r => r.cell_temp), borderColor: "#f97316", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
+      ]},
+      options: _pdfChartOpts("Temperature (°C)")
+    });
+
+    const ghiCompImg = pdfOffscreenChart({
+      type: "line",
+      data: { labels: _lbl, datasets: [
+        { label: "Clear-sky GHI", hidden: !_chk("pdf_ghi_cs"),    data: _ds.map(r => r.clearsky_ghi),   borderColor: "#f59e0b", borderWidth: 2.2, borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Actual GHI",    hidden: !_chk("pdf_ghi_act"),   data: _ds.map(r => r.irradiance_raw), borderColor: "#3b82f6", borderWidth: 2.5, pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Cloud Cover %", hidden: !_chk("pdf_ghi_cloud"), data: _ds.map(r => Number(r.cloud_cover || 0)), borderColor: "#94a3b8", borderWidth: 2.2, borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" }
+      ]},
+      options: { ..._pdfChartOpts("GHI (W/m²)"),
+        scales: {
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y:  { type: "linear", position: "left",  beginAtZero: true,
+                title: { display: true, text: "GHI (W/m²)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100,
+                title: { display: true, text: "Cloud Cover (%)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+
+    const windImg = pdfOffscreenChart({
+      type: "line",
+      data: { labels: _lbl, datasets: [
+        { label: "Wind Speed (m/s)", hidden: !_chk("pdf_wind_speed"), data: _ds.map(r => Number(r.wind_speed || 0)), borderColor: "#38bdf8", borderWidth: 2.5, pointRadius: 0, tension: 0.22, fill: false },
+        { label: windStowSpeedPdf > 0 ? `Stow @ ${windStowSpeedPdf} m/s` : "Stow disabled",
+          hidden: !_chk("pdf_wind_stow"),
+          data: windStowSpeedPdf > 0 ? _ds.map(() => windStowSpeedPdf) : _ds.map(() => null),
+          borderColor: "#fb923c", borderWidth: 2.2, borderDash: [6,4], pointRadius: 0, tension: 0 }
+      ]},
+      options: { ..._pdfChartOpts("Wind Speed (m/s)"),
+        scales: {
+          x: { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y: { type: "linear", position: "left", beginAtZero: true, max: Math.ceil(_maxWindPdf * 1.2),
+               title: { display: true, text: "Wind Speed (m/s)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+               ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } }
+        }
+      }
+    });
+
     const dimensionImg = pdfBuildDimensionDiagramDataUrl(payload, mobileView);
     const summarySentence = pdfBuildSummarySentence(result);
 
@@ -2092,6 +2160,38 @@ async function downloadPdf() {
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Irradiance Comparison", X, 146);
       if (powerImg) doc.addImage(powerImg, "JPEG", X, 150, CW, CH);
+    }
+
+    // PAGE 5 — Power Output (W) + Cell Temperature
+    {
+      const CW = 160, CH = 120;
+      const X = 15;
+      doc.addPage();
+      pdfPageBackground(doc);
+
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Power Output (W)", X, 14);
+      if (powerWImg) doc.addImage(powerWImg, "JPEG", X, 18, CW, CH);
+
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Cell Temperature", X, 146);
+      if (tempImg) doc.addImage(tempImg, "JPEG", X, 150, CW, CH);
+    }
+
+    // PAGE 6 — Cloud Cover & GHI + Wind Speed & Stow
+    {
+      const CW = 160, CH = 120;
+      const X = 15;
+      doc.addPage();
+      pdfPageBackground(doc);
+
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Cloud Cover & GHI", X, 14);
+      if (ghiCompImg) doc.addImage(ghiCompImg, "JPEG", X, 18, CW, CH);
+
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Wind Speed & Stow", X, 146);
+      if (windImg) doc.addImage(windImg, "JPEG", X, 150, CW, CH);
     }
 
     // FINAL PAGE - NOTES
