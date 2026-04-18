@@ -137,7 +137,7 @@ let latestSimulationResult = null;
 let latestSimulationData = [];
 let playTimer = null;
 
-const MAX_SHADOW_CHART_DISPLAY_M = 50;
+const MAX_SHADOW_CHART_DISPLAY_M = 999; // effectively no clamp — y-axis uses data max + buffer
 const MAX_SHADOW_2D_DISPLAY_M = 18;
 const MIN_SHADING_VISUAL_PERCENT = 0.2;
 
@@ -865,7 +865,9 @@ function buildCharts(data) {
     const s = clampShadowForDisplay(r.shadow_length_without_backtracking);
     return (r.projected_solar_zenith ?? 0) >= 0 ? s : -s;
   });
-  const maxShadowDirAbs = MAX_SHADOW_CHART_DISPLAY_M; // fixed ±50 m scale — consistent across simulations
+  // Round up to next 5 m above the data max so there's always a small margin
+  const _rawMaxDir = Math.max(...shadowDirBt.map(Math.abs), ...shadowDirNoBt.map(Math.abs), 1);
+  const maxShadowDirAbs = Math.ceil((_rawMaxDir + 5) / 5) * 5;
 
   shadowDirChart = new Chart(shadowDirCtx, {
     type: "line",
@@ -2404,10 +2406,11 @@ async function downloadPdf() {
       }
     });
 
-    // Shadow Direction chart — same mapping as live chart
-    const _sdBtPdf   = _ds.map(r => { const s = Math.min(Math.max(Number(r.shadow_length_with_backtracking    || 0), 0), 40); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _sdNoBtPdf = _ds.map(r => { const s = Math.min(Math.max(Number(r.shadow_length_without_backtracking || 0), 0), 40); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _maxSdPdf = Math.max(..._sdBtPdf.map(Math.abs), ..._sdNoBtPdf.map(Math.abs), 1);
+    // Shadow Direction chart — same mapping as live chart, no hard clamp
+    const _sdBtPdf   = _ds.map(r => { const s = Math.max(Number(r.shadow_length_with_backtracking    || 0), 0); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _sdNoBtPdf = _ds.map(r => { const s = Math.max(Number(r.shadow_length_without_backtracking || 0), 0); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _rawMaxSdPdf = Math.max(..._sdBtPdf.map(Math.abs), ..._sdNoBtPdf.map(Math.abs), 1);
+    const _maxSdPdf = Math.ceil((_rawMaxSdPdf + 5) / 5) * 5; // round up to next 5 m
     const shadowDirImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
