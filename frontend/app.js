@@ -1380,7 +1380,7 @@ function draw2DScene(row, overrideCtx, overrideW, overrideH) {
 }
 
 
-function update2DFrame(index) {
+function update2DFrame(index, skipCharts = false) {
   if (!latestSimulationData.length) return;
   const safeIndex = Math.max(0, Math.min(index, latestSimulationData.length - 1));
   if (timeSlider) timeSlider.value = String(safeIndex);
@@ -1392,7 +1392,7 @@ function update2DFrame(index) {
   if (modalSliderTime) modalSliderTime.textContent = formatTimeLabel(latestSimulationData[safeIndex].timestamp);
   draw2DScene(latestSimulationData[safeIndex]);
   if (_tracker2dModalOpen) _drawTracker2dModal();
-  _refreshChartLines();
+  if (!skipCharts) _refreshChartLines();
 }
 
 function setPlaybackState(isPlaying) {
@@ -1418,6 +1418,8 @@ function stop2DPlayback() {
     playTimer = null;
   }
   setPlaybackState(false);
+  // Final chart update so time-line snaps to the paused position
+  _refreshChartLines();
 }
 
 /* ── Live Mode ────────────────────────────────────────────────────── */
@@ -1497,16 +1499,22 @@ function start2DPlayback() {
   // Use rAF instead of setInterval — syncs to display refresh so iOS
   // doesn't vibrate the page between JS ticks and display frames.
   const STEP_MS = 140;
+  const CHART_EVERY = 5;   // refresh chart time-lines every 5th step (~700ms)
+                            // — keeps 2D canvas smooth while preventing the
+                            //   11-canvas redraw storm that caused mobile flicker
   let lastStepTime = 0;
+  let stepCount = 0;
 
   const loop = (timestamp) => {
     if (!playTimer) return;   // stopped externally
     if (timestamp - lastStepTime >= STEP_MS) {
       lastStepTime = timestamp;
+      stepCount++;
       if (!latestSimulationData.length) { stop2DPlayback(); return; }
       let next = parseInt(timeSlider.value || "0", 10) + 1;
       if (next >= latestSimulationData.length) next = 0;
-      update2DFrame(next);
+      const skipCharts = (stepCount % CHART_EVERY) !== 0;
+      update2DFrame(next, skipCharts);
     }
     playTimer = requestAnimationFrame(loop);
   };
