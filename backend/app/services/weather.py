@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import date as dt_date, timedelta
@@ -10,6 +12,12 @@ import pandas as pd
 
 _FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 _ARCHIVE_URL  = "https://archive-api.open-meteo.com/v1/archive"
+
+# Simple in-memory cache keyed by (latitude, longitude, date).
+# Prevents repeated Open-Meteo hits when the user re-runs the same
+# simulation within a session (avoids 429 on Render's shared IPs).
+_WEATHER_CACHE: Dict[tuple, Dict] = {}
+_CACHE_MAX_ENTRIES = 50   # cap so memory doesn't grow unbounded
 
 # Open-Meteo variables:
 #   shortwave_radiation  = GHI (W/m²)
@@ -39,7 +47,13 @@ def fetch_hourly_weather(
     Returns a dict keyed by hour timestamp string (e.g. "2024-06-15T00:00")
     with values {ghi, bhi, dhi, temp}.  BHI = direct beam on horizontal
     (= DNI * cos zenith); the caller must derive DNI using the solar zenith.
+
+    Results are cached in-process to avoid repeated hits on Render's shared
+    IPs which can trigger Open-Meteo 429 rate limits.
     """
+    cache_key = (round(latitude, 4), round(longitude, 4), date)
+    if cache_key in _WEATHER_CACHE:
+        return _WEATHER_CACHE[cache_key]
     url = _choose_url(date)
 
     # Build URL manually — urllib.parse.urlencode encodes commas as %2C but
@@ -75,17 +89,26 @@ def fetch_hourly_weather(
     full_url = f"{url}?{base}&hourly={_VARIABLES}"
 
     def _do_request(request_url: str) -> dict:
-        req = urllib.request.Request(request_url, headers={"User-Agent": "solar-tracker-simulator/1.2"})
-        with urllib.request.urlopen(req, timeout=25) as resp:
-            data = json.loads(resp.read().decode())
-        if data.get("error"):
-            raise ValueError(f"Open-Meteo API error: {data.get('reason', 'unknown')}")
-        return data
+        """Request with one automatic retry on HTTP 429 (rate limit)."""
+        headers = {"User-Agent": "solar-tracker-simulator/1.2"}
+        for attempt in range(2):
+            try:
+                req = urllib.request.Request(request_url, headers=headers)
+                with urllib.request.urlopen(req, timeout=25) as resp:
+                    data = json.loads(resp.read().decode())
+                if data.get("error"):
+                    raise ValueError(f"Open-Meteo API error: {data.get('reason', 'unknown')}")
+                return data
+            except urllib.error.HTTPError as e:
+                if e.code == 429 and attempt == 0:
+                    time.sleep(3)   # back off 3 s then retry once
+                    continue
+                raise
 
     try:
         payload = _do_request(full_url)
     except Exception as primary_exc:
-        # Fallback: if the chosen API failed, try the other one
+        # Fallback: if chosen API failed, try the other one
         fallback_url_base = _ARCHIVE_URL if url == _FORECAST_URL else _FORECAST_URL
         if fallback_url_base == _ARCHIVE_URL:
             fallback_params = urllib.parse.urlencode({
@@ -106,7 +129,7 @@ def fetch_hourly_weather(
         try:
             payload = _do_request(fallback_full)
         except Exception:
-            raise primary_exc  # raise the original error if both fail
+            raise primary_exc  # raise original error if both fail
 
     hourly   = payload.get("hourly", {})
     times    = hourly.get("time", [])
@@ -142,6 +165,11 @@ def fetch_hourly_weather(
             "humidity":   max(0.0, min(100.0, _safe(hum_list, i, 50.0))),
             "dew_point":  _safe(dew_list, i, 10.0),
         }
+
+    # Store in cache; evict oldest entry if at capacity
+    if len(_WEATHER_CACHE) >= _CACHE_MAX_ENTRIES:
+        _WEATHER_CACHE.pop(next(iter(_WEATHER_CACHE)))
+    _WEATHER_CACHE[cache_key] = result
 
     return result
 
