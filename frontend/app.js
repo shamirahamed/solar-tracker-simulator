@@ -2150,8 +2150,8 @@ async function downloadPdf() {
     const tempImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Ambient (°C)",   hidden: !_chk("pdf_temp_amb"),  data: _ds.map(r => r.temp),      borderColor: "#94a3b8", borderWidth: 2.2, borderDash: [4,3], pointRadius: 0, tension: 0.22 },
-        { label: "Cell Temp (°C)", hidden: !_chk("pdf_temp_cell"), data: _ds.map(r => r.cell_temp), borderColor: "#f97316", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
+        { label: "Ambient (°C)",   hidden: !_chk("pdf_temp_amb"),  data: _ds.map(r => r.temp),      borderColor: "#94a3b8", borderWidth: 3.0, borderDash: [4,3], pointRadius: 0, tension: 0.22 },
+        { label: "Cell Temp (°C)", hidden: !_chk("pdf_temp_cell"), data: _ds.map(r => r.cell_temp), borderColor: "#f97316", borderWidth: 3.0, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Temperature (°C)")
     });
@@ -2159,9 +2159,9 @@ async function downloadPdf() {
     const ghiCompImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Clear-sky GHI", hidden: !_chk("pdf_ghi_cs"),    data: _ds.map(r => r.clearsky_ghi),   borderColor: "#f59e0b", borderWidth: 2.2, borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Actual GHI",    hidden: !_chk("pdf_ghi_act"),   data: _ds.map(r => r.irradiance_raw), borderColor: "#3b82f6", borderWidth: 2.5, pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Cloud Cover %", hidden: !_chk("pdf_ghi_cloud"), data: _ds.map(r => Number(r.cloud_cover || 0)), borderColor: "#94a3b8", borderWidth: 2.2, borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" }
+        { label: "Clear-sky GHI", hidden: !_chk("pdf_ghi_cs"),    data: _ds.map(r => r.clearsky_ghi),   borderColor: "#f59e0b", borderWidth: 3.0, borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Actual GHI",    hidden: !_chk("pdf_ghi_act"),   data: _ds.map(r => r.irradiance_raw), borderColor: "#3b82f6", borderWidth: 3.0, pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Cloud Cover %", hidden: !_chk("pdf_ghi_cloud"), data: _ds.map(r => Number(r.cloud_cover || 0)), borderColor: "#94a3b8", borderWidth: 3.0, borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("GHI (W/m²)"),
         scales: {
@@ -2217,6 +2217,53 @@ async function downloadPdf() {
           y1: { type: "linear", position: "right", beginAtZero: true, max: Math.max(Math.ceil(_maxPrecipPdf * 1.3), 1),
                 title: { display: true, text: "Precipitation (mm/h)", font: { size: 26, weight: "700" }, color: "#38bdf8" },
                 ticks: { font: { size: 22 }, color: "#38bdf8" }, grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+
+    // Shadow Direction chart
+    const maxShadowDirAbsPdf = Math.max(..._ds.map(r => Math.abs(Number(r.projected_solar_zenith ?? 0))), 1);
+    const shadowDirImg = pdfOffscreenChart({
+      type: "line",
+      data: { labels: _lbl, datasets: [
+        { label: "Shadow BT (+ East / − West)",    data: _ds.map(r => { const v = Number(r.projected_solar_zenith ?? 0); return Math.max(-maxShadowDirAbsPdf, Math.min(maxShadowDirAbsPdf, v * (payload.row_spacing ?? 5))); }),
+          borderColor: "#00e5ff", borderWidth: 3.0, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "Shading % BT", data: _ds.map(r => r.shading_percent_with_backtracking),
+          borderColor: "#ef4444", borderWidth: 2.5, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+      ]},
+      options: { ..._pdfChartOpts("Shadow (m)"),
+        scales: {
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y:  { type: "linear", position: "left",
+                title: { display: true, text: "Shadow (m)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y1: { type: "linear", position: "right", min: 0, max: 100,
+                title: { display: true, text: "Shading (%)", font: { size: 26, weight: "700" }, color: "#ef4444" },
+                ticks: { font: { size: 22 }, color: "#ef4444" }, grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+
+    // Humidity & Dew Point chart
+    const humidityImg = pdfOffscreenChart({
+      type: "line",
+      data: { labels: _lbl, datasets: [
+        { label: "Relative Humidity (%)", hidden: !_chk("pdf_humidity"),  data: _ds.map(r => Number(r.humidity ?? 50)),
+          borderColor: "#818cf8", backgroundColor: "rgba(129,140,248,0.12)",
+          borderWidth: 3.0, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y" },
+        { label: "Dew Point (°C)",        hidden: !_chk("pdf_dew_point"), data: _ds.map(r => Number(r.dew_point ?? 10)),
+          borderColor: "#34d399", borderWidth: 3.0, borderDash: [4,3],
+          pointRadius: 0, tension: 0.22, yAxisID: "y1" }
+      ]},
+      options: { ..._pdfChartOpts("Humidity (%)"),
+        scales: {
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y:  { type: "linear", position: "left",  min: 0, max: 100,
+                title: { display: true, text: "Humidity (%)", font: { size: 26, weight: "700" }, color: "#818cf8" },
+                ticks: { font: { size: 22 }, color: "#818cf8" }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y1: { type: "linear", position: "right",
+                title: { display: true, text: "Dew Point (°C)", font: { size: 26, weight: "700" }, color: "#34d399" },
+                ticks: { font: { size: 22 }, color: "#34d399" }, grid: { drawOnChartArea: false } }
         }
       }
     });
@@ -2395,16 +2442,32 @@ async function downloadPdf() {
       if (windImg) doc.addImage(windImg, "JPEG", X, 150, CW, CH);
     }
 
-    // PAGE 7 — Cloud Cover & Precipitation (full page, single chart)
+    // PAGE 7 — Cloud Cover & Precipitation + Shadow Direction
     {
-      const CW = 180, CH = 230;
+      const CW = 160, CH = 120;
       const X = 15;
       doc.addPage();
       pdfPageBackground(doc);
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Cloud Cover & Precipitation", X, 14);
-      if (cloudRainImg) doc.addImage(cloudRainImg, "JPEG", X, 20, CW, CH);
+      if (cloudRainImg) doc.addImage(cloudRainImg, "JPEG", X, 18, CW, CH);
+
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Shadow Direction E/W", X, 146);
+      if (shadowDirImg) doc.addImage(shadowDirImg, "JPEG", X, 150, CW, CH);
+    }
+
+    // PAGE 8 — Humidity & Dew Point (single chart)
+    {
+      const CW = 160, CH = 120;
+      const X = 15;
+      doc.addPage();
+      pdfPageBackground(doc);
+
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Humidity & Dew Point", X, 14);
+      if (humidityImg) doc.addImage(humidityImg, "JPEG", X, 18, CW, CH);
     }
 
     // FINAL PAGE - NOTES
