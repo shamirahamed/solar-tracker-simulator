@@ -1453,8 +1453,8 @@ function startLiveMode() {
     _liveCheckDateMismatch();
     update2DFrame(_liveCurrentIndex());
   };
+  liveTimer = setInterval(tick, 30_000);  // set before tick() so plugin sees liveTimer on first draw
   tick();                   // jump immediately
-  liveTimer = setInterval(tick, 30_000);  // refresh every 30s
 }
 
 function toggleLiveMode() {
