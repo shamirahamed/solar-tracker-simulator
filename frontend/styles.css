@@ -517,6 +517,27 @@ select option { background: var(--card); color: var(--text); }
   margin-top: 3px;
 }
 
+.preset-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.preset-btn {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--line-bright);
+  background: var(--card-soft);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.preset-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .location-preview {
   background: var(--card-soft);
   border: 1px solid var(--line-bright);

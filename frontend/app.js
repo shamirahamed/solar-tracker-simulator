@@ -51,6 +51,7 @@ const tempCtx       = document.getElementById("tempChart")?.getContext("2d");
 const ghiCompCtx    = document.getElementById("ghiCompChart")?.getContext("2d");
 const windCtx          = document.getElementById("windChart")?.getContext("2d");
 const cloudRainCtx     = document.getElementById("cloudRainChart")?.getContext("2d");
+const humidityCtx      = document.getElementById("humidityChart")?.getContext("2d");
 
 const trackerCanvas = document.getElementById("tracker2dCanvas");
 const tracker2dCtx = trackerCanvas?.getContext("2d");
@@ -130,6 +131,7 @@ let tempChart      = null;
 let ghiCompChart   = null;
 let windChart      = null;
 let cloudRainChart = null;
+let humidityChart  = null;
 let latestSimulationResult = null;
 let latestSimulationData = [];
 let playTimer = null;
@@ -505,6 +507,7 @@ function destroyCharts() {
   ghiCompChart?.destroy();
   windChart?.destroy();
   cloudRainChart?.destroy();
+  humidityChart?.destroy();
 }
 
 // Plugin: draws a vertical accent line + value labels at the current time slider position
@@ -612,7 +615,7 @@ const timeLinePlugin = {
 
 function _refreshChartLines() {
   [anglesChart, sunChart, shadingChart, powerChart,
-   powerWChart, shadowDirChart, tempChart, ghiCompChart, windChart, cloudRainChart].forEach(c => {
+   powerWChart, shadowDirChart, tempChart, ghiCompChart, windChart, cloudRainChart, humidityChart].forEach(c => {
     try { if (c) c.update("none"); } catch (e) {}
   });
 }
@@ -998,6 +1001,44 @@ function buildCharts(data) {
           y:  { type: "linear", position: "left",  min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
           y1: { type: "linear", position: "right", beginAtZero: true, max: Math.max(Math.ceil(maxPrecip * 1.3), 1),
                 title: { display: false }, ticks: { font: { size: 10 }, color: "#38bdf8" }, grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+  }
+
+  // ── Humidity & Dew Point chart ───────────────────────────────────────
+  if (humidityCtx) {
+    const dewMin = Math.min(...data.map(r => Number(r.dew_point ?? 0))) - 2;
+    const dewMax = Math.max(...data.map(r => Number(r.dew_point ?? 20))) + 2;
+    humidityChart = new Chart(humidityCtx, {
+      type: "line",
+      plugins: [timeLinePlugin],
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Relative Humidity (%)",
+            data: data.map(r => r.humidity != null ? Number(r.humidity) : null),
+            borderColor: "#818cf8", backgroundColor: "rgba(129,140,248,0.12)",
+            borderWidth: 1.5, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y"
+          },
+          {
+            label: "Dew Point (°C)",
+            data: data.map(r => r.dew_point != null ? Number(r.dew_point) : null),
+            borderColor: "#34d399", borderWidth: 1.5, borderDash: [4, 3],
+            pointRadius: 0, tension: 0.22, fill: false, yAxisID: "y1"
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: compactLegendOptions() },
+        scales: {
+          x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+          y:  { type: "linear", position: "left",  min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#818cf8" }, grid: { color: gridColor } },
+          y1: { type: "linear", position: "right", min: Math.floor(dewMin), max: Math.ceil(dewMax),
+                title: { display: false }, ticks: { font: { size: 10 }, color: "#34d399" }, grid: { drawOnChartArea: false } }
         }
       }
     });
@@ -2435,6 +2476,7 @@ const CHART_MAP = {
   ghiCompChart:   { get: () => ghiCompChart,   title: "Cloud Cover & GHI",     yLabel: "GHI (W/m²)", yLabelR: "Cloud Cover (%)", info: "Gap between actual and clear-sky GHI shows weather impact. Lines identical in clear-sky mode." },
   windChart:      { get: () => windChart,      title: "Wind Speed & Stow",     yLabel: "Wind Speed (m/s)",       info: "Orange dashed line = stow threshold. Red dots = minutes when tracker is stowed flat (0°)." },
   cloudRainChart: { get: () => cloudRainChart, title: "Cloud Cover & Precipitation", yLabel: "Cloud Cover (%)", yLabelR: "Precipitation (mm/h)", info: "Cloud cover (%) as area line. Precipitation (mm/h) as bars. Only populated with real weather enabled." },
+  humidityChart:  { get: () => humidityChart,  title: "Humidity & Dew Point",        yLabel: "Humidity (%)",    yLabelR: "Dew Point (°C)",       info: "Relative humidity % (left). Dew point °C (right, dashed). When cell temp < dew point, condensation risk on panels." },
 };
 
 function openChartModal(canvasId) {
@@ -2721,6 +2763,14 @@ window.onload = function () {
 
   document.getElementById("wind_stow_speed")?.addEventListener("input", e => {
     document.getElementById("wind_stow_val").textContent = e.target.value;
+  });
+
+  // Soiling loss preset buttons
+  document.querySelectorAll(".preset-btn[data-target]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const target = document.getElementById(btn.dataset.target);
+      if (target) { target.value = btn.dataset.value; target.dispatchEvent(new Event("change")); }
+    });
   });
 
   document.getElementById("timezone")?.addEventListener("change", updateScenarioHeader);

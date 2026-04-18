@@ -353,6 +353,8 @@ def run_full_simulation(
                 "cloud_cover":  round(float(row.get("cloud_cover", 0.0)), 1),
                 "wind_stow":    bool(row.get("wind_stow", False)),
                 "precipitation": round(float(row.get("precipitation", 0.0)), 3),
+                "humidity":      round(float(row.get("humidity",      50.0)), 1),
+                "dew_point":     round(float(row.get("dew_point",     10.0)), 2),
             }
         )
 

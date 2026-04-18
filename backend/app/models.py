@@ -65,6 +65,8 @@ class SimulationPoint(BaseModel):
     cloud_cover:   float = 0.0
     wind_stow:     bool  = False
     precipitation: float = 0.0
+    humidity:      float = 50.0
+    dew_point:     float = 10.0
 
 
 class SimulationResponse(BaseModel):

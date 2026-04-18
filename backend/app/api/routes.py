@@ -43,6 +43,8 @@ CSV_FIELDS = [
     "cloud_cover",
     "wind_stow",
     "precipitation",
+    "humidity",
+    "dew_point",
 ]
 
 

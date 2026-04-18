@@ -16,7 +16,7 @@ _ARCHIVE_URL  = "https://archive-api.open-meteo.com/v1/archive"
 #   diffuse_radiation    = DHI (W/m²)
 #   direct_radiation     = BHI = DNI * cos(zenith)  (W/m²)
 #   temperature_2m       = ambient temperature (°C)
-_VARIABLES = "shortwave_radiation,diffuse_radiation,direct_radiation,temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover,precipitation"
+_VARIABLES = "shortwave_radiation,diffuse_radiation,direct_radiation,temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover,precipitation,relative_humidity_2m,dew_point_2m"
 
 
 def _choose_url(date_str: str) -> str:
@@ -78,6 +78,8 @@ def fetch_hourly_weather(
     wdr_list = hourly.get("wind_direction_10m", [])
     cld_list = hourly.get("cloud_cover", [])
     prc_list = hourly.get("precipitation", [])
+    hum_list = hourly.get("relative_humidity_2m", [])
+    dew_list = hourly.get("dew_point_2m", [])
 
     def _safe(lst: list, i: int, default: float = 0.0) -> float:
         try:
@@ -97,6 +99,8 @@ def fetch_hourly_weather(
             "wind_dir":   _safe(wdr_list, i, 0.0),
             "cloud_cover": max(0.0, min(100.0, _safe(cld_list, i, 0.0))),
             "precipitation": max(0.0, _safe(prc_list, i, 0.0)),
+            "humidity":   max(0.0, min(100.0, _safe(hum_list, i, 50.0))),
+            "dew_point":  _safe(dew_list, i, 10.0),
         }
 
     return result
@@ -148,6 +152,9 @@ def interpolate_to_minutes(
         df_interp["cloud_cover"] = df_interp["cloud_cover"].clip(lower=0.0, upper=100.0)
     if "precipitation" in df_interp.columns:
         df_interp["precipitation"] = df_interp["precipitation"].clip(lower=0.0)
+    if "humidity" in df_interp.columns:
+        df_interp["humidity"] = df_interp["humidity"].clip(lower=0.0, upper=100.0)
+    # dew_point can be negative — no clip needed
 
     df_min = df_interp.reindex(times)
 
@@ -169,6 +176,8 @@ def interpolate_to_minutes(
             "wind_dir":    _nan_safe(row.get("wind_dir"), 0.0),
             "cloud_cover": max(0.0, min(100.0, _nan_safe(row.get("cloud_cover"), 0.0))),
             "precipitation": max(0.0, _nan_safe(row.get("precipitation"), 0.0)),
+            "humidity":   max(0.0, min(100.0, _nan_safe(row.get("humidity"),   50.0))),
+            "dew_point":  _nan_safe(row.get("dew_point"), 10.0),
         }
 
     return result

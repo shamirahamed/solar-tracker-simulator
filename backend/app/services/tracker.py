@@ -155,6 +155,8 @@ def get_tracker_day_profile(
         wind_arr  = pd.Series(index=times, dtype=float)
         cloud_arr = pd.Series(index=times, dtype=float)
         prc_arr   = pd.Series(index=times, dtype=float)
+        hum_arr   = pd.Series(index=times, dtype=float)
+        dew_arr   = pd.Series(index=times, dtype=float)
 
         for ts in times:
             w = minute_weather.get(ts)
@@ -163,9 +165,11 @@ def get_tracker_day_profile(
                 dhi_arr[ts] = w["dhi"]
                 bhi_arr[ts] = w["bhi"]
                 tmp_arr[ts] = w["temp"]
-                wind_arr[ts]  = w.get("wind_speed", 1.0) if w is not None else 1.0
-                cloud_arr[ts] = w.get("cloud_cover", 0.0) if w is not None else 0.0
-                prc_arr[ts]   = w.get("precipitation", 0.0) if w is not None else 0.0
+                wind_arr[ts]  = w.get("wind_speed", 1.0)
+                cloud_arr[ts] = w.get("cloud_cover", 0.0)
+                prc_arr[ts]   = w.get("precipitation", 0.0)
+                hum_arr[ts]   = w.get("humidity", 50.0)
+                dew_arr[ts]   = w.get("dew_point", 10.0)
             else:
                 ghi_arr[ts] = _safe_series_value(clearsky["ghi"], ts, 0.0)
                 dhi_arr[ts] = _safe_series_value(clearsky["dhi"], ts, 0.0)
@@ -174,6 +178,8 @@ def get_tracker_day_profile(
                 wind_arr[ts]  = 1.0
                 cloud_arr[ts] = 0.0
                 prc_arr[ts]   = 0.0
+                hum_arr[ts]   = 50.0
+                dew_arr[ts]   = 10.0
 
         ghi_arr = ghi_arr.clip(lower=0.0) * soiling_factor
         dhi_arr = dhi_arr.clip(lower=0.0) * soiling_factor
@@ -182,6 +188,8 @@ def get_tracker_day_profile(
         wind_arr  = wind_arr.clip(lower=0.0).fillna(1.0)
         cloud_arr = cloud_arr.clip(0.0, 100.0).fillna(0.0)
         prc_arr   = prc_arr.clip(lower=0.0).fillna(0.0)
+        hum_arr   = hum_arr.clip(0.0, 100.0).fillna(50.0)
+        dew_arr   = dew_arr.fillna(10.0)
 
         # Vectorised fixed-panel POA using real-weather DNI derived per row
         # DNI is derived in the per-row loop below for accuracy
@@ -192,9 +200,11 @@ def get_tracker_day_profile(
         dhi_arr = clearsky["dhi"] * soiling_factor
         bhi_arr = None   # not needed; we have full clearsky DNI
         tmp_arr = pd.Series(20.0, index=times)
-        wind_arr  = pd.Series(1.0, index=times)
-        cloud_arr = pd.Series(0.0, index=times)
-        prc_arr   = pd.Series(0.0, index=times)
+        wind_arr  = pd.Series(1.0,  index=times)
+        cloud_arr = pd.Series(0.0,  index=times)
+        prc_arr   = pd.Series(0.0,  index=times)
+        hum_arr   = pd.Series(50.0, index=times)
+        dew_arr   = pd.Series(10.0, index=times)
 
         _poa_fixed_cs = pvlib.irradiance.get_total_irradiance(
             surface_tilt=_fixed_tilt,
@@ -227,6 +237,8 @@ def get_tracker_day_profile(
         g_wind  = float(wind_arr.loc[ts]) if not pd.isna(wind_arr.loc[ts]) else 1.0
         g_cloud = float(cloud_arr.loc[ts]) if not pd.isna(cloud_arr.loc[ts]) else 0.0
         g_prc   = float(prc_arr.loc[ts])  if not pd.isna(prc_arr.loc[ts])  else 0.0
+        g_hum   = float(hum_arr.loc[ts])  if not pd.isna(hum_arr.loc[ts])  else 50.0
+        g_dew   = float(dew_arr.loc[ts])  if not pd.isna(dew_arr.loc[ts])  else 10.0
         is_stowed = (wind_stow_speed > 0) and (g_wind >= wind_stow_speed)
 
         if weather_active:
@@ -302,8 +314,10 @@ def get_tracker_day_profile(
                 ),
                 "wind_speed":  round(g_wind, 2),
                 "cloud_cover": round(g_cloud, 1),
-                "wind_stow":   is_stowed,
+                "wind_stow":     is_stowed,
                 "precipitation": round(g_prc, 3),
+                "humidity":      round(g_hum, 1),
+                "dew_point":     round(g_dew, 2),
             }
         )
 
