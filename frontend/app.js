@@ -312,7 +312,9 @@ function getPayload() {
     backtracking: document.getElementById("backtracking").checked,
     use_real_weather: document.getElementById("use_real_weather")?.checked ?? false,
     soiling_loss: Math.min(0.5, Math.max(0, soilingPct / 100.0)),
-    wind_stow_speed: parseFloat(document.getElementById("wind_stow_speed")?.value || "15")
+    wind_stow_speed: document.getElementById("wind_stow_enable")?.checked
+      ? parseFloat(document.getElementById("wind_stow_speed")?.value || "15")
+      : 0
   };
 }
 
@@ -466,18 +468,20 @@ const timeLinePlugin = {
     const x = xScale.left + ratio * (xScale.right - xScale.left);
     const { top, bottom, right } = chart.chartArea;
     const ctx = chart.ctx;
-    const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#00c853";
+    const accent = liveTimer
+      ? "#22c55e"
+      : getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#00c853";
     const isLight = document.documentElement.dataset.theme === "light";
 
-    // Dashed vertical line
+    // Vertical line — solid and brighter when live, dashed otherwise
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(x, top);
     ctx.lineTo(x, bottom);
     ctx.strokeStyle = accent;
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([4, 3]);
-    ctx.globalAlpha = 0.75;
+    ctx.lineWidth = liveTimer ? 2 : 1.5;
+    ctx.setLineDash(liveTimer ? [] : [4, 3]);
+    ctx.globalAlpha = liveTimer ? 0.9 : 0.75;
     ctx.stroke();
     ctx.restore();
 
@@ -803,9 +807,9 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Clear-sky GHI (W/m²)", data: data.map(r => r.clearsky_ghi),    borderColor: "#f59e0b", borderWidth: 1.5, borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y"  },
-        { label: "Actual GHI (W/m²)",    data: data.map(r => r.irradiance_raw),  borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.07)", borderWidth: 2, pointRadius: 0, tension: 0.22, yAxisID: "y"  },
-        { label: "Cloud Cover (%)",       data: data.map(r => Number(r.cloud_cover || 0)), borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.12)", borderWidth: 1.5, borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" },
+        { label: "Clear-sky GHI", data: data.map(r => r.clearsky_ghi),   borderColor: "#f59e0b", borderWidth: 1.5, borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Actual GHI",    data: data.map(r => r.irradiance_raw), borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.07)", borderWidth: 2, pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Cloud Cover %", data: data.map(r => Number(r.cloud_cover || 0)), borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.10)", borderWidth: 1.5, borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" },
       ]
     },
     options: {
@@ -814,15 +818,15 @@ function buildCharts(data) {
       plugins: { legend: compactLegendOptions() },
       scales: {
         x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
-        y:  { type: "linear", position: "left",  beginAtZero: true, title: { display: true, text: "GHI (W/m²)", font: { size: 10 } }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
-        y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100, title: { display: true, text: "Cloud Cover (%)", font: { size: 10 } }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { drawOnChartArea: false } },
+        y:  { type: "linear", position: "left",  beginAtZero: true, title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+        y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { drawOnChartArea: false } },
       }
     }
   });
 
   // ── Wind Speed & Stow threshold ────────────────────────────────────────
-  const windStowSpeed = parseFloat(document.getElementById("wind_stow_speed")?.value || "15");
-  const windStowLine  = data.map(() => windStowSpeed > 0 ? windStowSpeed : null);
+  const windStowEnabled = document.getElementById("wind_stow_enable")?.checked ?? true;
+  const windStowSpeed   = windStowEnabled ? parseFloat(document.getElementById("wind_stow_speed")?.value || "15") : 0;
   const maxWind = Math.max(...data.map(r => Number(r.wind_speed || 0)), windStowSpeed || 0, 5);
 
   windChart = new Chart(windCtx, {
@@ -833,34 +837,20 @@ function buildCharts(data) {
         {
           label: "Wind Speed (m/s)",
           data: data.map(r => Number(r.wind_speed || 0)),
-          borderColor: "#38bdf8",
-          backgroundColor: "rgba(56,189,248,0.08)",
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.22,
-          fill: true,
-          yAxisID: "y"
+          borderColor: "#38bdf8", backgroundColor: "rgba(56,189,248,0.08)",
+          borderWidth: 2, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y"
         },
         {
-          label: `Stow threshold (${windStowSpeed > 0 ? windStowSpeed + " m/s" : "disabled"})`,
-          data: windStowLine,
-          borderColor: "#fb923c",
-          borderWidth: 1.5,
-          borderDash: [6, 4],
-          pointRadius: 0,
-          tension: 0,
-          yAxisID: "y"
+          label: windStowEnabled ? `Stow @ ${windStowSpeed} m/s` : "Stow disabled",
+          data: windStowEnabled ? data.map(() => windStowSpeed) : data.map(() => null),
+          borderColor: "#fb923c", borderWidth: 1.5, borderDash: [6,4],
+          pointRadius: 0, tension: 0, yAxisID: "y"
         },
         {
           label: "Stow active",
           data: data.map(r => r.wind_stow ? Number(r.wind_speed || 0) : null),
-          borderColor: "#ef4444",
-          backgroundColor: "rgba(239,68,68,0.25)",
-          borderWidth: 0,
-          pointRadius: 3,
-          pointStyle: "circle",
-          showLine: false,
-          yAxisID: "y"
+          borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.25)",
+          borderWidth: 0, pointRadius: 3, pointStyle: "circle", showLine: false, yAxisID: "y"
         }
       ]
     },
@@ -870,7 +860,7 @@ function buildCharts(data) {
       plugins: { legend: compactLegendOptions() },
       scales: {
         x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
-        y: { type: "linear", position: "left", beginAtZero: true, max: Math.ceil(maxWind * 1.2), title: { display: true, text: "Wind Speed (m/s)", font: { size: 10 } }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } }
+        y: { type: "linear", position: "left", beginAtZero: true, max: Math.ceil(maxWind * 1.2), title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } }
       }
     }
   });
@@ -2148,10 +2138,15 @@ document.getElementById("pdfModalExport")?.addEventListener("click", async () =>
 let _modalChart = null;
 
 const CHART_MAP = {
-  anglesChart:  { get: () => anglesChart,  title: "Tracker Angle",        yLabel: "Angle (deg)",            info: "Ideal = unconstrained, Limited = max-angle limited, BT = backtracking." },
-  sunChart:     { get: () => sunChart,     title: "Solar Position",        yLabel: "Sun Angle (deg)",        info: "Shows solar elevation and azimuth movement through the day." },
-  shadingChart: { get: () => shadingChart, title: "Inter-row Shadowing",   yLabel: "Shadow Length (scaled)", yLabelR: "Shading (%)", info: "Displayed shadow is scaled for readability. Shading % better represents actual panel-to-panel impact." },
-  powerChart:   { get: () => powerChart,   title: "Irradiance Comparison", yLabel: "Irradiance (W/m²)",      info: "Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading." },
+  anglesChart:    { get: () => anglesChart,    title: "Tracker Angle",        yLabel: "Angle (deg)",            info: "Ideal = unconstrained, Limited = max-angle limited, BT = backtracking." },
+  sunChart:       { get: () => sunChart,       title: "Solar Position",        yLabel: "Sun Angle (deg)",        info: "Shows solar elevation and azimuth movement through the day." },
+  shadingChart:   { get: () => shadingChart,   title: "Inter-row Shadowing",   yLabel: "Shadow Length (scaled)", yLabelR: "Shading (%)", info: "Displayed shadow is scaled for readability. Shading % better represents actual panel-to-panel impact." },
+  powerChart:     { get: () => powerChart,     title: "Irradiance Comparison", yLabel: "Irradiance (W/m²)",      info: "Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading." },
+  powerWChart:    { get: () => powerWChart,    title: "Power Output",          yLabel: "Power (W)",              info: "Temperature-derated power via pvlib noct_sam. Drop during wind stow shows real-world impact." },
+  shadowDirChart: { get: () => shadowDirChart, title: "Shadow Direction E/W",  yLabel: "Shadow (m)", yLabelR: "Shading (%)", info: "+ value = East shadow (morning), − value = West shadow (afternoon). Flips at solar noon." },
+  tempChart:      { get: () => tempChart,      title: "Cell Temperature",      yLabel: "Temperature (°C)",       info: "Cell temp is higher than ambient due to solar heating. Wind speed lowers cell temp (cooling effect)." },
+  ghiCompChart:   { get: () => ghiCompChart,   title: "Cloud Cover & GHI",     yLabel: "GHI (W/m²)", yLabelR: "Cloud Cover (%)", info: "Gap between actual and clear-sky GHI shows weather impact. Lines identical in clear-sky mode." },
+  windChart:      { get: () => windChart,      title: "Wind Speed & Stow",     yLabel: "Wind Speed (m/s)",       info: "Orange dashed line = stow threshold. Red dots = minutes when tracker is stowed flat (0°)." },
 };
 
 function openChartModal(canvasId) {
@@ -2429,6 +2424,10 @@ window.onload = function () {
       updateLocationPreviewFromInputs();
       if (latestSimulationData.length) update2DFrame(parseInt(timeSlider?.value || "0", 10));
     });
+  });
+
+  document.getElementById("wind_stow_speed")?.addEventListener("input", e => {
+    document.getElementById("wind_stow_val").textContent = e.target.value;
   });
 
   document.getElementById("timezone")?.addEventListener("change", updateScenarioHeader);

@@ -16,7 +16,7 @@ _ARCHIVE_URL  = "https://archive-api.open-meteo.com/v1/archive"
 #   diffuse_radiation    = DHI (W/m²)
 #   direct_radiation     = BHI = DNI * cos(zenith)  (W/m²)
 #   temperature_2m       = ambient temperature (°C)
-_VARIABLES = "shortwave_radiation,diffuse_radiation,direct_radiation,temperature_2m"
+_VARIABLES = "shortwave_radiation,diffuse_radiation,direct_radiation,temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover"
 
 
 def _choose_url(date_str: str) -> str:
@@ -60,6 +60,9 @@ def fetch_hourly_weather(
     dhi_list = hourly.get("diffuse_radiation", [])
     bhi_list = hourly.get("direct_radiation", [])
     tmp_list = hourly.get("temperature_2m", [])
+    wsp_list = hourly.get("wind_speed_10m", [])
+    wdr_list = hourly.get("wind_direction_10m", [])
+    cld_list = hourly.get("cloud_cover", [])
 
     def _safe(lst: list, i: int, default: float = 0.0) -> float:
         try:
@@ -75,6 +78,9 @@ def fetch_hourly_weather(
             "bhi":  max(0.0, _safe(bhi_list, i)),
             "dhi":  max(0.0, _safe(dhi_list, i)),
             "temp": _safe(tmp_list, i, 20.0),
+            "wind_speed": max(0.0, _safe(wsp_list, i, 1.0)),
+            "wind_dir":   _safe(wdr_list, i, 0.0),
+            "cloud_cover": max(0.0, min(100.0, _safe(cld_list, i, 0.0))),
         }
 
     return result
@@ -120,6 +126,11 @@ def interpolate_to_minutes(
         if col in df_interp.columns:
             df_interp[col] = df_interp[col].clip(lower=0.0)
 
+    if "wind_speed" in df_interp.columns:
+        df_interp["wind_speed"] = df_interp["wind_speed"].clip(lower=0.0)
+    if "cloud_cover" in df_interp.columns:
+        df_interp["cloud_cover"] = df_interp["cloud_cover"].clip(lower=0.0, upper=100.0)
+
     df_min = df_interp.reindex(times)
 
     def _nan_safe(val: Any, default: float) -> float:
@@ -136,6 +147,9 @@ def interpolate_to_minutes(
             "bhi":  max(0.0, _nan_safe(row.get("bhi"),  0.0)),
             "dhi":  max(0.0, _nan_safe(row.get("dhi"),  0.0)),
             "temp": _nan_safe(row.get("temp"), 20.0),
+            "wind_speed":  max(0.0, _nan_safe(row.get("wind_speed"), 1.0)),
+            "wind_dir":    _nan_safe(row.get("wind_dir"), 0.0),
+            "cloud_cover": max(0.0, min(100.0, _nan_safe(row.get("cloud_cover"), 0.0))),
         }
 
     return result

@@ -21,6 +21,7 @@ class SimulationRequest(BaseModel):
     # v1.2 additions
     use_real_weather: bool = False
     soiling_loss: float = Field(default=0.0, ge=0, le=0.5)
+    wind_stow_speed: float = Field(default=15.0, ge=0)
 
 
 class SimulationPoint(BaseModel):
@@ -60,6 +61,9 @@ class SimulationPoint(BaseModel):
     cell_temp: float = 20.0
     clearsky_ghi: float = 0.0
     projected_solar_zenith: float = 0.0
+    wind_speed:  float = 1.0
+    cloud_cover: float = 0.0
+    wind_stow:   bool  = False
 
 
 class SimulationResponse(BaseModel):

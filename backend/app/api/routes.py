@@ -39,6 +39,9 @@ CSV_FIELDS = [
     "cell_temp",
     "clearsky_ghi",
     "projected_solar_zenith",
+    "wind_speed",
+    "cloud_cover",
+    "wind_stow",
 ]
 
 
@@ -82,6 +85,7 @@ def _build_simulation_rows(payload: SimulationRequest):
         max_angle=payload.max_angle,
         weather_override=weather_data,
         soiling_loss=payload.soiling_loss,
+        wind_stow_speed=payload.wind_stow_speed,
     )
 
     rows = run_full_simulation(

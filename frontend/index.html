@@ -268,6 +268,18 @@
                 <input type="number" step="0.5" id="soiling_loss" value="0" min="0" max="50" />
                 <small class="helper-text">Dust / soiling applied to all irradiance.</small>
               </div>
+              <div class="checkbox-row full-span">
+                <label class="checkbox-inline" for="wind_stow_enable">
+                  <input type="checkbox" id="wind_stow_enable" checked />
+                  <span>Wind stow protection</span>
+                </label>
+                <small class="helper-text">Tracker goes flat (0°) when wind exceeds threshold — protects panels.</small>
+              </div>
+              <div>
+                <label for="wind_stow_speed">Stow threshold (m/s) <span id="wind_stow_val">15</span></label>
+                <input type="range" id="wind_stow_speed" min="5" max="30" step="0.5" value="15" />
+                <small class="helper-text">Typical industrial stow: 12–18 m/s. Set 0 or disable checkbox to never stow.</small>
+              </div>
             </div>
           </details>
 
@@ -465,37 +477,56 @@
       <section class="card">
         <div class="section-head">
           <h2>Power Output</h2>
-          <span class="section-note">Actual panel power — Fixed / No BT / BT (W)</span>
+          <span class="section-note section-note-desktop">Fixed / No BT / BT (W) — temperature-derated</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-powerW">ⓘ</button>
         </div>
-        <div class="chart-legend-note">Temperature-derated power via pvlib noct_sam. More actionable than W/m².</div>
+        <div class="chart-legend-note" id="info-powerW">Temperature-derated power via pvlib noct_sam. Drop during wind stow shows real-world impact. More actionable than W/m².</div>
+        <div class="chart-yaxis-label">Power (W)</div>
         <div class="chart-container"><canvas id="powerWChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
           <h2>Shadow Direction E/W</h2>
-          <span class="section-note">pvlib projected_solar_zenith — + East shadow / − West shadow</span>
+          <span class="section-note section-note-desktop">pvlib projected_solar_zenith sign</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-shadowDir">ⓘ</button>
         </div>
-        <div class="chart-legend-note">Flip from East to West when sun crosses the tracker axis. Shading % overlaid.</div>
+        <div class="chart-legend-note" id="info-shadowDir">+ value = East shadow (morning), − value = West shadow (afternoon). Flips when sun crosses tracker axis near solar noon. Shading % overlaid on right axis.</div>
+        <div class="chart-yaxis-label">Shadow (m) <span class="chart-yaxis-label-r">Shading (%)</span></div>
         <div class="chart-container"><canvas id="shadowDirChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
           <h2>Cell Temperature</h2>
-          <span class="section-note">Ambient vs cell temp — pvlib noct_sam (°C)</span>
+          <span class="section-note section-note-desktop">Ambient vs cell — pvlib noct_sam (°C)</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-temp">ⓘ</button>
         </div>
-        <div class="chart-legend-note">Cell temp drives derating. Hot climates lose more than cool ones.</div>
+        <div class="chart-legend-note" id="info-temp">Cell temp is higher than ambient due to solar heating. Wind speed lowers cell temp (cooling effect). Hot climates lose more power to derating.</div>
+        <div class="chart-yaxis-label">Temperature (°C)</div>
         <div class="chart-container"><canvas id="tempChart"></canvas></div>
       </section>
 
       <section class="card">
         <div class="section-head">
-          <h2>GHI: Actual vs Clear-sky</h2>
-          <span class="section-note">Measured vs theoretical maximum irradiance (W/m²)</span>
+          <h2>Cloud Cover &amp; GHI</h2>
+          <span class="section-note section-note-desktop">Actual vs clear-sky GHI + cloud cover %</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-ghiComp">ⓘ</button>
         </div>
-        <div class="chart-legend-note">Gap = cloud / weather impact. Identical lines in clear-sky mode.</div>
+        <div class="chart-legend-note" id="info-ghiComp">Left axis: GHI irradiance (W/m²). Right axis: cloud cover %. Gap between actual and clear-sky lines shows weather impact. Lines are identical when using clear-sky mode.</div>
+        <div class="chart-yaxis-label">GHI (W/m²) <span class="chart-yaxis-label-r">Cloud Cover (%)</span></div>
         <div class="chart-container"><canvas id="ghiCompChart"></canvas></div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Wind Speed &amp; Stow</h2>
+          <span class="section-note section-note-desktop">Wind speed (m/s) with stow threshold</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-wind">ⓘ</button>
+        </div>
+        <div class="chart-legend-note" id="info-wind">Orange dashed line = stow threshold. Red dots = minutes when tracker is stowed flat (0°). Only shows real wind data when "Use real weather" is enabled.</div>
+        <div class="chart-yaxis-label">Wind Speed (m/s)</div>
+        <div class="chart-container"><canvas id="windChart"></canvas></div>
       </section>
 
       <section class="card full-width">

@@ -58,6 +58,7 @@ def get_tracker_day_profile(
     max_angle: float,
     weather_override: Optional[Dict[str, Dict[str, float]]] = None,
     soiling_loss: float = 0.0,
+    wind_stow_speed: float = 15.0,
 ) -> List[Dict[str, Any]]:
     """
     Compute 1-minute tracker day profile.
@@ -70,6 +71,9 @@ def get_tracker_day_profile(
         Interpolation to 1-minute resolution is done here.
     soiling_loss
         Fractional irradiance loss due to dust/soiling (0 = none, 0.05 = 5 %).
+    wind_stow_speed
+        Wind speed (m/s) above which the tracker is stowed flat (0°).
+        Set to 0 to disable stow protection.
     """
     gcr = panel_width / row_spacing if row_spacing > 0 else 0.3
     location = pvlib.location.Location(latitude, longitude, tz=timezone)
@@ -148,6 +152,8 @@ def get_tracker_day_profile(
         dhi_arr = pd.Series(index=times, dtype=float)
         bhi_arr = pd.Series(index=times, dtype=float)
         tmp_arr = pd.Series(index=times, dtype=float)
+        wind_arr  = pd.Series(index=times, dtype=float)
+        cloud_arr = pd.Series(index=times, dtype=float)
 
         for ts in times:
             w = minute_weather.get(ts)
@@ -156,16 +162,22 @@ def get_tracker_day_profile(
                 dhi_arr[ts] = w["dhi"]
                 bhi_arr[ts] = w["bhi"]
                 tmp_arr[ts] = w["temp"]
+                wind_arr[ts]  = w.get("wind_speed", 1.0) if w is not None else 1.0
+                cloud_arr[ts] = w.get("cloud_cover", 0.0) if w is not None else 0.0
             else:
                 ghi_arr[ts] = _safe_series_value(clearsky["ghi"], ts, 0.0)
                 dhi_arr[ts] = _safe_series_value(clearsky["dhi"], ts, 0.0)
                 bhi_arr[ts] = 0.0
                 tmp_arr[ts] = 20.0
+                wind_arr[ts]  = 1.0
+                cloud_arr[ts] = 0.0
 
         ghi_arr = ghi_arr.clip(lower=0.0) * soiling_factor
         dhi_arr = dhi_arr.clip(lower=0.0) * soiling_factor
         bhi_arr = bhi_arr.clip(lower=0.0) * soiling_factor
         tmp_arr = tmp_arr.fillna(20.0)
+        wind_arr  = wind_arr.clip(lower=0.0).fillna(1.0)
+        cloud_arr = cloud_arr.clip(0.0, 100.0).fillna(0.0)
 
         # Vectorised fixed-panel POA using real-weather DNI derived per row
         # DNI is derived in the per-row loop below for accuracy
@@ -176,6 +188,8 @@ def get_tracker_day_profile(
         dhi_arr = clearsky["dhi"] * soiling_factor
         bhi_arr = None   # not needed; we have full clearsky DNI
         tmp_arr = pd.Series(20.0, index=times)
+        wind_arr  = pd.Series(1.0, index=times)
+        cloud_arr = pd.Series(0.0, index=times)
 
         _poa_fixed_cs = pvlib.irradiance.get_total_irradiance(
             surface_tilt=_fixed_tilt,
@@ -205,6 +219,9 @@ def get_tracker_day_profile(
         g_airmass = _safe_series_value(relative_airmass, ts, 0.0)
         g_dni_extra = _safe_series_value(dni_extra, ts, 0.0)
         g_temp = float(tmp_arr.loc[ts]) if not pd.isna(tmp_arr.loc[ts]) else 20.0
+        g_wind  = float(wind_arr.loc[ts]) if not pd.isna(wind_arr.loc[ts]) else 1.0
+        g_cloud = float(cloud_arr.loc[ts]) if not pd.isna(cloud_arr.loc[ts]) else 0.0
+        is_stowed = (wind_stow_speed > 0) and (g_wind >= wind_stow_speed)
 
         if weather_active:
             # Derive DNI from GHI and DHI (BHI available as cross-check)
@@ -234,6 +251,17 @@ def get_tracker_day_profile(
             g_dni = _safe_series_value(clearsky["dni"] * soiling_factor, ts, 0.0)
             poa_fixed_val = _safe_series_value(_poa_fixed_series, ts, 0.0)
 
+        if is_stowed:
+            _lim_angle, _lim_tilt, _lim_az = 0.0, 0.0, 180.0
+            _bt_angle,  _bt_tilt,  _bt_az  = 0.0, 0.0, 180.0
+        else:
+            _lim_angle = round(_safe_tracking_value(tracking_limited,      ts, "tracker_theta",   0.0), 4)
+            _lim_tilt  = _safe_tracking_value(tracking_limited,            ts, "surface_tilt",    0.0)
+            _lim_az    = _safe_tracking_value(tracking_limited,            ts, "surface_azimuth", 180.0)
+            _bt_angle  = round(_safe_tracking_value(tracking_backtracking, ts, "tracker_theta",   0.0), 4)
+            _bt_tilt   = _safe_tracking_value(tracking_backtracking,       ts, "surface_tilt",    0.0)
+            _bt_az     = _safe_tracking_value(tracking_backtracking,       ts, "surface_azimuth", 180.0)
+
         data.append(
             {
                 "timestamp": ts.isoformat(),
@@ -251,24 +279,12 @@ def get_tracker_day_profile(
                 "ideal_tracker_angle": round(
                     _safe_tracking_value(tracking_ideal, ts, "tracker_theta", 0.0), 4
                 ),
-                "limited_tracker_angle": round(
-                    _safe_tracking_value(tracking_limited, ts, "tracker_theta", 0.0), 4
-                ),
-                "backtracking_angle": round(
-                    _safe_tracking_value(tracking_backtracking, ts, "tracker_theta", 0.0), 4
-                ),
-                "limited_surface_tilt": _safe_tracking_value(
-                    tracking_limited, ts, "surface_tilt", 0.0
-                ),
-                "limited_surface_azimuth": _safe_tracking_value(
-                    tracking_limited, ts, "surface_azimuth", 180.0
-                ),
-                "backtracking_surface_tilt": _safe_tracking_value(
-                    tracking_backtracking, ts, "surface_tilt", 0.0
-                ),
-                "backtracking_surface_azimuth": _safe_tracking_value(
-                    tracking_backtracking, ts, "surface_azimuth", 180.0
-                ),
+                "limited_tracker_angle": _lim_angle,
+                "backtracking_angle": _bt_angle,
+                "limited_surface_tilt": _lim_tilt,
+                "limited_surface_azimuth": _lim_az,
+                "backtracking_surface_tilt": _bt_tilt,
+                "backtracking_surface_azimuth": _bt_az,
                 "irradiance_fixed": round(poa_fixed_val, 4),
                 # pvlib-validated shadow direction (sign = East/West)
                 "projected_solar_zenith": round(
@@ -278,6 +294,9 @@ def get_tracker_day_profile(
                 "clearsky_ghi": round(
                     _safe_series_value(clearsky["ghi"], ts, 0.0), 4
                 ),
+                "wind_speed":  round(g_wind, 2),
+                "cloud_cover": round(g_cloud, 1),
+                "wind_stow":   is_stowed,
             }
         )
 
