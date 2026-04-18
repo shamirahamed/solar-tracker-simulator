@@ -525,6 +525,7 @@ const timeLinePlugin = {
   id: "timeLine",
   afterDraw(chart) {
     if (!latestSimulationData.length || !timeSlider) return;
+    if (liveTimer) return;   // live mode: 2D canvas tracks time; no marker needed on data charts
     const idx   = parseInt(timeSlider.value || "0", 10);
     const total = latestSimulationData.length;
     const xScale = chart.scales?.x;
