@@ -688,11 +688,20 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Elevation", data: data.map((r) => r.sun_elevation), borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
-        { label: "Azimuth", data: data.map((r) => r.sun_azimuth), borderWidth: 1.5, pointRadius: 0, tension: 0.22 }
+        { label: "Elevation", data: data.map((r) => r.sun_elevation), borderColor: "#d97706", borderWidth: 1.5, pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Azimuth",   data: data.map((r) => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 1.5, pointRadius: 0, tension: 0.22, yAxisID: "y1" }
       ]
     },
-    options: chartBaseOptions("Sun Angle (deg)")
+    options: (() => {
+      const base = chartBaseOptions("Elevation (deg)");
+      const isLight = document.documentElement.dataset.theme === "light";
+      const gridColor = isLight ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)";
+      const tickColor = "#64748b";
+      base.scales.y  = { ...base.scales.y,  position: "left",  title: { display: false }, ticks: { font: { size: 10 }, color: tickColor }, grid: { color: gridColor } };
+      base.scales.y1 = { type: "linear", position: "right", min: 0, max: 360, title: { display: false },
+                         ticks: { font: { size: 10 }, color: tickColor, stepSize: 90 }, grid: { drawOnChartArea: false } };
+      return base;
+    })()
   });
 
   const shadowNoBtDisplay = data.map((r) => clampShadowForDisplay(r.shadow_length_without_backtracking));
@@ -1915,9 +1924,9 @@ async function downloadPdf() {
     const anglesImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Ideal",        hidden: !_chk("pdf_ideal"),        data: _ds.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Limited",      hidden: !_chk("pdf_limited"),      data: _ds.map(r => r.limited_tracker_angle), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Backtracking", hidden: !_chk("pdf_backtracking"), data: _ds.map(r => r.backtracking_angle),    borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
+        { label: "Ideal",        hidden: !_chk("pdf_ideal"),        data: _ds.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
+        { label: "Limited",      hidden: !_chk("pdf_limited"),      data: _ds.map(r => r.limited_tracker_angle), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
+        { label: "Backtracking", hidden: !_chk("pdf_backtracking"), data: _ds.map(r => r.backtracking_angle),    borderColor: "#16a34a", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Angle (deg)")
     });
@@ -1925,10 +1934,20 @@ async function downloadPdf() {
     const sunImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Elevation", hidden: !_chk("pdf_elevation"), data: _ds.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Azimuth",   hidden: !_chk("pdf_azimuth"),   data: _ds.map(r => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
+        { label: "Elevation", hidden: !_chk("pdf_elevation"), data: _ds.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Azimuth",   hidden: !_chk("pdf_azimuth"),   data: _ds.map(r => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 2.5, pointRadius: 0, tension: 0.22, yAxisID: "y1" }
       ]},
-      options: _pdfChartOpts("Sun Angle (deg)")
+      options: { ..._pdfChartOpts("Elevation (deg)"),
+        scales: {
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y:  { type: "linear", position: "left",
+                title: { display: true, text: "Elevation (deg)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y1: { type: "linear", position: "right", min: 0, max: 360,
+                title: { display: true, text: "Azimuth (deg)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+                ticks: { font: { size: 22 }, color: "#1e293b", stepSize: 90 }, grid: { drawOnChartArea: false } }
+        }
+      }
     });
 
     const _snoBt  = _ds.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking));
@@ -1939,10 +1958,10 @@ async function downloadPdf() {
     const shadingImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#38bdf8", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#f472b6", borderWidth: 1.8, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _ds.map(r => r.shading_percent_without_backtracking), borderColor: "#fb923c", borderWidth: 1.5, borderDash: [8,4], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#a78bfa", borderWidth: 1.5, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#38bdf8", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#f472b6", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _ds.map(r => r.shading_percent_without_backtracking), borderColor: "#fb923c", borderWidth: 2.2, borderDash: [8,4], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#a78bfa", borderWidth: 2.2, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
@@ -1960,9 +1979,9 @@ async function downloadPdf() {
     const powerImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Fixed Panel",     hidden: !_chk("pdf_fixed"),    data: _ds.map(r => r.irradiance_fixed),                 borderColor: "#16a34a", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – No BT", hidden: !_chk("pdf_irr_nobt"), data: _ds.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 1.8, pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – BT",    hidden: !_chk("pdf_irr_bt"),   data: _ds.map(r => r.irradiance_with_backtracking),    borderColor: "#2563eb", borderWidth: 1.8, pointRadius: 0, tension: 0.22 }
+        { label: "Fixed Panel",     hidden: !_chk("pdf_fixed"),    data: _ds.map(r => r.irradiance_fixed),                 borderColor: "#16a34a", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", hidden: !_chk("pdf_irr_nobt"), data: _ds.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",    hidden: !_chk("pdf_irr_bt"),   data: _ds.map(r => r.irradiance_with_backtracking),    borderColor: "#2563eb", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Irradiance (W/m²)")
     });
@@ -2273,7 +2292,12 @@ function buildModalScales(srcScales, gridColor, tickColor, titleColor) {
         color: tickColor,
         font: { size: 11 },
         padding: isX ? 6 : 4,
-        ...(isX ? { maxTicksLimit: 5, maxRotation: 35, minRotation: 35 } : {}),
+        ...(isX ? {
+          maxTicksLimit: window.innerWidth <= 640 ? 6 : 8,
+          maxRotation: 0,
+          minRotation: 0,
+          font: { size: window.innerWidth <= 640 ? 11 : 12 },
+        } : {}),
       },
       grid:  { ...(scale.grid  || {}), color: gridColor },
       title: { ...(scale.title || {}), color: titleColor, font: { size: 13 } },
@@ -2503,4 +2527,14 @@ window.onload = function () {
   const _keepAlive = () => fetch(`${API_BASE.replace(/\/api\/v1$/, "")}/api/v1/health`, { method: "GET" }).catch(() => {});
   _keepAlive();
   setInterval(_keepAlive, 10 * 60 * 1000);
+
+  // iOS portrait↔landscape rotation fix — temporarily locks maximum-scale=1
+  // then restores it so the browser doesn't auto-zoom on orientation change.
+  const _metaViewport = document.querySelector("meta[name=viewport]");
+  window.addEventListener("orientationchange", () => {
+    if (!_metaViewport) return;
+    const orig = _metaViewport.getAttribute("content");
+    _metaViewport.setAttribute("content", orig + ", maximum-scale=1");
+    setTimeout(() => _metaViewport.setAttribute("content", orig), 500);
+  });
 };

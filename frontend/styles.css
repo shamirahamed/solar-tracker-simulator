@@ -1166,14 +1166,32 @@ canvas { width: 100% !important; height: 100% !important; }
   font-size: var(--fs-base);
 }
 
-.playback-controls button.active {
+/* ─── 2D header inline controls ───────────────── */
+.tracker2d-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.tracker2d-header-controls button {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 0 8px;
+  font-size: var(--fs-base);
+  line-height: 1;
+}
+
+.playback-controls button.active,
+.tracker2d-header-controls button.active {
   background: var(--accent-glow);
   border-color: var(--accent);
   color: var(--accent);
   box-shadow: 0 0 14px var(--accent-dim);
 }
 
-.playback-controls button:not(.active) {
+.playback-controls button:not(.active),
+.tracker2d-header-controls button:not(.active):not(.live-btn) {
   background: var(--card-soft);
   border-color: var(--line-bright);
   color: var(--muted2);
@@ -1359,8 +1377,10 @@ canvas { width: 100% !important; height: 100% !important; }
   .section-head        { margin-bottom: 4px; }
   .section-note        { font-size: 10px; }
   /* Very compact playback buttons in landscape */
-  .playback-controls button { min-height: 24px; font-size: 10px; padding: 2px 7px; }
-  .playback-controls         { gap: 5px; margin-top: 4px; }
+  .playback-controls button,
+  .tracker2d-header-controls button { min-height: 24px; font-size: 10px; padding: 2px 7px; }
+  .playback-controls                 { gap: 5px; margin-top: 4px; }
+  .tracker2d-header-controls         { gap: 4px; }
   /* Desktop-like 2-col layout: Inputs left, Metrics right */
   .layout-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
   .section-divider.mobile-only { display: none; }
