@@ -630,9 +630,43 @@ const timeLinePlugin = {
   }
 };
 
-/** 10% headroom above/below a data value — works for negative values too */
-const axMax = (v, minGap = 1) => Math.ceil(v  + Math.max(Math.abs(v) * 0.10, minGap));
-const axMin = (v, minGap = 1) => Math.floor(v - Math.max(Math.abs(v) * 0.10, minGap));
+/** Pick a clean tick step for the given magnitude */
+function _axisStep(v) {
+  const a = Math.abs(v);
+  if (a <=    5) return 1;
+  if (a <=  100) return 5;
+  if (a <=  500) return 25;
+  if (a <= 2000) return 100;
+  return 500;
+}
+/**
+ * Add 10% headroom then snap UP to the nearest clean step.
+ * e.g. dataMax=87 → raw 95.7 → step 5 → 100
+ *      dataMax=82 → raw 90.2 → step 5 → 95
+ *      dataMax=850 → raw 935 → step 100 → 1000
+ */
+const axMax = (v, minGap = 1) => {
+  const raw = v + Math.max(Math.abs(v) * 0.10, minGap);
+  if (raw <= 0) return 0;
+  const s = _axisStep(raw);
+  return Math.ceil(raw / s) * s;
+};
+/**
+ * Subtract 10% then snap DOWN to the nearest clean step.
+ * For negative values mirrors axMax (e.g. -8 → -10).
+ */
+const axMin = (v, minGap = 1) => {
+  if (v >= 0) {
+    const raw = v - Math.max(Math.abs(v) * 0.10, minGap);
+    if (raw <= 0) return 0;
+    const s = _axisStep(raw);
+    return Math.floor(raw / s) * s;
+  }
+  // negative: expand downward and snap to clean step
+  const absRaw = Math.abs(v) + Math.max(Math.abs(v) * 0.10, minGap);
+  const s = _axisStep(absRaw);
+  return -Math.ceil(absRaw / s) * s;
+};
 
 let _rafPending = false;
 function _refreshChartLines() {
