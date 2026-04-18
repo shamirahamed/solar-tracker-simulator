@@ -20,11 +20,12 @@ _VARIABLES = "shortwave_radiation,diffuse_radiation,direct_radiation,temperature
 
 
 def _choose_url(date_str: str) -> str:
-    """Use the archive API for dates > 5 days ago; forecast for recent/future."""
+    """Use the archive API for dates > 8 days ago; forecast API (with past_days) for recent/future.
+    Archive has a ~5-7 day processing lag, so dates within 8 days must use the forecast endpoint."""
     try:
         target = dt_date.fromisoformat(date_str)
         delta = (dt_date.today() - target).days
-        return _ARCHIVE_URL if delta > 5 else _FORECAST_URL
+        return _ARCHIVE_URL if delta > 8 else _FORECAST_URL
     except ValueError:
         return _FORECAST_URL
 
@@ -41,23 +42,36 @@ def fetch_hourly_weather(
     """
     url = _choose_url(date)
 
-    # Fetch ±1 day in UTC so any local timezone is fully covered (UTC+14 to UTC-12).
-    try:
-        _d = dt_date.fromisoformat(date)
-        start_date = (_d - timedelta(days=1)).isoformat()
-        end_date   = (_d + timedelta(days=1)).isoformat()
-    except ValueError:
-        start_date = end_date = date
-
     # Build URL manually — urllib.parse.urlencode encodes commas as %2C but
     # Open-Meteo requires literal commas in the `hourly` parameter list.
-    base = urllib.parse.urlencode({
-        "latitude":   latitude,
-        "longitude":  longitude,
-        "start_date": start_date,
-        "end_date":   end_date,
-        "timezone":   "UTC",
-    })
+    try:
+        _d = dt_date.fromisoformat(date)
+    except ValueError:
+        _d = dt_date.today()
+
+    if url == _ARCHIVE_URL:
+        # Archive: use start_date/end_date (±1 day covers all UTC offsets)
+        base = urllib.parse.urlencode({
+            "latitude":   latitude,
+            "longitude":  longitude,
+            "start_date": (_d - timedelta(days=1)).isoformat(),
+            "end_date":   (_d + timedelta(days=1)).isoformat(),
+            "timezone":   "UTC",
+        })
+    else:
+        # Forecast API: use past_days + forecast_days (does not accept historical start_date).
+        # past_days covers dates up to 92 days ago; forecast_days covers future dates.
+        delta = (dt_date.today() - _d).days
+        past_days     = max(2, delta + 2)   # +2 extra days for UTC±timezone coverage
+        forecast_days = max(2, -delta + 2)  # for future dates; min 2 so today is always included
+        base = urllib.parse.urlencode({
+            "latitude":      latitude,
+            "longitude":     longitude,
+            "past_days":     past_days,
+            "forecast_days": forecast_days,
+            "timezone":      "UTC",
+        })
+
     full_url = f"{url}?{base}&hourly={_VARIABLES}"
 
     req = urllib.request.Request(full_url, headers={"User-Agent": "solar-tracker-simulator/1.2"})
