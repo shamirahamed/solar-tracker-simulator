@@ -573,6 +573,11 @@ const timeLinePlugin = {
       entries.push({ yPx: Math.max(top + 5, Math.min(bottom - 5, yPx)), text, color });
     });
 
+    // During play or live mode: prepend the current time as first pill at top of line
+    if ((liveTimer || playTimer) && latestSimulationData[idx]) {
+      entries.unshift({ yPx: top + 6, text: formatTimeLabel(latestSimulationData[idx].timestamp), color: "#22c55e", isTime: true });
+    }
+
     if (!entries.length) { ctx.restore(); return; }
 
     // Sort top→bottom, then push down any overlapping labels
@@ -620,29 +625,6 @@ const timeLinePlugin = {
     });
 
     ctx.restore();
-
-    // Time badge — shown in top-right corner during live mode or playback
-    if (liveTimer || playTimer) {
-      const row = latestSimulationData[idx];
-      if (!row) return;
-      const timeStr = formatTimeLabel(row.timestamp);
-      ctx.save();
-      ctx.font = "bold 11px system-ui,sans-serif";
-      ctx.textAlign = "right";
-      ctx.textBaseline = "top";
-      const tw = ctx.measureText(timeStr).width;
-      const bw = tw + 10, bh = 18, bx = right - bw - 2, by = top + 4;
-      ctx.globalAlpha = 0.88;
-      ctx.fillStyle = isLight ? "rgba(255,255,255,0.93)" : "rgba(13,20,32,0.90)";
-      ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill();
-      ctx.globalAlpha = 0.7;
-      ctx.strokeStyle = "#22c55e"; ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = "#22c55e";
-      ctx.fillText(timeStr, right - 7, by + 3);
-      ctx.restore();
-    }
   }
 };
 
