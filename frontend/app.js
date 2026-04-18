@@ -545,7 +545,7 @@ const timeLinePlugin = {
     ctx.lineTo(x, bottom);
     ctx.strokeStyle = accent;
     ctx.lineWidth = liveTimer ? 2 : 1.5;
-    ctx.setLineDash(liveTimer ? [] : [4, 3]);
+    ctx.setLineDash([4, 3]);
     ctx.globalAlpha = liveTimer ? 0.9 : 0.75;
     ctx.stroke();
     ctx.restore();
