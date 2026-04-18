@@ -649,23 +649,25 @@ const axMax = (v, minGap = 1) => {
   const raw = v + Math.max(Math.abs(v) * 0.10, minGap);
   if (raw <= 0) return 0;
   const s = _axisStep(raw);
-  return Math.ceil(raw / s) * s;
+  // snap to step then add ONE extra step so there's always
+  // at least one empty tick above the highest data point
+  return Math.ceil(raw / s) * s + s;
 };
 /**
- * Subtract 10% then snap DOWN to the nearest clean step.
- * For negative values mirrors axMax (e.g. -8 → -10).
+ * Subtract 10% then snap DOWN to the nearest clean step (+ one extra below).
+ * For negative values mirrors axMax (e.g. -8 → -15).
  */
 const axMin = (v, minGap = 1) => {
   if (v >= 0) {
     const raw = v - Math.max(Math.abs(v) * 0.10, minGap);
     if (raw <= 0) return 0;
     const s = _axisStep(raw);
-    return Math.floor(raw / s) * s;
+    return Math.max(0, Math.floor(raw / s) * s - s);
   }
-  // negative: expand downward and snap to clean step
+  // negative: expand downward, snap, add one extra step below
   const absRaw = Math.abs(v) + Math.max(Math.abs(v) * 0.10, minGap);
   const s = _axisStep(absRaw);
-  return -Math.ceil(absRaw / s) * s;
+  return -(Math.ceil(absRaw / s) * s + s);
 };
 
 let _rafPending = false;
@@ -831,7 +833,7 @@ function buildCharts(data) {
           position: "right",
           beginAtZero: true,
           min: 0,
-          max: Math.max(5, Math.ceil(maxShadingPercent + 1)),
+          max: Math.min(100, axMax(maxShadingPercent)),
           title: { display: false },
           ticks: { font: { size: 10 }, color: "#64748b" },
           grid: { drawOnChartArea: false }
@@ -840,57 +842,51 @@ function buildCharts(data) {
     }
   });
 
+  const maxIrr = Math.max(
+    ...data.map(r => Number(r.irradiance_fixed               || 0)),
+    ...data.map(r => Number(r.irradiance_without_backtracking || 0)),
+    ...data.map(r => Number(r.irradiance_with_backtracking    || 0)), 1);
+
   powerChart = new Chart(powerCtx, {
     type: "line",
     plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
-        {
-          label: "Fixed Panel",
-          data: data.map((r) => r.irradiance_fixed),
-          borderColor: "#22c55e",
-          backgroundColor: "rgba(34,197,94,0.07)",
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.22
-        },
-        {
-          label: "Tracker – No BT",
-          data: data.map((r) => r.irradiance_without_backtracking),
-          borderColor: "#f59e0b",
-          backgroundColor: "rgba(245,158,11,0.07)",
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.22
-        },
-        {
-          label: "Tracker – BT",
-          data: data.map((r) => r.irradiance_with_backtracking),
-          borderColor: "#00e5ff",
-          backgroundColor: "rgba(0,229,255,0.07)",
-          borderWidth: 2,
-          pointRadius: 0,
-          tension: 0.22
-        }
+        { label: "Fixed Panel",     data: data.map((r) => r.irradiance_fixed),                 borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.07)",  borderWidth: 2,   pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", data: data.map((r) => r.irradiance_without_backtracking),  borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.07)", borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",    data: data.map((r) => r.irradiance_with_backtracking),     borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",  borderWidth: 2,   pointRadius: 0, tension: 0.22 }
       ]
     },
-    options: chartBaseOptions("Irradiance (W/m²)")
+    options: (() => {
+      const base = chartBaseOptions("Irradiance (W/m²)");
+      base.scales.y = { ...base.scales.y, beginAtZero: true, max: axMax(maxIrr) };
+      return base;
+    })()
   });
 
   // ── Power Output (W) — temperature-derated via pvlib noct_sam ─────────
+  const maxPowerW = Math.max(
+    ...data.map(r => Number(r.power_fixed               || 0)),
+    ...data.map(r => Number(r.power_without_backtracking || 0)),
+    ...data.map(r => Number(r.power_with_backtracking    || 0)), 1);
+
   powerWChart = new Chart(powerWCtx, {
     type: "line",
     plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
-        { label: "Fixed Panel",    data: data.map(r => r.power_fixed),                borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.07)",   borderWidth: 2,   pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – No BT", data: data.map(r => r.power_without_backtracking), borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.07)", borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
+        { label: "Fixed Panel",     data: data.map(r => r.power_fixed),                borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.07)",   borderWidth: 2,   pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", data: data.map(r => r.power_without_backtracking), borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.07)",  borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
         { label: "Tracker – BT",    data: data.map(r => r.power_with_backtracking),    borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",   borderWidth: 2,   pointRadius: 0, tension: 0.22 },
       ]
     },
-    options: chartBaseOptions("Power (W)")
+    options: (() => {
+      const base = chartBaseOptions("Power (W)");
+      base.scales.y = { ...base.scales.y, beginAtZero: true, max: axMax(maxPowerW) };
+      return base;
+    })()
   });
 
   // ── Shadow Direction E/W — pvlib projected_solar_zenith sign ──────────
@@ -964,6 +960,10 @@ function buildCharts(data) {
   const isLight = document.documentElement.dataset.theme === "light";
   const gridColor = isLight ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)";
 
+  const maxGhi = Math.max(
+    ...data.map(r => Number(r.clearsky_ghi   ?? r.ghi ?? 0)),
+    ...data.map(r => Number(r.irradiance_raw ?? r.ghi ?? 0)), 1);
+
   ghiCompChart = new Chart(ghiCompCtx, {
     type: "line",
     plugins: [timeLinePlugin],
@@ -982,7 +982,7 @@ function buildCharts(data) {
       plugins: { legend: compactLegendOptions() },
       scales: {
         x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
-        y:  { type: "linear", position: "left",  beginAtZero: true, title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+        y:  { type: "linear", position: "left",  beginAtZero: true, max: axMax(maxGhi), title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
         y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { drawOnChartArea: false } },
       }
     }
@@ -1112,7 +1112,7 @@ function buildCharts(data) {
         scales: {
           x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
           y:  { type: "linear", position: "left",  min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#60a5fa" }, grid: { color: gridColor } },
-          y1: { type: "linear", position: "right", min: Math.floor(dewMin), max: Math.ceil(dewMax),
+          y1: { type: "linear", position: "right", min: dewMin, max: dewMax,
                 title: { display: false }, ticks: { font: { size: 10 }, color: "#34d399" }, grid: { drawOnChartArea: false } }
         }
       }
@@ -2351,6 +2351,10 @@ async function downloadPdf() {
       }
     });
 
+    const _maxIrrPdf = Math.max(
+      ..._ds.map(r => Number(r.irradiance_fixed               || 0)),
+      ..._ds.map(r => Number(r.irradiance_without_backtracking || 0)),
+      ..._ds.map(r => Number(r.irradiance_with_backtracking    || 0)), 1);
     const powerImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
@@ -2358,9 +2362,18 @@ async function downloadPdf() {
         { label: "Tracker – No BT", hidden: !_chk("pdf_irr_nobt"), data: _ds.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
         { label: "Tracker – BT",    hidden: !_chk("pdf_irr_bt"),   data: _ds.map(r => r.irradiance_with_backtracking),    borderColor: "#2563eb", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
       ]},
-      options: _pdfChartOpts("Irradiance (W/m²)")
+      options: { ..._pdfChartOpts("Irradiance (W/m²)"),
+        scales: { ...(_pdfChartOpts("Irradiance (W/m²)").scales || {}),
+          y: { type: "linear", beginAtZero: true, max: axMax(_maxIrrPdf),
+               title: { display: true, text: "Irradiance (W/m²)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+               ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } } }
+      }
     });
 
+    const _maxPowPdf = Math.max(
+      ..._ds.map(r => Number(r.power_fixed               || 0)),
+      ..._ds.map(r => Number(r.power_without_backtracking || 0)),
+      ..._ds.map(r => Number(r.power_with_backtracking    || 0)), 1);
     const windStowSpeedPdf = document.getElementById("wind_stow_enable")?.checked
       ? parseFloat(document.getElementById("wind_stow_speed")?.value || "15") : 0;
     const _maxWindPdf = Math.max(..._ds.map(r => Number(r.wind_speed || 0)), windStowSpeedPdf || 0, 5);
@@ -2372,18 +2385,33 @@ async function downloadPdf() {
         { label: "Tracker – No BT", hidden: !_chk("pdf_pow_nobt"),  data: _ds.map(r => r.power_without_backtracking), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
         { label: "Tracker – BT",    hidden: !_chk("pdf_pow_bt"),    data: _ds.map(r => r.power_with_backtracking),    borderColor: "#00e5ff", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
       ]},
-      options: _pdfChartOpts("Power (W)")
+      options: { ..._pdfChartOpts("Power (W)"),
+        scales: { ...(_pdfChartOpts("Power (W)").scales || {}),
+          y: { type: "linear", beginAtZero: true, max: axMax(_maxPowPdf),
+               title: { display: true, text: "Power (W)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+               ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } } }
+      }
     });
 
+    const _maxTempPdf = Math.max(..._ds.map(r => Number(r.cell_temp || r.temp || 20)), 1);
+    const _minTempPdf = Math.min(..._ds.map(r => Number(r.temp || 20)));
     const tempImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
         { label: "Ambient (°C)",   hidden: !_chk("pdf_temp_amb"),  data: _ds.map(r => r.temp),      borderColor: "#94a3b8", borderWidth: 3.0, borderDash: [4,3], pointRadius: 0, tension: 0.22 },
         { label: "Cell Temp (°C)", hidden: !_chk("pdf_temp_cell"), data: _ds.map(r => r.cell_temp), borderColor: "#f97316", borderWidth: 3.0, pointRadius: 0, tension: 0.22 }
       ]},
-      options: _pdfChartOpts("Temperature (°C)")
+      options: { ..._pdfChartOpts("Temperature (°C)"),
+        scales: { ...(_pdfChartOpts("Temperature (°C)").scales || {}),
+          y: { type: "linear", min: axMin(_minTempPdf), max: axMax(_maxTempPdf),
+               title: { display: true, text: "Temperature (°C)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+               ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } } }
+      }
     });
 
+    const _maxGhiPdf = Math.max(
+      ..._ds.map(r => Number(r.clearsky_ghi   || 0)),
+      ..._ds.map(r => Number(r.irradiance_raw || 0)), 1);
     const ghiCompImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
@@ -2394,7 +2422,7 @@ async function downloadPdf() {
       options: { ..._pdfChartOpts("GHI (W/m²)"),
         scales: {
           x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
-          y:  { type: "linear", position: "left",  beginAtZero: true,
+          y:  { type: "linear", position: "left",  beginAtZero: true, max: axMax(_maxGhiPdf),
                 title: { display: true, text: "GHI (W/m²)", font: { size: 26, weight: "700" }, color: "#0f172a" },
                 ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
           y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100,
