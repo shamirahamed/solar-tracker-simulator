@@ -766,9 +766,9 @@ function buildCharts(data) {
       labels,
       datasets: [
         { label: "No BT",   data: shadowNoBtDisplay,                                          borderColor: "#38bdf8", borderWidth: 2,   pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "BT",      data: shadowBtDisplay,                                             borderColor: "#f472b6", borderWidth: 2,   pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "BT",      data: shadowBtDisplay,                                             borderColor: "#4ade80", borderWidth: 2,   pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "% No BT", data: data.map((r) => r.shading_percent_without_backtracking),     borderColor: "#fb923c", borderWidth: 1.8, pointRadius: 0, tension: 0.18, borderDash: [8, 4], yAxisID: "y1" },
-        { label: "% BT",    data: data.map((r) => r.shading_percent_with_backtracking),        borderColor: "#a78bfa", borderWidth: 1.8, pointRadius: 0, tension: 0.18, borderDash: [3, 3], yAxisID: "y1" }
+        { label: "% BT",    data: data.map((r) => r.shading_percent_with_backtracking),        borderColor: "#22c55e", borderWidth: 1.8, pointRadius: 0, tension: 0.18, borderDash: [3, 3], yAxisID: "y1" }
       ]
     },
     options: {
@@ -900,7 +900,12 @@ function buildCharts(data) {
   const _tempCell = data.map(r => r.cell_temp != null ? Number(r.cell_temp) : 20);
   const _tempBase = (() => {
     const base = chartBaseOptions("Temperature (°C)");
-    base.scales.y = { ...base.scales.y, suggestedMin: 0, suggestedMax: Math.max(..._tempCell, 40) + 5 };
+    const _tMax = Math.max(..._tempCell, ..._tempAmb);
+    const _tMin = Math.min(..._tempAmb);
+    base.scales.y = { ...base.scales.y,
+      suggestedMin: Math.floor(_tMin - 3),
+      suggestedMax: Math.ceil(_tMax + 5)
+    };
     return base;
   })();
 
@@ -951,8 +956,8 @@ function buildCharts(data) {
   const _maxWindActual  = Math.max(...data.map(r => Number(r.wind_speed ?? 1)), 1);
   // Y-axis: show enough to see actual wind clearly; always include stow threshold + 20%
   const maxWind = Math.max(
-    _maxWindActual * 1.3,
-    windStowEnabled ? windStowSpeed * 1.2 : 0,
+    _maxWindActual,
+    windStowEnabled ? windStowSpeed : 0,
     5
   );
 
@@ -989,7 +994,7 @@ function buildCharts(data) {
       plugins: { legend: compactLegendOptions() },
       scales: {
         x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
-        y: { type: "linear", position: "left", beginAtZero: true, max: Math.ceil(maxWind * 1.2), title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } }
+        y: { type: "linear", position: "left", beginAtZero: true, max: Math.ceil(maxWind * 1.15), title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } }
       }
     }
   });
@@ -1050,7 +1055,7 @@ function buildCharts(data) {
           {
             label: "Relative Humidity (%)",
             data: data.map(r => r.humidity != null ? Number(r.humidity) : null),
-            borderColor: "#818cf8", backgroundColor: "rgba(129,140,248,0.12)",
+            borderColor: "#60a5fa", backgroundColor: "rgba(96,165,250,0.12)",
             borderWidth: 1.5, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y"
           },
           {
@@ -1068,7 +1073,7 @@ function buildCharts(data) {
         plugins: { legend: compactLegendOptions() },
         scales: {
           x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
-          y:  { type: "linear", position: "left",  min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#818cf8" }, grid: { color: gridColor } },
+          y:  { type: "linear", position: "left",  min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#60a5fa" }, grid: { color: gridColor } },
           y1: { type: "linear", position: "right", min: Math.floor(dewMin), max: Math.ceil(dewMax),
                 title: { display: false }, ticks: { font: { size: 10 }, color: "#34d399" }, grid: { drawOnChartArea: false } }
         }
@@ -2291,9 +2296,9 @@ async function downloadPdf() {
       type: "line",
       data: { labels: _lbl, datasets: [
         { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#38bdf8", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#f472b6", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#4ade80", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _ds.map(r => r.shading_percent_without_backtracking), borderColor: "#fb923c", borderWidth: 2.2, borderDash: [8,4], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#a78bfa", borderWidth: 2.2, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#22c55e", borderWidth: 2.2, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
@@ -2373,7 +2378,7 @@ async function downloadPdf() {
       options: { ..._pdfChartOpts("Wind Speed (m/s)"),
         scales: {
           x: { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
-          y: { type: "linear", position: "left", beginAtZero: true, max: Math.ceil(_maxWindPdf * 1.2),
+          y: { type: "linear", position: "left", beginAtZero: true, max: Math.ceil(_maxWindPdf * 1.15),
                title: { display: true, text: "Wind Speed (m/s)", font: { size: 26, weight: "700" }, color: "#0f172a" },
                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } }
         }
@@ -2439,7 +2444,7 @@ async function downloadPdf() {
       type: "line",
       data: { labels: _lbl, datasets: [
         { label: "Relative Humidity (%)", hidden: !_chk("pdf_humidity"),  data: _ds.map(r => Number(r.humidity ?? 50)),
-          borderColor: "#818cf8", backgroundColor: "rgba(129,140,248,0.12)",
+          borderColor: "#60a5fa", backgroundColor: "rgba(96,165,250,0.12)",
           borderWidth: 3.0, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y" },
         { label: "Dew Point (°C)",        hidden: !_chk("pdf_dew_point"), data: _ds.map(r => Number(r.dew_point ?? 10)),
           borderColor: "#34d399", borderWidth: 3.0, borderDash: [4,3],
@@ -2449,8 +2454,8 @@ async function downloadPdf() {
         scales: {
           x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
           y:  { type: "linear", position: "left",  min: 0, max: 100,
-                title: { display: true, text: "Humidity (%)", font: { size: 26, weight: "700" }, color: "#818cf8" },
-                ticks: { font: { size: 22 }, color: "#818cf8" }, grid: { color: "rgba(0,0,0,0.11)" } },
+                title: { display: true, text: "Humidity (%)", font: { size: 26, weight: "700" }, color: "#60a5fa" },
+                ticks: { font: { size: 22 }, color: "#60a5fa" }, grid: { color: "rgba(0,0,0,0.11)" } },
           y1: { type: "linear", position: "right",
                 title: { display: true, text: "Dew Point (°C)", font: { size: 26, weight: "700" }, color: "#34d399" },
                 ticks: { font: { size: 22 }, color: "#34d399" }, grid: { drawOnChartArea: false } }
