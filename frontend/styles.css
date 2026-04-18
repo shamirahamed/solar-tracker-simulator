@@ -1099,6 +1099,10 @@ input[type="range"] { accent-color: var(--accent); }
   padding: 8px;
   cursor: default;     /* no zoom-in cursor — expand via button only */
   will-change: transform; /* promote to GPU layer — prevents chart redraws flickering the page */
+  touch-action: pan-y; /* let vertical scroll pass through without Chart.js capturing it */
+}
+.chart-container canvas {
+  touch-action: pan-y; /* same on the canvas so scroll never triggers hover/tooltip */
 }
 
 /* single-column contexts: charts go full-width, can be taller */

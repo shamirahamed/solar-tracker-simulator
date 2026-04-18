@@ -1403,6 +1403,13 @@ function setPlaybackState(isPlaying) {
 
   play2dBtn.setAttribute("aria-pressed", isPlaying ? "true" : "false");
   pause2dBtn.setAttribute("aria-pressed", isPlaying ? "false" : "true");
+
+  // Disable pointer/touch events on chart canvases during playback so
+  // touch-scroll and accidental taps don't trigger Chart.js hover redraws
+  // that collide with the play-loop updates and cause visible blinking.
+  document.querySelectorAll(".chart-container canvas").forEach(c => {
+    c.style.pointerEvents = isPlaying ? "none" : "";
+  });
 }
 
 function stop2DPlayback() {
@@ -1446,6 +1453,10 @@ function stopLiveMode() {
   liveModeBtn?.setAttribute("aria-pressed", "false");
   const warn = document.getElementById("liveDateWarn");
   if (warn) warn.style.display = "none";
+  // Restore chart touch interaction
+  document.querySelectorAll(".chart-container canvas").forEach(c => {
+    c.style.pointerEvents = "";
+  });
 }
 
 function startLiveMode() {
@@ -1454,6 +1465,10 @@ function startLiveMode() {
   }
   stop2DPlayback();         // stop animation playback if running
   liveModeBtn?.classList.add("live-active");
+  // Disable chart touch during live updates (same as play mode)
+  document.querySelectorAll(".chart-container canvas").forEach(c => {
+    c.style.pointerEvents = "none";
+  });
   liveModeBtn?.setAttribute("aria-pressed", "true");
 
   const tick = () => {
