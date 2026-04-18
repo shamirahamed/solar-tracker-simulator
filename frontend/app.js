@@ -653,6 +653,7 @@ function chartBaseOptions(yText) {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: "index", intersect: false },
+    events: ["mousemove", "mouseout", "click", "touchstart", "touchmove", "touchend"],
     plugins: {
       legend: compactLegendOptions(),
       tooltip: {
@@ -865,6 +866,7 @@ function buildCharts(data) {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      events: ["mousemove", "mouseout", "click", "touchstart", "touchmove", "touchend"],
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
@@ -916,6 +918,7 @@ function buildCharts(data) {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      events: ["mousemove", "mouseout", "click", "touchstart", "touchmove", "touchend"],
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
@@ -965,6 +968,7 @@ function buildCharts(data) {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      events: ["mousemove", "mouseout", "click", "touchstart", "touchmove", "touchend"],
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
@@ -1004,6 +1008,7 @@ function buildCharts(data) {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
+        events: ["mousemove", "mouseout", "click", "touchstart", "touchmove", "touchend"],
         interaction: { mode: "index", intersect: false },
         plugins: { legend: compactLegendOptions() },
         scales: {
@@ -1042,6 +1047,7 @@ function buildCharts(data) {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
+        events: ["mousemove", "mouseout", "click", "touchstart", "touchmove", "touchend"],
         interaction: { mode: "index", intersect: false },
         plugins: { legend: compactLegendOptions() },
         scales: {
@@ -2221,20 +2227,24 @@ async function downloadPdf() {
       }
     });
 
-    // Shadow Direction chart
-    const maxShadowDirAbsPdf = Math.max(..._ds.map(r => Math.abs(Number(r.projected_solar_zenith ?? 0))), 1);
+    // Shadow Direction chart — same mapping as live chart
+    const _sdBtPdf   = _ds.map(r => { const s = Math.min(Math.max(Number(r.shadow_length_with_backtracking    || 0), 0), 40); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _sdNoBtPdf = _ds.map(r => { const s = Math.min(Math.max(Number(r.shadow_length_without_backtracking || 0), 0), 40); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _maxSdPdf = Math.max(..._sdBtPdf.map(Math.abs), ..._sdNoBtPdf.map(Math.abs), 1);
     const shadowDirImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Shadow BT (+ East / − West)",    data: _ds.map(r => { const v = Number(r.projected_solar_zenith ?? 0); return Math.max(-maxShadowDirAbsPdf, Math.min(maxShadowDirAbsPdf, v * (payload.row_spacing ?? 5))); }),
+        { label: "Shadow BT (+ East / − West)",    data: _sdBtPdf,
           borderColor: "#00e5ff", borderWidth: 3.0, pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "Shadow No BT (+ East / − West)", data: _sdNoBtPdf,
+          borderColor: "#f59e0b", borderWidth: 2.5, borderDash: [5,4], pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "Shading % BT", data: _ds.map(r => r.shading_percent_with_backtracking),
           borderColor: "#ef4444", borderWidth: 2.5, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
       ]},
       options: { ..._pdfChartOpts("Shadow (m)"),
         scales: {
           x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
-          y:  { type: "linear", position: "left",
+          y:  { type: "linear", position: "left",  min: -_maxSdPdf, max: _maxSdPdf,
                 title: { display: true, text: "Shadow (m)", font: { size: 26, weight: "700" }, color: "#0f172a" },
                 ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
           y1: { type: "linear", position: "right", min: 0, max: 100,
