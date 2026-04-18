@@ -679,9 +679,9 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Ideal", data: data.map((r) => r.ideal_tracker_angle), borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
-        { label: "Limited", data: data.map((r) => r.limited_tracker_angle), borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
-        { label: "Backtracking", data: data.map((r) => r.backtracking_angle), borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
+        { label: "Ideal",        data: data.map((r) => r.ideal_tracker_angle),       borderColor: "#60a5fa", borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
+        { label: "Limited",      data: data.map((r) => r.limited_tracker_angle),     borderColor: "#34d399", borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
+        { label: "Backtracking", data: data.map((r) => r.backtracking_angle),        borderColor: "#fb923c", borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
         {
           label: "Wind Stow",
           data: data.map((r) => r.wind_stow ? 0 : null),
