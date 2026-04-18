@@ -1384,34 +1384,7 @@ canvas { width: 100% !important; height: 100% !important; }
   .kpi-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
 }
 
-/* ─── Device preview bar ─────────────────────────── */
-
-.device-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 30;
-  background: var(--card);
-  border-top: 1px solid var(--line-bright);
-  padding: 5px 16px;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
-}
-
-.device-bar-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-right: 4px;
-  white-space: nowrap;
-}
-
+/* ─── Device preview buttons (in Settings panel) ─── */
 .dev-btn {
   min-height: 28px;
   border: 1px solid var(--line-bright);
@@ -1479,7 +1452,7 @@ body[data-preview="mobile"] .date-col,
 body[data-preview="mobile"] .checkbox-row          { grid-column: 1 / -1; }
 body[data-preview="mobile"] #getLocation           { width: 100%; }
 body[data-preview="mobile"] .topbar h1             { font-size: 19px; }
-body[data-preview="mobile"] .device-bar-label      { display: none; }
+
 body[data-preview="mobile"] .section-note-mobile   { display: inline; color: var(--muted); font-size: var(--fs-sm); }
 body[data-preview="mobile"] .card                  { padding: 10px; }
 body[data-preview="mobile"] .section-head          { margin-bottom: 4px; gap: 6px; }
