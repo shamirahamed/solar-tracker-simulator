@@ -631,14 +631,15 @@ function _refreshChartLines() {
 }
 
 function compactLegendOptions() {
+  const isMobile = window.innerWidth <= 640;
   return {
     position: "bottom",
     align: "start",
     labels: {
-      boxWidth: 10,
-      boxHeight: 10,
-      padding: 6,
-      font: { size: 10 },
+      boxWidth:  isMobile ? 14 : 10,
+      boxHeight: isMobile ? 14 : 10,
+      padding:   isMobile ? 14 : 6,
+      font: { size: isMobile ? 12 : 10 },
       color: "#94a3b8"
     }
   };
