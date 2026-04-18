@@ -812,15 +812,16 @@ function buildCharts(data) {
   });
 
   // ── Shadow Direction E/W — pvlib projected_solar_zenith sign ──────────
-  // Signed shadow: positive = East shadow, negative = West shadow
+  // Clamp before applying sign so extreme low-elevation shadows don't blow the scale
   const shadowDirBt   = data.map(r => {
-    const s = Number(r.shadow_length_with_backtracking || 0);
-    return r.projected_solar_zenith >= 0 ? s : -s;
+    const s = clampShadowForDisplay(r.shadow_length_with_backtracking);
+    return (r.projected_solar_zenith ?? 0) >= 0 ? s : -s;
   });
   const shadowDirNoBt = data.map(r => {
-    const s = Number(r.shadow_length_without_backtracking || 0);
-    return r.projected_solar_zenith >= 0 ? s : -s;
+    const s = clampShadowForDisplay(r.shadow_length_without_backtracking);
+    return (r.projected_solar_zenith ?? 0) >= 0 ? s : -s;
   });
+  const maxShadowDirAbs = Math.max(...shadowDirBt.map(Math.abs), ...shadowDirNoBt.map(Math.abs), 1);
 
   shadowDirChart = new Chart(shadowDirCtx, {
     type: "line",
@@ -838,25 +839,35 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x:  { ticks: { maxTicksLimit: 8, font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(100,116,139,0.40)" } },
-        y:  { type: "linear", position: "left",  title: { display: true, text: "Shadow (m)  + East / − West", font: { size: 10 } }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(100,116,139,0.40)" } },
-        y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100, title: { display: true, text: "Shading %", font: { size: 10 } }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { drawOnChartArea: false } },
+        x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(100,116,139,0.40)" } },
+        y:  { type: "linear", position: "left", min: -maxShadowDirAbs, max: maxShadowDirAbs,
+              title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(100,116,139,0.40)" } },
+        y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100,
+              title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { drawOnChartArea: false } },
       }
     }
   });
 
   // ── Cell Temperature — pvlib noct_sam ─────────────────────────────────
+  const _tempAmb  = data.map(r => r.temp      != null ? Number(r.temp)      : 20);
+  const _tempCell = data.map(r => r.cell_temp != null ? Number(r.cell_temp) : 20);
+  const _tempBase = (() => {
+    const base = chartBaseOptions("Temperature (°C)");
+    base.scales.y = { ...base.scales.y, suggestedMin: 0, suggestedMax: Math.max(..._tempCell, 40) + 5 };
+    return base;
+  })();
+
   tempChart = new Chart(tempCtx, {
     type: "line",
     plugins: [timeLinePlugin],
     data: {
       labels,
       datasets: [
-        { label: "Ambient (°C)",   data: data.map(r => r.temp),      borderColor: "#94a3b8", borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, tension: 0.22 },
-        { label: "Cell Temp (°C)", data: data.map(r => r.cell_temp), borderColor: "#f97316", backgroundColor: "rgba(249,115,22,0.08)", borderWidth: 2, pointRadius: 0, tension: 0.22 },
+        { label: "Ambient (°C)",   data: _tempAmb,  borderColor: "#94a3b8", borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, tension: 0.22 },
+        { label: "Cell Temp (°C)", data: _tempCell, borderColor: "#f97316", backgroundColor: "rgba(249,115,22,0.08)", borderWidth: 2, pointRadius: 0, tension: 0.22 },
       ]
     },
-    options: chartBaseOptions("Temperature (°C)")
+    options: _tempBase
   });
 
   // ── Cloud Cover & GHI — dual-axis ─────────────────────────────────────
@@ -869,9 +880,9 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Clear-sky GHI", data: data.map(r => r.clearsky_ghi),   borderColor: "#f59e0b", borderWidth: 1.5, borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Actual GHI",    data: data.map(r => r.irradiance_raw), borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.07)", borderWidth: 2, pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Cloud Cover %", data: data.map(r => Number(r.cloud_cover || 0)), borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.10)", borderWidth: 1.5, borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" },
+        { label: "Clear-sky GHI", data: data.map(r => r.clearsky_ghi   != null ? Number(r.clearsky_ghi)   : (r.ghi != null ? Number(r.ghi) : 0)), borderColor: "#f59e0b", borderWidth: 1.5, borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Actual GHI",    data: data.map(r => r.irradiance_raw != null ? Number(r.irradiance_raw) : (r.ghi != null ? Number(r.ghi) : 0)), borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.07)", borderWidth: 2, pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Cloud Cover %", data: data.map(r => Number(r.cloud_cover ?? 0)), borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.10)", borderWidth: 1.5, borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" },
       ]
     },
     options: {
@@ -889,7 +900,13 @@ function buildCharts(data) {
   // ── Wind Speed & Stow threshold ────────────────────────────────────────
   const windStowEnabled = document.getElementById("wind_stow_enable")?.checked ?? true;
   const windStowSpeed   = windStowEnabled ? parseFloat(document.getElementById("wind_stow_speed")?.value || "15") : 0;
-  const maxWind = Math.max(...data.map(r => Number(r.wind_speed || 0)), windStowSpeed || 0, 5);
+  const _maxWindActual  = Math.max(...data.map(r => Number(r.wind_speed ?? 1)), 1);
+  // Y-axis: show enough to see actual wind clearly; always include stow threshold + 20%
+  const maxWind = Math.max(
+    _maxWindActual * 1.3,
+    windStowEnabled ? windStowSpeed * 1.2 : 0,
+    5
+  );
 
   windChart = new Chart(windCtx, {
     type: "line",
@@ -899,7 +916,7 @@ function buildCharts(data) {
       datasets: [
         {
           label: "Wind Speed (m/s)",
-          data: data.map(r => Number(r.wind_speed || 0)),
+          data: data.map(r => r.wind_speed != null ? Number(r.wind_speed) : 1),
           borderColor: "#38bdf8", backgroundColor: "rgba(56,189,248,0.08)",
           borderWidth: 2, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y"
         },
@@ -911,7 +928,7 @@ function buildCharts(data) {
         },
         {
           label: "Stow active",
-          data: data.map(r => r.wind_stow ? Number(r.wind_speed || 0) : null),
+          data: data.map(r => r.wind_stow ? Number(r.wind_speed ?? 1) : null),
           borderColor: "#ef4444", backgroundColor: "rgba(239,68,68,0.25)",
           borderWidth: 0, pointRadius: 3, pointStyle: "circle", showLine: false, yAxisID: "y"
         }
@@ -1454,16 +1471,31 @@ preview.textContent = JSON.stringify(
     update2DFrame(Math.min(720, Math.max(0, latestSimulationData.length - 1)));
     stop2DPlayback();
 
-    // Weather source badge
+    // Weather source badge + popup
     const src = result.weather_source || "clearsky (ineichen)";
-    const isReal = src.startsWith("Open-Meteo");
+    const isReal    = src.startsWith("Open-Meteo");
+    const isFailed  = src.includes("failed");
+    const wantedReal = payload.use_real_weather;
+
     setBadge(
       document.getElementById("badgeWeather"),
-      `Weather: ${isReal ? "Real" : "Clear-sky"}`,
-      isReal ? "badge-green" : "badge-gray"
+      `Weather: ${isReal ? "Real ✓" : "Clear-sky"}`,
+      isReal ? "badge-green" : (isFailed ? "badge-red" : "badge-gray")
     );
 
-    showPopup("Simulation completed.", "success");
+    // Build a clear post-simulation status popup
+    if (wantedReal && !isReal) {
+      // User wanted real weather but got clearsky (fetch failed or unavailable)
+      const reason = isFailed
+        ? "Open-Meteo fetch failed — check internet or try another date."
+        : "Clearsky model used (weather unavailable for this date/location).";
+      showPopup(`⚠ Weather: ${reason} Irradiance and temperature are clearsky estimates.`, "warning", 8000);
+    } else if (isReal) {
+      const soiling = payload.soiling_loss > 0 ? ` | Soiling: ${(payload.soiling_loss * 100).toFixed(0)}%` : "";
+      showPopup(`✓ Real weather loaded (${src})${soiling}. Irradiance reflects actual conditions.`, "success", 6000);
+    } else {
+      showPopup("Simulation complete — clearsky model.", "success", 3000);
+    }
   } catch (error) {
     preview.textContent = `Request failed:\n${error?.message ?? error}`;
     await handleApiError(error);
