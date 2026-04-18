@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -22,6 +22,12 @@ class SimulationRequest(BaseModel):
     use_real_weather: bool = False
     soiling_loss: float = Field(default=0.0, ge=0, le=0.5)
     wind_stow_speed: float = Field(default=15.0, ge=0)
+
+    # v1.2 browser-fetch: frontend fetches Open-Meteo and passes hourly data
+    # directly, bypassing the server-side outbound request (avoids Render 429).
+    # Keys are hour timestamp strings ("2024-06-15T00:00") mapping to
+    # {ghi, bhi, dhi, temp, wind_speed, wind_dir, cloud_cover, precipitation, humidity, dew_point}.
+    weather_data: Optional[Dict[str, Any]] = None
 
 
 class SimulationPoint(BaseModel):

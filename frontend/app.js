@@ -1536,12 +1536,134 @@ function setup2DControls() {
   });
 }
 
+/**
+ * Fetch hourly weather from Open-Meteo directly in the browser.
+ * Returns a dict keyed by "YYYY-MM-DDTHH:MM" (UTC) → {ghi,bhi,dhi,temp,
+ * wind_speed,wind_dir,cloud_cover,precipitation,humidity,dew_point}.
+ * Mirrors the backend weather.py logic so the backend can use it as-is.
+ */
+async function fetchWeatherFromBrowser(latitude, longitude, date) {
+  const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+  const ARCHIVE_URL  = "https://archive-api.open-meteo.com/v1/archive";
+  const VARIABLES    = "shortwave_radiation,diffuse_radiation,direct_radiation,temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover,precipitation,relative_humidity_2m,dew_point_2m";
+
+  // Determine archive vs forecast (archive has ~5-7 day lag)
+  let apiUrl = FORECAST_URL;
+  let params;
+  try {
+    const target = new Date(date + "T00:00:00Z");
+    const today  = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const deltaDays = Math.round((today - target) / 86400000);
+
+    if (deltaDays > 8) {
+      apiUrl = ARCHIVE_URL;
+      const d0 = new Date(target); d0.setUTCDate(d0.getUTCDate() - 1);
+      const d1 = new Date(target); d1.setUTCDate(d1.getUTCDate() + 1);
+      params = new URLSearchParams({
+        latitude, longitude,
+        start_date: d0.toISOString().slice(0,10),
+        end_date:   d1.toISOString().slice(0,10),
+        timezone: "UTC",
+      });
+    } else {
+      const pastDays     = Math.max(2, deltaDays + 2);
+      const forecastDays = Math.max(2, -deltaDays + 2);
+      params = new URLSearchParams({
+        latitude, longitude,
+        past_days:     pastDays,
+        forecast_days: forecastDays,
+        timezone: "UTC",
+      });
+    }
+  } catch (_) {
+    const pastDays = 2, forecastDays = 2;
+    params = new URLSearchParams({ latitude, longitude, past_days: pastDays, forecast_days: forecastDays, timezone: "UTC" });
+  }
+
+  const url = `${apiUrl}?${params.toString()}&hourly=${VARIABLES}`;
+
+  let payload;
+  try {
+    const resp = await fetch(url, { signal: AbortSignal.timeout(25000) });
+    if (!resp.ok) throw new Error(`Open-Meteo HTTP ${resp.status}`);
+    payload = await resp.json();
+    if (payload.error) throw new Error(`Open-Meteo: ${payload.reason || "unknown error"}`);
+  } catch (err) {
+    // Fallback: try the other API
+    const fallbackUrl = apiUrl === ARCHIVE_URL ? FORECAST_URL : ARCHIVE_URL;
+    let fbParams;
+    if (fallbackUrl === ARCHIVE_URL) {
+      const target = new Date(date + "T00:00:00Z");
+      const d0 = new Date(target); d0.setUTCDate(d0.getUTCDate() - 1);
+      const d1 = new Date(target); d1.setUTCDate(d1.getUTCDate() + 1);
+      fbParams = new URLSearchParams({ latitude, longitude, start_date: d0.toISOString().slice(0,10), end_date: d1.toISOString().slice(0,10), timezone: "UTC" });
+    } else {
+      fbParams = new URLSearchParams({ latitude, longitude, past_days: 10, forecast_days: 2, timezone: "UTC" });
+    }
+    const fbResp = await fetch(`${fallbackUrl}?${fbParams.toString()}&hourly=${VARIABLES}`, { signal: AbortSignal.timeout(25000) });
+    if (!fbResp.ok) throw err; // re-throw original error if fallback also fails
+    payload = await fbResp.json();
+    if (payload.error) throw err;
+  }
+
+  const hourly   = payload.hourly || {};
+  const times    = hourly.time                  || [];
+  const ghiList  = hourly.shortwave_radiation   || [];
+  const dhiList  = hourly.diffuse_radiation     || [];
+  const bhiList  = hourly.direct_radiation      || [];
+  const tmpList  = hourly.temperature_2m        || [];
+  const wspList  = hourly.wind_speed_10m        || [];
+  const wdrList  = hourly.wind_direction_10m    || [];
+  const cldList  = hourly.cloud_cover           || [];
+  const prcList  = hourly.precipitation         || [];
+  const humList  = hourly.relative_humidity_2m  || [];
+  const dewList  = hourly.dew_point_2m          || [];
+
+  const safe = (arr, i, def = 0) => {
+    const v = arr[i];
+    return (v == null || isNaN(v)) ? def : Number(v);
+  };
+
+  const result = {};
+  for (let i = 0; i < times.length; i++) {
+    result[times[i]] = {
+      ghi:           Math.max(0, safe(ghiList, i, 0)),
+      bhi:           Math.max(0, safe(bhiList, i, 0)),
+      dhi:           Math.max(0, safe(dhiList, i, 0)),
+      temp:          safe(tmpList, i, 20),
+      wind_speed:    Math.max(0, safe(wspList, i, 1)),
+      wind_dir:      safe(wdrList, i, 0),
+      cloud_cover:   Math.max(0, Math.min(100, safe(cldList, i, 0))),
+      precipitation: Math.max(0, safe(prcList, i, 0)),
+      humidity:      Math.max(0, Math.min(100, safe(humList, i, 50))),
+      dew_point:     safe(dewList, i, 10),
+    };
+  }
+  return result;
+}
+
 async function runSimulation() {
   const payload = getPayload();
   localStorage.setItem("solarInputs", JSON.stringify(payload));
   updateScenarioHeader();
   preview.textContent = "Loading simulation...";
   showPopup("Running simulation… (first load may take ~30s to wake server)", "info", 8000);
+
+  // Fetch weather in the browser so Render's server never hits Open-Meteo
+  // (shared IPs trigger 429 rate limits). Pass the data in the payload.
+  if (payload.use_real_weather) {
+    try {
+      showPopup("Fetching weather from Open-Meteo…", "info", 5000);
+      const weatherData = await fetchWeatherFromBrowser(
+        payload.latitude, payload.longitude, payload.date
+      );
+      payload.weather_data = weatherData;
+    } catch (weatherErr) {
+      console.warn("Browser weather fetch failed, server will try:", weatherErr);
+      // Leave weather_data absent — backend will attempt its own fetch (or use clearsky)
+    }
+  }
 
   try {
     // 90s timeout — Render free tier can take ~30-50s to wake from sleep

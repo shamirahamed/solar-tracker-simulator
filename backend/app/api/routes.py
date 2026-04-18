@@ -109,7 +109,14 @@ def _build_simulation_rows(payload: SimulationRequest):
     weather_source = "clearsky (ineichen)"
 
     if payload.use_real_weather:
-        weather_data, weather_source = _fetch_weather(payload)
+        if payload.weather_data:
+            # Browser already fetched Open-Meteo — use it directly.
+            # This bypasses the server-side outbound request entirely,
+            # which avoids Render's shared-IP 429 rate limiting.
+            weather_data = payload.weather_data
+            weather_source = "Open-Meteo (browser)"
+        else:
+            weather_data, weather_source = _fetch_weather(payload)
 
     tracker_data = get_tracker_day_profile(
         latitude=payload.latitude,
