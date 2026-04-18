@@ -630,6 +630,10 @@ const timeLinePlugin = {
   }
 };
 
+/** 10% headroom above/below a data value — works for negative values too */
+const axMax = (v, minGap = 1) => Math.ceil(v  + Math.max(Math.abs(v) * 0.10, minGap));
+const axMin = (v, minGap = 1) => Math.floor(v - Math.max(Math.abs(v) * 0.10, minGap));
+
 let _rafPending = false;
 function _refreshChartLines() {
   if (_rafPending) return;   // already a frame queued — don't stack redraws
@@ -783,7 +787,7 @@ function buildCharts(data) {
           position: "left",
           beginAtZero: true,
           min: 0,
-          max: Math.max(5, Math.ceil(maxShadowLen * 1.15)),
+          max: Math.max(5, axMax(maxShadowLen)),
           title: { display: false },
           ticks: { font: { size: 10 }, color: "#64748b" },
           grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" }
@@ -867,7 +871,7 @@ function buildCharts(data) {
   });
   // Round up to next 5 m above the data max so there's always a small margin
   const _rawMaxDir = Math.max(...shadowDirBt.map(Math.abs), ...shadowDirNoBt.map(Math.abs), 1);
-  const maxShadowDirAbs = Math.ceil((_rawMaxDir + 5) / 5) * 5;
+  const maxShadowDirAbs = Math.ceil(axMax(_rawMaxDir) / 5) * 5; // round up to nearest 5 m
 
   shadowDirChart = new Chart(shadowDirCtx, {
     type: "line",
@@ -903,8 +907,8 @@ function buildCharts(data) {
     const _tMax = Math.max(..._tempCell, ..._tempAmb);
     const _tMin = Math.min(..._tempAmb);
     base.scales.y = { ...base.scales.y,
-      suggestedMin: Math.floor(_tMin - 3),
-      suggestedMax: Math.ceil(_tMax + 5)
+      suggestedMin: axMin(_tMin),
+      suggestedMax: axMax(_tMax)
     };
     return base;
   })();
@@ -994,7 +998,7 @@ function buildCharts(data) {
       plugins: { legend: compactLegendOptions() },
       scales: {
         x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
-        y: { type: "linear", position: "left", beginAtZero: true, max: Math.ceil(maxWind * 1.15), title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } }
+        y: { type: "linear", position: "left", beginAtZero: true, max: axMax(maxWind), title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } }
       }
     }
   });
@@ -1035,7 +1039,7 @@ function buildCharts(data) {
         scales: {
           x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
           y:  { type: "linear", position: "left",  min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
-          y1: { type: "linear", position: "right", beginAtZero: true, max: Math.max(Math.ceil(maxPrecip * 1.3), 1),
+          y1: { type: "linear", position: "right", beginAtZero: true, max: Math.max(axMax(maxPrecip), 1),
                 title: { display: false }, ticks: { font: { size: 10 }, color: "#38bdf8" }, grid: { drawOnChartArea: false } }
         }
       }
@@ -1044,8 +1048,8 @@ function buildCharts(data) {
 
   // ── Humidity & Dew Point chart ───────────────────────────────────────
   if (humidityCtx) {
-    const dewMin = Math.min(...data.map(r => Number(r.dew_point ?? 0))) - 2;
-    const dewMax = Math.max(...data.map(r => Number(r.dew_point ?? 20))) + 2;
+    const dewMin = axMin(Math.min(...data.map(r => Number(r.dew_point ?? 0))));
+    const dewMax = axMax(Math.max(...data.map(r => Number(r.dew_point ?? 20))));
     humidityChart = new Chart(humidityCtx, {
       type: "line",
       plugins: [timeLinePlugin],
@@ -2303,10 +2307,10 @@ async function downloadPdf() {
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
           x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
-          y:  { type: "linear", position: "left",  beginAtZero: true, min: 0, max: Math.max(5, Math.ceil(_maxSh  * 1.15)),
+          y:  { type: "linear", position: "left",  beginAtZero: true, min: 0, max: Math.max(5, axMax(_maxSh)),
                 title: { display: true, text: "Shadow Length (m)", font: { size: 26, weight: "700" }, color: "#0f172a" },
                 ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
-          y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: Math.max(5, Math.ceil(_maxPct + 1)),
+          y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: Math.max(5, axMax(_maxPct)),
                 title: { display: true, text: "Shading (%)", font: { size: 26, weight: "700" }, color: "#0f172a" },
                 ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { drawOnChartArea: false } }
         }
@@ -2378,7 +2382,7 @@ async function downloadPdf() {
       options: { ..._pdfChartOpts("Wind Speed (m/s)"),
         scales: {
           x: { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
-          y: { type: "linear", position: "left", beginAtZero: true, max: Math.ceil(_maxWindPdf * 1.15),
+          y: { type: "linear", position: "left", beginAtZero: true, max: axMax(_maxWindPdf),
                title: { display: true, text: "Wind Speed (m/s)", font: { size: 26, weight: "700" }, color: "#0f172a" },
                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } }
         }
@@ -2404,7 +2408,7 @@ async function downloadPdf() {
           y:  { type: "linear", position: "left",  min: 0, max: 100,
                 title: { display: true, text: "Cloud Cover (%)", font: { size: 26, weight: "700" }, color: "#0f172a" },
                 ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
-          y1: { type: "linear", position: "right", beginAtZero: true, max: Math.max(Math.ceil(_maxPrecipPdf * 1.3), 1),
+          y1: { type: "linear", position: "right", beginAtZero: true, max: Math.max(axMax(_maxPrecipPdf), 1),
                 title: { display: true, text: "Precipitation (mm/h)", font: { size: 26, weight: "700" }, color: "#38bdf8" },
                 ticks: { font: { size: 22 }, color: "#38bdf8" }, grid: { drawOnChartArea: false } }
         }
@@ -2415,7 +2419,7 @@ async function downloadPdf() {
     const _sdBtPdf   = _ds.map(r => { const s = Math.max(Number(r.shadow_length_with_backtracking    || 0), 0); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
     const _sdNoBtPdf = _ds.map(r => { const s = Math.max(Number(r.shadow_length_without_backtracking || 0), 0); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
     const _rawMaxSdPdf = Math.max(..._sdBtPdf.map(Math.abs), ..._sdNoBtPdf.map(Math.abs), 1);
-    const _maxSdPdf = Math.ceil((_rawMaxSdPdf + 5) / 5) * 5; // round up to next 5 m
+    const _maxSdPdf = Math.ceil(axMax(_rawMaxSdPdf) / 5) * 5; // +10%, rounded to nearest 5 m
     const shadowDirImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
