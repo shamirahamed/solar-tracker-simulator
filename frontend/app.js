@@ -1547,6 +1547,17 @@ async function fetchWeatherFromBrowser(latitude, longitude, date) {
   const ARCHIVE_URL  = "https://archive-api.open-meteo.com/v1/archive";
   const VARIABLES    = "shortwave_radiation,diffuse_radiation,direct_radiation,temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover,precipitation,relative_humidity_2m,dew_point_2m";
 
+  /** fetch with a manual timeout (AbortSignal.timeout not supported on older Safari) */
+  async function _fetchWithTimeout(url, ms) {
+    const ac = new AbortController();
+    const tid = setTimeout(() => ac.abort(), ms);
+    try {
+      return await fetch(url, { signal: ac.signal });
+    } finally {
+      clearTimeout(tid);
+    }
+  }
+
   // Determine archive vs forecast (archive has ~5-7 day lag)
   let apiUrl = FORECAST_URL;
   let params;
@@ -1577,20 +1588,19 @@ async function fetchWeatherFromBrowser(latitude, longitude, date) {
       });
     }
   } catch (_) {
-    const pastDays = 2, forecastDays = 2;
-    params = new URLSearchParams({ latitude, longitude, past_days: pastDays, forecast_days: forecastDays, timezone: "UTC" });
+    params = new URLSearchParams({ latitude, longitude, past_days: 2, forecast_days: 2, timezone: "UTC" });
   }
 
   const url = `${apiUrl}?${params.toString()}&hourly=${VARIABLES}`;
+  let omPayload;
 
-  let payload;
   try {
-    const resp = await fetch(url, { signal: AbortSignal.timeout(25000) });
+    const resp = await _fetchWithTimeout(url, 25000);
     if (!resp.ok) throw new Error(`Open-Meteo HTTP ${resp.status}`);
-    payload = await resp.json();
-    if (payload.error) throw new Error(`Open-Meteo: ${payload.reason || "unknown error"}`);
-  } catch (err) {
-    // Fallback: try the other API
+    omPayload = await resp.json();
+    if (omPayload.error) throw new Error(`Open-Meteo: ${omPayload.reason || "unknown error"}`);
+  } catch (primaryErr) {
+    // Fallback: try the other endpoint
     const fallbackUrl = apiUrl === ARCHIVE_URL ? FORECAST_URL : ARCHIVE_URL;
     let fbParams;
     if (fallbackUrl === ARCHIVE_URL) {
@@ -1601,10 +1611,15 @@ async function fetchWeatherFromBrowser(latitude, longitude, date) {
     } else {
       fbParams = new URLSearchParams({ latitude, longitude, past_days: 10, forecast_days: 2, timezone: "UTC" });
     }
-    const fbResp = await fetch(`${fallbackUrl}?${fbParams.toString()}&hourly=${VARIABLES}`, { signal: AbortSignal.timeout(25000) });
-    if (!fbResp.ok) throw err; // re-throw original error if fallback also fails
-    payload = await fbResp.json();
-    if (payload.error) throw err;
+    let fbResp;
+    try {
+      fbResp = await _fetchWithTimeout(`${fallbackUrl}?${fbParams.toString()}&hourly=${VARIABLES}`, 25000);
+    } catch (_) {
+      throw primaryErr;
+    }
+    if (!fbResp.ok) throw primaryErr;
+    omPayload = await fbResp.json();
+    if (omPayload.error) throw primaryErr;
   }
 
   const hourly   = payload.hourly || {};
@@ -1653,15 +1668,19 @@ async function runSimulation() {
   // Fetch weather in the browser so Render's server never hits Open-Meteo
   // (shared IPs trigger 429 rate limits). Pass the data in the payload.
   if (payload.use_real_weather) {
+    showPopup("Fetching weather from Open-Meteo…", "info", 6000);
     try {
-      showPopup("Fetching weather from Open-Meteo…", "info", 5000);
       const weatherData = await fetchWeatherFromBrowser(
         payload.latitude, payload.longitude, payload.date
       );
+      const hourCount = Object.keys(weatherData).length;
+      if (hourCount < 10) throw new Error("Too few hours returned: " + hourCount);
       payload.weather_data = weatherData;
+      showPopup(`✓ Weather fetched (${hourCount} hours) — running simulation…`, "success", 4000);
     } catch (weatherErr) {
-      console.warn("Browser weather fetch failed, server will try:", weatherErr);
-      // Leave weather_data absent — backend will attempt its own fetch (or use clearsky)
+      console.error("Browser weather fetch failed:", weatherErr);
+      showPopup(`⚠ Weather fetch failed: ${weatherErr.message}. Using clear-sky instead.`, "error", 7000);
+      // Leave weather_data absent — backend will use clearsky fallback
     }
   }
 
