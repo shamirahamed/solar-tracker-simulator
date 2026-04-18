@@ -525,7 +525,40 @@ const timeLinePlugin = {
   id: "timeLine",
   afterDraw(chart) {
     if (!latestSimulationData.length || !timeSlider) return;
-    if (liveTimer) return;   // live mode: 2D canvas tracks time; no marker needed on data charts
+    // Live mode: draw a small current-time badge in top-right corner; skip the full marker
+    if (liveTimer) {
+      const idx = parseInt(timeSlider.value || "0", 10);
+      const row = latestSimulationData[idx];
+      if (!row) return;
+      const timeStr = formatTimeLabel(row.timestamp);
+      const xScale = chart.scales?.x;
+      if (!xScale) return;
+      const { top, right } = chart.chartArea;
+      const ctx = chart.ctx;
+      const isLight = document.documentElement.dataset.theme === "light";
+      ctx.save();
+      ctx.font = "bold 11px system-ui,sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      const tw = ctx.measureText(timeStr).width;
+      // Pill background
+      ctx.globalAlpha = 0.88;
+      ctx.fillStyle = isLight ? "rgba(255,255,255,0.93)" : "rgba(13,20,32,0.90)";
+      ctx.beginPath();
+      ctx.roundRect(right - tw - 14, top + 4, tw + 10, 18, 4);
+      ctx.fill();
+      // Green border
+      ctx.globalAlpha = 0.7;
+      ctx.strokeStyle = "#22c55e";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // Time text
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#22c55e";
+      ctx.fillText(timeStr, right - 7, top + 7);
+      ctx.restore();
+      return;
+    }
     const idx   = parseInt(timeSlider.value || "0", 10);
     const total = latestSimulationData.length;
     const xScale = chart.scales?.x;
@@ -2641,7 +2674,7 @@ function openChartModal(canvasId) {
 
   _modalChart = new Chart(modalCanvas, {
     type: source.config.type,
-    plugins: [timeLinePlugin],
+    plugins: [],   // no timeLinePlugin in expand popup — scrub via main slider on main page
     data: JSON.parse(JSON.stringify(srcData)),
     options: {
       ...JSON.parse(JSON.stringify(srcOptions)),
