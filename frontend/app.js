@@ -2925,7 +2925,11 @@ window.onload = function () {
      powerWChart, shadowDirChart, tempChart, ghiCompChart,
      windChart, cloudRainChart, humidityChart, _modalChart].forEach(c => {
       if (!c) return;
-      try { c.tooltip.setActiveElements([], {x:0, y:0}); c.update("none"); } catch (_) {}
+      try {
+        c.tooltip.setActiveElements([], {x:0, y:0});
+        c._lastEvent = null;   // prevent play/live update() from re-showing tooltip via cached event
+        c.update("none");
+      } catch (_) {}
     });
   }
   // Clear on finger-up from any chart canvas
