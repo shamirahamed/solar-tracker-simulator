@@ -1759,7 +1759,7 @@ function _pdfChartOpts(yText) {
     layout: { padding: { top: 6, right: 24, bottom: 6, left: 6 } },
     plugins: {
       legend: { display: true, position: "top",
-        labels: { font: { size: 26, weight: "600" }, color: "#0f172a", boxWidth: 24, padding: 18 } },
+        labels: { font: { size: 26, weight: "600" }, color: "#0f172a", boxWidth: 24, padding: 32 } },
       tooltip: { enabled: false }
     },
     scales: {
@@ -2912,18 +2912,23 @@ window.onload = function () {
     });
   });
 
-  // Dismiss chart tooltips on touch outside a chart canvas (Chart.js has no
-  // native mouseleave on touch, so tooltips stick until tapped again).
-  const _chartCanvasIds = ["anglesChart", "sunChart", "shadingChart", "powerChart"];
-  document.addEventListener("touchstart", (e) => {
-    const onCanvas = _chartCanvasIds.some(id => e.target === document.getElementById(id));
-    if (!onCanvas) {
-      [anglesChart, sunChart, shadingChart, powerChart].forEach(c => {
-        if (!c) return;
-        try { c.tooltip.setActiveElements([], {}); c.update("none"); } catch (_) {}
-      });
-    }
-  }, { passive: true });
+  // Dismiss chart tooltips the moment a finger lifts (touchend).
+  // Chart.js has no native mouseleave on touch so tooltips would otherwise
+  // stick until the next tap. This clears all charts + the modal chart on release.
+  function _clearAllTooltips() {
+    [anglesChart, sunChart, shadingChart, powerChart,
+     powerWChart, shadowDirChart, tempChart, ghiCompChart,
+     windChart, cloudRainChart, humidityChart, _modalChart].forEach(c => {
+      if (!c) return;
+      try { c.tooltip.setActiveElements([], {x:0, y:0}); c.update("none"); } catch (_) {}
+    });
+  }
+  // Clear on finger-up from any chart canvas
+  ["anglesChart","sunChart","shadingChart","powerChart",
+   "powerWChart","shadowDirChart","tempChart","ghiCompChart",
+   "windChart","cloudRainChart","humidityChart","chartModalCanvas"].forEach(id => {
+    document.getElementById(id)?.addEventListener("touchend", _clearAllTooltips, { passive: true });
+  });
 
   // Keep-alive ping — prevents Render free tier backend from sleeping.
   // Calls /health silently every 10 min; no UI impact if it fails.
