@@ -1473,11 +1473,11 @@ canvas { width: 100% !important; height: 100% !important; }
   /* timezone + date sit side-by-side in landscape (auto = default grid placement) */
   .timezone-col, .date-col { grid-column: auto; }
 
-  /* Keep font-size at 16px to prevent iOS auto-zoom on input focus */
+  /* Compact inputs to match KPI card visual weight; keep 16px for iOS anti-zoom */
   input[type="number"],
   input[type="text"],
   input[type="date"],
-  select { min-height: 34px; font-size: 16px; padding: 5px 10px; }
+  select { min-height: 30px; font-size: 16px; padding: 3px 8px; }
 
   .preset-row { grid-template-columns: repeat(4, minmax(0,1fr)); }
   .button-row { grid-template-columns: repeat(3, minmax(0,1fr)); }
@@ -1562,6 +1562,22 @@ body[data-preview="mobile"] .legend-item           { font-size: 10px; gap: 4px; 
 body[data-preview="mobile"] .legend-swatch         { width: 10px; height: 10px; }
 body[data-preview="mobile"] .chart-yaxis-label     { font-size: 9px; margin-top: -2px; margin-bottom: 2px; }
 body[data-preview="mobile"] .helper-text           { display: none; }
+
+/* On a real landscape mobile, "Mobile" preview = same 2-col layout as Desktop/landscape.
+   Only fires in orientation:landscape + max-height:520px — never affects portrait. */
+@media (orientation: landscape) and (max-height: 520px) {
+  body[data-preview="mobile"]                              { background: var(--bg); }
+  body[data-preview="mobile"] .app-shell                  { max-width: 100% !important; box-shadow: none !important; border-radius: 0 !important; }
+  body[data-preview="mobile"] .layout-grid                { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  body[data-preview="mobile"] .section-divider.mobile-only{ display: none; }
+  body[data-preview="mobile"] .card                       { grid-column: auto; }
+  body[data-preview="mobile"] .kpi-grid                   { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  body[data-preview="mobile"] .tracker-canvas-wrap        { height: calc(100vh - 120px); min-height: 180px; }
+  body[data-preview="mobile"] .chart-container            { height: calc(100vh - 80px);  min-height: 200px; }
+  body[data-preview="mobile"] .timezone-col,
+  body[data-preview="mobile"] .date-col                   { grid-column: auto; }
+  body[data-preview="mobile"] .input-grid                 { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px 10px; }
+}
 
 /* tablet portrait: 768px */
 body[data-preview="tablet-p"] .app-shell           { max-width: 768px !important; padding: 16px 14px; }
