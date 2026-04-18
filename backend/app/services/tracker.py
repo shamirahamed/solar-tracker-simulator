@@ -154,6 +154,7 @@ def get_tracker_day_profile(
         tmp_arr = pd.Series(index=times, dtype=float)
         wind_arr  = pd.Series(index=times, dtype=float)
         cloud_arr = pd.Series(index=times, dtype=float)
+        prc_arr   = pd.Series(index=times, dtype=float)
 
         for ts in times:
             w = minute_weather.get(ts)
@@ -164,6 +165,7 @@ def get_tracker_day_profile(
                 tmp_arr[ts] = w["temp"]
                 wind_arr[ts]  = w.get("wind_speed", 1.0) if w is not None else 1.0
                 cloud_arr[ts] = w.get("cloud_cover", 0.0) if w is not None else 0.0
+                prc_arr[ts]   = w.get("precipitation", 0.0) if w is not None else 0.0
             else:
                 ghi_arr[ts] = _safe_series_value(clearsky["ghi"], ts, 0.0)
                 dhi_arr[ts] = _safe_series_value(clearsky["dhi"], ts, 0.0)
@@ -171,6 +173,7 @@ def get_tracker_day_profile(
                 tmp_arr[ts] = 20.0
                 wind_arr[ts]  = 1.0
                 cloud_arr[ts] = 0.0
+                prc_arr[ts]   = 0.0
 
         ghi_arr = ghi_arr.clip(lower=0.0) * soiling_factor
         dhi_arr = dhi_arr.clip(lower=0.0) * soiling_factor
@@ -178,6 +181,7 @@ def get_tracker_day_profile(
         tmp_arr = tmp_arr.fillna(20.0)
         wind_arr  = wind_arr.clip(lower=0.0).fillna(1.0)
         cloud_arr = cloud_arr.clip(0.0, 100.0).fillna(0.0)
+        prc_arr   = prc_arr.clip(lower=0.0).fillna(0.0)
 
         # Vectorised fixed-panel POA using real-weather DNI derived per row
         # DNI is derived in the per-row loop below for accuracy
@@ -190,6 +194,7 @@ def get_tracker_day_profile(
         tmp_arr = pd.Series(20.0, index=times)
         wind_arr  = pd.Series(1.0, index=times)
         cloud_arr = pd.Series(0.0, index=times)
+        prc_arr   = pd.Series(0.0, index=times)
 
         _poa_fixed_cs = pvlib.irradiance.get_total_irradiance(
             surface_tilt=_fixed_tilt,
@@ -221,6 +226,7 @@ def get_tracker_day_profile(
         g_temp = float(tmp_arr.loc[ts]) if not pd.isna(tmp_arr.loc[ts]) else 20.0
         g_wind  = float(wind_arr.loc[ts]) if not pd.isna(wind_arr.loc[ts]) else 1.0
         g_cloud = float(cloud_arr.loc[ts]) if not pd.isna(cloud_arr.loc[ts]) else 0.0
+        g_prc   = float(prc_arr.loc[ts])  if not pd.isna(prc_arr.loc[ts])  else 0.0
         is_stowed = (wind_stow_speed > 0) and (g_wind >= wind_stow_speed)
 
         if weather_active:
@@ -297,6 +303,7 @@ def get_tracker_day_profile(
                 "wind_speed":  round(g_wind, 2),
                 "cloud_cover": round(g_cloud, 1),
                 "wind_stow":   is_stowed,
+                "precipitation": round(g_prc, 3),
             }
         )
 

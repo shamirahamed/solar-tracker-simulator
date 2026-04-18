@@ -1,12 +1,13 @@
 // API base URL resolution (priority order):
 // 1. User-saved override in localStorage (Settings panel)
-// 2. RENDER_API_URL injected at build/deploy time (window.__RENDER_API_URL)
-// 3. Codespaces: auto-derive from the preview hostname
+// 2. Codespaces: auto-derive from the preview hostname (must check BEFORE Render override
+//    because _api_config.js is also served in Codespaces and would point at the wrong host)
+// 3. RENDER_API_URL injected at build/deploy time (window.__RENDER_API_URL)
 // 4. Local dev fallback
 const AUTO_API_BASE = (() => {
-  if (window.__RENDER_API_URL) return window.__RENDER_API_URL;
   if (window.location.hostname.includes("app.github.dev"))
     return `${window.location.protocol}//${window.location.hostname.replace(/-\d+\./, "-8000.")}/api/v1`;
+  if (window.__RENDER_API_URL) return window.__RENDER_API_URL;
   return "http://localhost:8000/api/v1";
 })();
 
@@ -48,7 +49,8 @@ const powerWCtx     = document.getElementById("powerWChart")?.getContext("2d");
 const shadowDirCtx  = document.getElementById("shadowDirChart")?.getContext("2d");
 const tempCtx       = document.getElementById("tempChart")?.getContext("2d");
 const ghiCompCtx    = document.getElementById("ghiCompChart")?.getContext("2d");
-const windCtx       = document.getElementById("windChart")?.getContext("2d");
+const windCtx          = document.getElementById("windChart")?.getContext("2d");
+const cloudRainCtx     = document.getElementById("cloudRainChart")?.getContext("2d");
 
 const trackerCanvas = document.getElementById("tracker2dCanvas");
 const tracker2dCtx = trackerCanvas?.getContext("2d");
@@ -127,6 +129,7 @@ let shadowDirChart = null;
 let tempChart      = null;
 let ghiCompChart   = null;
 let windChart      = null;
+let cloudRainChart = null;
 let latestSimulationResult = null;
 let latestSimulationData = [];
 let playTimer = null;
@@ -501,6 +504,7 @@ function destroyCharts() {
   tempChart?.destroy();
   ghiCompChart?.destroy();
   windChart?.destroy();
+  cloudRainChart?.destroy();
 }
 
 // Plugin: draws a vertical accent line + value labels at the current time slider position
@@ -608,7 +612,7 @@ const timeLinePlugin = {
 
 function _refreshChartLines() {
   [anglesChart, sunChart, shadingChart, powerChart,
-   powerWChart, shadowDirChart, tempChart, ghiCompChart, windChart].forEach(c => {
+   powerWChart, shadowDirChart, tempChart, ghiCompChart, windChart, cloudRainChart].forEach(c => {
     try { if (c) c.update("none"); } catch (e) {}
   });
 }
@@ -677,7 +681,19 @@ function buildCharts(data) {
       datasets: [
         { label: "Ideal", data: data.map((r) => r.ideal_tracker_angle), borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
         { label: "Limited", data: data.map((r) => r.limited_tracker_angle), borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
-        { label: "Backtracking", data: data.map((r) => r.backtracking_angle), borderWidth: 1.5, pointRadius: 0, tension: 0.22 }
+        { label: "Backtracking", data: data.map((r) => r.backtracking_angle), borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
+        {
+          label: "Wind Stow",
+          data: data.map((r) => r.wind_stow ? 0 : null),
+          borderColor: "#ef4444",
+          backgroundColor: "#ef4444",
+          borderWidth: 0,
+          pointRadius: 3,
+          pointStyle: "triangle",
+          showLine: false,
+          tension: 0,
+          spanGaps: false
+        }
       ]
     },
     options: chartBaseOptions("Angle (deg)")
@@ -690,7 +706,7 @@ function buildCharts(data) {
       labels,
       datasets: [
         { label: "Elevation", data: data.map((r) => r.sun_elevation), borderColor: "#d97706", borderWidth: 1.5, pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Azimuth",   data: data.map((r) => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 1.5, pointRadius: 0, tension: 0.22, yAxisID: "y1" }
+        { label: "Azimuth",   data: data.map((r) => r.sun_azimuth),   borderColor: "#38bdf8", borderWidth: 1.5, pointRadius: 0, tension: 0.22, yAxisID: "y1" }
       ]
     },
     options: (() => {
@@ -944,6 +960,48 @@ function buildCharts(data) {
       }
     }
   });
+
+  // ── Cloud Cover & Precipitation chart ───────────────────────────────
+  if (cloudRainCtx) {
+    const maxPrecip = Math.max(...data.map(r => Number(r.precipitation ?? 0)), 0.1);
+    cloudRainChart = new Chart(cloudRainCtx, {
+      type: "bar",
+      plugins: [timeLinePlugin],
+      data: {
+        labels,
+        datasets: [
+          {
+            type: "line",
+            label: "Cloud Cover (%)",
+            data: data.map(r => r.cloud_cover != null ? Number(r.cloud_cover) : 0),
+            borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.15)",
+            borderWidth: 1.5, pointRadius: 0, tension: 0.22, fill: true,
+            yAxisID: "y"
+          },
+          {
+            type: "bar",
+            label: "Precipitation (mm/h)",
+            data: data.map(r => r.precipitation != null ? Number(r.precipitation) : 0),
+            backgroundColor: "rgba(56,189,248,0.55)",
+            borderColor: "#38bdf8",
+            borderWidth: 1,
+            yAxisID: "y1"
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: compactLegendOptions() },
+        scales: {
+          x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+          y:  { type: "linear", position: "left",  min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+          y1: { type: "linear", position: "right", beginAtZero: true, max: Math.max(Math.ceil(maxPrecip * 1.3), 1),
+                title: { display: false }, ticks: { font: { size: 10 }, color: "#38bdf8" }, grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+  }
 }
 
 function resizeTrackerCanvas() {
@@ -1973,7 +2031,7 @@ async function downloadPdf() {
       type: "line",
       data: { labels: _lbl, datasets: [
         { label: "Elevation", hidden: !_chk("pdf_elevation"), data: _ds.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Azimuth",   hidden: !_chk("pdf_azimuth"),   data: _ds.map(r => r.sun_azimuth),   borderColor: "#7c3aed", borderWidth: 2.5, pointRadius: 0, tension: 0.22, yAxisID: "y1" }
+        { label: "Azimuth",   hidden: !_chk("pdf_azimuth"),   data: _ds.map(r => r.sun_azimuth),   borderColor: "#38bdf8", borderWidth: 2.5, pointRadius: 0, tension: 0.22, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Elevation (deg)"),
         scales: {
@@ -2082,6 +2140,32 @@ async function downloadPdf() {
           y: { type: "linear", position: "left", beginAtZero: true, max: Math.ceil(_maxWindPdf * 1.2),
                title: { display: true, text: "Wind Speed (m/s)", font: { size: 26, weight: "700" }, color: "#0f172a" },
                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } }
+        }
+      }
+    });
+
+    const _maxPrecipPdf = Math.max(..._ds.map(r => Number(r.precipitation ?? 0)), 0.1);
+    const cloudRainImg = pdfOffscreenChart({
+      type: "bar",
+      data: { labels: _lbl, datasets: [
+        { type: "line",  label: "Cloud Cover (%)",       hidden: !_chk("pdf_cloud_cover"),
+          data: _ds.map(r => Number(r.cloud_cover || 0)),
+          borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.15)",
+          borderWidth: 2.2, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y" },
+        { type: "bar",   label: "Precipitation (mm/h)",  hidden: !_chk("pdf_precip"),
+          data: _ds.map(r => Number(r.precipitation ?? 0)),
+          backgroundColor: "rgba(56,189,248,0.55)", borderColor: "#38bdf8",
+          borderWidth: 1, yAxisID: "y1" }
+      ]},
+      options: { ..._pdfChartOpts("Cloud Cover (%)"),
+        scales: {
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y:  { type: "linear", position: "left",  min: 0, max: 100,
+                title: { display: true, text: "Cloud Cover (%)", font: { size: 26, weight: "700" }, color: "#0f172a" },
+                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
+          y1: { type: "linear", position: "right", beginAtZero: true, max: Math.max(Math.ceil(_maxPrecipPdf * 1.3), 1),
+                title: { display: true, text: "Precipitation (mm/h)", font: { size: 26, weight: "700" }, color: "#38bdf8" },
+                ticks: { font: { size: 22 }, color: "#38bdf8" }, grid: { drawOnChartArea: false } }
         }
       }
     });
@@ -2226,6 +2310,18 @@ async function downloadPdf() {
       if (windImg) doc.addImage(windImg, "JPEG", X, 150, CW, CH);
     }
 
+    // PAGE 7 — Cloud Cover & Precipitation
+    {
+      const CW = 160, CH = 120;
+      const X = 15;
+      doc.addPage();
+      pdfPageBackground(doc);
+
+      doc.setFontSize(13); doc.setTextColor(15, 23, 42);
+      doc.text("Cloud Cover & Precipitation", X, 14);
+      if (cloudRainImg) doc.addImage(cloudRainImg, "JPEG", X, 18, CW, CH);
+    }
+
     // FINAL PAGE - NOTES
     doc.addPage();
     pdfPageBackground(doc);
@@ -2338,6 +2434,7 @@ const CHART_MAP = {
   tempChart:      { get: () => tempChart,      title: "Cell Temperature",      yLabel: "Temperature (°C)",       info: "Cell temp is higher than ambient due to solar heating. Wind speed lowers cell temp (cooling effect)." },
   ghiCompChart:   { get: () => ghiCompChart,   title: "Cloud Cover & GHI",     yLabel: "GHI (W/m²)", yLabelR: "Cloud Cover (%)", info: "Gap between actual and clear-sky GHI shows weather impact. Lines identical in clear-sky mode." },
   windChart:      { get: () => windChart,      title: "Wind Speed & Stow",     yLabel: "Wind Speed (m/s)",       info: "Orange dashed line = stow threshold. Red dots = minutes when tracker is stowed flat (0°)." },
+  cloudRainChart: { get: () => cloudRainChart, title: "Cloud Cover & Precipitation", yLabel: "Cloud Cover (%)", yLabelR: "Precipitation (mm/h)", info: "Cloud cover (%) as area line. Precipitation (mm/h) as bars. Only populated with real weather enabled." },
 };
 
 function openChartModal(canvasId) {

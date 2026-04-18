@@ -61,9 +61,10 @@ class SimulationPoint(BaseModel):
     cell_temp: float = 20.0
     clearsky_ghi: float = 0.0
     projected_solar_zenith: float = 0.0
-    wind_speed:  float = 1.0
-    cloud_cover: float = 0.0
-    wind_stow:   bool  = False
+    wind_speed:    float = 1.0
+    cloud_cover:   float = 0.0
+    wind_stow:     bool  = False
+    precipitation: float = 0.0
 
 
 class SimulationResponse(BaseModel):

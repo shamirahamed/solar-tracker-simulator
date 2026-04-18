@@ -566,6 +566,17 @@
         <div class="chart-container"><canvas id="windChart"></canvas></div>
       </section>
 
+      <section class="card">
+        <div class="section-head">
+          <h2>Cloud Cover &amp; Precipitation</h2>
+          <span class="section-note section-note-desktop">Cloud cover (%) and precipitation (mm/h)</span>
+          <button class="info-toggle" aria-label="More info" data-target="info-cloudrain">ⓘ</button>
+        </div>
+        <div class="chart-legend-note" id="info-cloudrain">Cloud cover (left axis, %) shown as filled area. Precipitation (right axis, mm/h) shown as bars. Only shows real data when "Use real weather" is enabled.</div>
+        <div class="chart-yaxis-label">Cloud Cover (%)</div>
+        <div class="chart-container"><canvas id="cloudRainChart"></canvas></div>
+      </section>
+
       <section class="card full-width">
         <details>
           <summary class="preview-summary">Response Preview (advanced)</summary>
@@ -679,6 +690,12 @@
           <div class="pdf-filter-label">Wind Speed &amp; Stow</div>
           <label class="pdf-check"><input type="checkbox" id="pdf_wind_speed" checked> Wind Speed</label>
           <label class="pdf-check"><input type="checkbox" id="pdf_wind_stow" checked> Stow Threshold</label>
+        </div>
+
+        <div class="pdf-filter-group">
+          <div class="pdf-filter-label">Cloud &amp; Precipitation</div>
+          <label class="pdf-check"><input type="checkbox" id="pdf_cloud_cover" checked> Cloud Cover</label>
+          <label class="pdf-check"><input type="checkbox" id="pdf_precip" checked> Precipitation</label>
         </div>
 
       </div>

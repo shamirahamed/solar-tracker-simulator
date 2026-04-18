@@ -349,9 +349,10 @@ def run_full_simulation(
                 "cell_temp": round(cell_temp_bt, 2),
                 "clearsky_ghi": round(float(row.get("clearsky_ghi", 0.0)), 2),
                 "projected_solar_zenith": round(float(row.get("projected_solar_zenith", 0.0)), 4),
-                "wind_speed":   round(float(row.get("wind_speed", 1.0)), 2),
+                "wind_speed":    round(float(row.get("wind_speed", 1.0)), 2),
                 "cloud_cover":  round(float(row.get("cloud_cover", 0.0)), 1),
                 "wind_stow":    bool(row.get("wind_stow", False)),
+                "precipitation": round(float(row.get("precipitation", 0.0)), 3),
             }
         )
 

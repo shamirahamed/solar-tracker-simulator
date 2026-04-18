@@ -16,7 +16,7 @@ _ARCHIVE_URL  = "https://archive-api.open-meteo.com/v1/archive"
 #   diffuse_radiation    = DHI (W/m²)
 #   direct_radiation     = BHI = DNI * cos(zenith)  (W/m²)
 #   temperature_2m       = ambient temperature (°C)
-_VARIABLES = "shortwave_radiation,diffuse_radiation,direct_radiation,temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover"
+_VARIABLES = "shortwave_radiation,diffuse_radiation,direct_radiation,temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover,precipitation"
 
 
 def _choose_url(date_str: str) -> str:
@@ -77,6 +77,7 @@ def fetch_hourly_weather(
     wsp_list = hourly.get("wind_speed_10m", [])
     wdr_list = hourly.get("wind_direction_10m", [])
     cld_list = hourly.get("cloud_cover", [])
+    prc_list = hourly.get("precipitation", [])
 
     def _safe(lst: list, i: int, default: float = 0.0) -> float:
         try:
@@ -95,6 +96,7 @@ def fetch_hourly_weather(
             "wind_speed": max(0.0, _safe(wsp_list, i, 1.0)),
             "wind_dir":   _safe(wdr_list, i, 0.0),
             "cloud_cover": max(0.0, min(100.0, _safe(cld_list, i, 0.0))),
+            "precipitation": max(0.0, _safe(prc_list, i, 0.0)),
         }
 
     return result
@@ -144,6 +146,8 @@ def interpolate_to_minutes(
         df_interp["wind_speed"] = df_interp["wind_speed"].clip(lower=0.0)
     if "cloud_cover" in df_interp.columns:
         df_interp["cloud_cover"] = df_interp["cloud_cover"].clip(lower=0.0, upper=100.0)
+    if "precipitation" in df_interp.columns:
+        df_interp["precipitation"] = df_interp["precipitation"].clip(lower=0.0)
 
     df_min = df_interp.reindex(times)
 
@@ -164,6 +168,7 @@ def interpolate_to_minutes(
             "wind_speed":  max(0.0, _nan_safe(row.get("wind_speed"), 1.0)),
             "wind_dir":    _nan_safe(row.get("wind_dir"), 0.0),
             "cloud_cover": max(0.0, min(100.0, _nan_safe(row.get("cloud_cover"), 0.0))),
+            "precipitation": max(0.0, _nan_safe(row.get("precipitation"), 0.0)),
         }
 
     return result
