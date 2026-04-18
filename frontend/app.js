@@ -1622,7 +1622,7 @@ async function fetchWeatherFromBrowser(latitude, longitude, date) {
     if (omPayload.error) throw primaryErr;
   }
 
-  const hourly   = payload.hourly || {};
+  const hourly   = omPayload.hourly || {};
   const times    = hourly.time                  || [];
   const ghiList  = hourly.shortwave_radiation   || [];
   const dhiList  = hourly.diffuse_radiation     || [];
