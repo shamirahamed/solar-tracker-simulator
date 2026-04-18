@@ -908,6 +908,8 @@ input[type="range"] { accent-color: var(--accent); }
   align-items: baseline;
   gap: 12px;
 }
+.chart-modal-header .chart-modal-close-inline,
+.chart-modal-header #chartModalClose { margin-left: auto; }
 
 .chart-modal-title {
   font-size: 16px;
