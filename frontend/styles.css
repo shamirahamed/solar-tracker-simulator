@@ -1563,28 +1563,6 @@ body[data-preview="mobile"] .legend-swatch         { width: 10px; height: 10px; 
 body[data-preview="mobile"] .chart-yaxis-label     { font-size: 9px; margin-top: -2px; margin-bottom: 2px; }
 body[data-preview="mobile"] .helper-text           { display: none; }
 
-/* mobile preview — on a real mobile device "Mobile" preview = same as natural layout,
-   no phone-in-phone frame. Portrait: strip frame + constraints. */
-@media (max-width: 640px) {
-  body[data-preview="mobile"]            { background: var(--bg); }
-  body[data-preview="mobile"] .app-shell { max-width: 100% !important; box-shadow: none !important; border-radius: 0 !important; }
-}
-
-/* mobile preview — landscape: strip frame and match the real landscape 2-col layout */
-@media (orientation: landscape) and (max-height: 520px) {
-  body[data-preview="mobile"]                        { background: var(--bg); }
-  body[data-preview="mobile"] .app-shell             { max-width: 100% !important; box-shadow: none !important; border-radius: 0 !important; padding: 8px 12px; }
-  body[data-preview="mobile"] .layout-grid           { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  body[data-preview="mobile"] .section-divider.mobile-only { display: none; }
-  body[data-preview="mobile"] .card                  { grid-column: auto; }
-  body[data-preview="mobile"] .kpi-grid              { grid-template-columns: repeat(4, minmax(0,1fr)); }
-  body[data-preview="mobile"] .tracker-canvas-wrap   { height: calc(100vh - 120px); min-height: 180px; }
-  body[data-preview="mobile"] .chart-container       { height: calc(100vh - 80px);  min-height: 200px; }
-  body[data-preview="mobile"] .timezone-col,
-  body[data-preview="mobile"] .date-col              { grid-column: auto; }
-  body[data-preview="mobile"] .input-grid            { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px 10px; }
-}
-
 /* tablet portrait: 768px */
 body[data-preview="tablet-p"] .app-shell           { max-width: 768px !important; padding: 16px 14px; }
 body[data-preview="tablet-p"] .layout-grid         { grid-template-columns: 1fr; } /* single col */
