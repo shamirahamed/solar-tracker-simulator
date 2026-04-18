@@ -1407,7 +1407,7 @@ function setPlaybackState(isPlaying) {
 
 function stop2DPlayback() {
   if (playTimer) {
-    clearInterval(playTimer);
+    cancelAnimationFrame(playTimer);
     playTimer = null;
   }
   setPlaybackState(false);
@@ -1475,29 +1475,28 @@ function start2DPlayback() {
     return;
   }
   stopLiveMode();   // live mode and playback are mutually exclusive
-
-  if (playTimer) {
-    clearInterval(playTimer);
-    playTimer = null;
-  }
+  stop2DPlayback(); // cancel any existing loop first
 
   setPlaybackState(true);
 
-  playTimer = setInterval(() => {
-    if (!latestSimulationData.length) {
-      stop2DPlayback();
-      return;
+  // Use rAF instead of setInterval — syncs to display refresh so iOS
+  // doesn't vibrate the page between JS ticks and display frames.
+  const STEP_MS = 140;
+  let lastStepTime = 0;
+
+  const loop = (timestamp) => {
+    if (!playTimer) return;   // stopped externally
+    if (timestamp - lastStepTime >= STEP_MS) {
+      lastStepTime = timestamp;
+      if (!latestSimulationData.length) { stop2DPlayback(); return; }
+      let next = parseInt(timeSlider.value || "0", 10) + 1;
+      if (next >= latestSimulationData.length) next = 0;
+      update2DFrame(next);
     }
+    playTimer = requestAnimationFrame(loop);
+  };
 
-    let current = parseInt(timeSlider.value || "0", 10);
-    let next = current + 1;
-
-    if (next >= latestSimulationData.length) {
-      next = 0;
-    }
-
-    update2DFrame(next);
-  }, 140);
+  playTimer = requestAnimationFrame(loop);
 }
 
 function setup2DControls() {

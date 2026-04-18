@@ -74,13 +74,39 @@ def fetch_hourly_weather(
 
     full_url = f"{url}?{base}&hourly={_VARIABLES}"
 
-    req = urllib.request.Request(full_url, headers={"User-Agent": "solar-tracker-simulator/1.2"})
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        payload = json.loads(resp.read().decode())
+    def _do_request(request_url: str) -> dict:
+        req = urllib.request.Request(request_url, headers={"User-Agent": "solar-tracker-simulator/1.2"})
+        with urllib.request.urlopen(req, timeout=25) as resp:
+            data = json.loads(resp.read().decode())
+        if data.get("error"):
+            raise ValueError(f"Open-Meteo API error: {data.get('reason', 'unknown')}")
+        return data
 
-    # Validate API response — Open-Meteo returns {"error": true, "reason": "..."} on failure
-    if payload.get("error"):
-        raise ValueError(f"Open-Meteo API error: {payload.get('reason', 'unknown')}")
+    try:
+        payload = _do_request(full_url)
+    except Exception as primary_exc:
+        # Fallback: if the chosen API failed, try the other one
+        fallback_url_base = _ARCHIVE_URL if url == _FORECAST_URL else _FORECAST_URL
+        if fallback_url_base == _ARCHIVE_URL:
+            fallback_params = urllib.parse.urlencode({
+                "latitude": latitude, "longitude": longitude,
+                "start_date": (_d - timedelta(days=1)).isoformat(),
+                "end_date":   (_d + timedelta(days=1)).isoformat(),
+                "timezone": "UTC",
+            })
+        else:
+            delta = (dt_date.today() - _d).days
+            fallback_params = urllib.parse.urlencode({
+                "latitude": latitude, "longitude": longitude,
+                "past_days": max(2, delta + 2),
+                "forecast_days": max(2, -delta + 2),
+                "timezone": "UTC",
+            })
+        fallback_full = f"{fallback_url_base}?{fallback_params}&hourly={_VARIABLES}"
+        try:
+            payload = _do_request(fallback_full)
+        except Exception:
+            raise primary_exc  # raise the original error if both fail
 
     hourly   = payload.get("hourly", {})
     times    = hourly.get("time", [])
