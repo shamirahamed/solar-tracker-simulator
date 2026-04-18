@@ -636,10 +636,10 @@ function compactLegendOptions() {
     position: "bottom",
     align: "start",
     labels: {
-      boxWidth:  isMobile ? 14 : 10,
-      boxHeight: isMobile ? 14 : 10,
-      padding:   isMobile ? 14 : 6,
-      font: { size: isMobile ? 12 : 10 },
+      boxWidth:  isMobile ? 12 : 10,
+      boxHeight: isMobile ? 12 : 10,
+      padding:   isMobile ? 10 : 6,
+      font: { size: isMobile ? 11 : 10 },
       color: "#94a3b8"
     }
   };
@@ -2651,7 +2651,11 @@ function openChartModal(canvasId) {
         ...(srcOptions.plugins || {}),
         legend: {
           ...(srcOptions.plugins?.legend || {}),
-          labels: { ...(srcOptions.plugins?.legend?.labels || {}), color: titleColor, font: { size: 10 }, boxWidth: 8, boxHeight: 8, padding: 8 }
+          labels: { ...(srcOptions.plugins?.legend?.labels || {}), color: titleColor,
+            font: { size: window.innerWidth <= 640 ? 11 : 10 },
+            boxWidth:  window.innerWidth <= 640 ? 12 : 8,
+            boxHeight: window.innerWidth <= 640 ? 12 : 8,
+            padding:   window.innerWidth <= 640 ? 10 : 8 }
         },
         tooltip: {
           backgroundColor: isLight ? "rgba(255,255,255,0.97)" : "rgba(13,20,32,0.97)",
