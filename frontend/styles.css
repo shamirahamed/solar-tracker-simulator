@@ -1098,6 +1098,7 @@ input[type="range"] { accent-color: var(--accent); }
   border-radius: 8px;
   padding: 8px;
   cursor: default;     /* no zoom-in cursor — expand via button only */
+  will-change: transform; /* promote to GPU layer — prevents chart redraws flickering the page */
 }
 
 /* single-column contexts: charts go full-width, can be taller */

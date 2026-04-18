@@ -65,6 +65,7 @@ let anglesChart = null;
 let sunChart = null;
 let shadingChart = null;
 let liveTimer = null;
+let _chartTouchActive = false;  // true while a finger is on any chart canvas
 
 /* ── Theme & accent system ─────────────────────────────────────────── */
 const ACCENTS = {
@@ -525,6 +526,7 @@ const timeLinePlugin = {
   id: "timeLine",
   afterDraw(chart) {
     if (!latestSimulationData.length || !timeSlider) return;
+    if (_chartTouchActive) return;  // finger on canvas — Chart.js tooltip handles it, no pills
     const idx   = parseInt(timeSlider.value || "0", 10);
     const total = latestSimulationData.length;
     const xScale = chart.scales?.x;
@@ -628,10 +630,16 @@ const timeLinePlugin = {
   }
 };
 
+let _rafPending = false;
 function _refreshChartLines() {
-  [anglesChart, sunChart, shadingChart, powerChart,
-   powerWChart, shadowDirChart, tempChart, ghiCompChart, windChart, cloudRainChart, humidityChart].forEach(c => {
-    try { if (c) c.update("none"); } catch (e) {}
+  if (_rafPending) return;   // already a frame queued — don't stack redraws
+  _rafPending = true;
+  requestAnimationFrame(() => {
+    _rafPending = false;
+    [anglesChart, sunChart, shadingChart, powerChart,
+     powerWChart, shadowDirChart, tempChart, ghiCompChart, windChart, cloudRainChart, humidityChart].forEach(c => {
+      try { if (c) c.update("none"); } catch (e) {}
+    });
   });
 }
 
@@ -2932,11 +2940,15 @@ window.onload = function () {
       } catch (_) {}
     });
   }
-  // Clear on finger-up from any chart canvas
+  // Set touch flag on finger-down, clear + dismiss tooltip on finger-up
   ["anglesChart","sunChart","shadingChart","powerChart",
    "powerWChart","shadowDirChart","tempChart","ghiCompChart",
    "windChart","cloudRainChart","humidityChart","chartModalCanvas"].forEach(id => {
-    document.getElementById(id)?.addEventListener("touchend", _clearAllTooltips, { passive: true });
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("touchstart", () => { _chartTouchActive = true; }, { passive: true });
+    el.addEventListener("touchend", () => { _chartTouchActive = false; _clearAllTooltips(); }, { passive: true });
+    el.addEventListener("touchcancel", () => { _chartTouchActive = false; _clearAllTooltips(); }, { passive: true });
   });
 
   // Keep-alive ping — prevents Render free tier backend from sleeping.
