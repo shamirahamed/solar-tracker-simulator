@@ -517,6 +517,16 @@ select option { background: var(--card); color: var(--text); }
   margin-top: 3px;
 }
 
+.soiling-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.soiling-input-row .preset-btn-row {
+  flex: 1;
+  margin-bottom: 0;
+}
 .preset-btn-row {
   display: flex;
   flex-wrap: wrap;
@@ -974,7 +984,15 @@ input[type="range"] { accent-color: var(--accent); }
 }
 
 /* PDF filter modal */
+#pdfModal .chart-modal-content {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
 .pdf-filter-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   height: auto !important;
   padding: 16px 18px !important;
   display: flex;

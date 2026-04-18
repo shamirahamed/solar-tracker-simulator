@@ -321,8 +321,19 @@ function restoreSavedInputs() {
     Object.keys(data).forEach((key) => {
       const el = document.getElementById(key);
       if (!el) return;
-      if (el.type === "checkbox") el.checked = !!data[key];
-      else el.value = data[key];
+      if (el.type === "checkbox") {
+        el.checked = !!data[key];
+      } else if (key === "soiling_loss") {
+        // payload stores fraction (0–0.5); input shows percentage (0–50)
+        const pct = parseFloat(data[key]) * 100;
+        el.value = isNaN(pct) ? 0 : +pct.toFixed(1);
+      } else if (key === "wind_stow_speed") {
+        // only restore slider value; checkbox (wind_stow_enable) defaults to unchecked
+        const v = parseFloat(data[key]);
+        el.value = (v > 0) ? v : 15;   // default back to 15 if was 0 (disabled)
+      } else {
+        el.value = data[key];
+      }
     });
   } catch (_) {}
 }
