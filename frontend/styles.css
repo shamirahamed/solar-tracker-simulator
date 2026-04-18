@@ -1414,8 +1414,20 @@ canvas { width: 100% !important; height: 100% !important; }
   .tracker-canvas-wrap { height: calc(100vh - 120px); min-height: 180px; }
   /* Charts: tall enough to see curves clearly */
   .chart-container     { height: calc(100vh - 80px);  min-height: 200px; }
-  /* Popup body fills landscape height */
+  /* Popup body fills landscape height (tracker2d + fallback) */
   .chart-modal-body    { height: calc(100vh - 100px); }
+  /* Chart modal in landscape: fill viewport with no scroll, body takes remaining flex space */
+  #chartModal.chart-modal { padding: 0; }
+  #chartModal .chart-modal-content {
+    width: 100vw; height: 100dvh; max-height: 100dvh;
+    border-radius: 0; padding: 8px 10px;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #chartModal .chart-modal-body { flex: 1 1 0; min-height: 0; height: auto !important; }
+  /* Compact header/label in landscape so chart gets maximum vertical room */
+  #chartModal .chart-modal-header { gap: 8px; }
+  #chartModal .chart-modal-title  { font-size: 12px; }
+  #chartModalYLabel                { font-size: 9px; margin-bottom: 1px; margin-top: 0; }
   .topbar h1           { font-size: 20px; }
   .card                { padding: 8px 10px; }
   .section-head        { margin-bottom: 4px; }

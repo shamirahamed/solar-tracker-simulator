@@ -2640,12 +2640,14 @@ function openChartModal(canvasId) {
 
   _modalChart = new Chart(modalCanvas, {
     type: source.config.type,
+    plugins: [timeLinePlugin],
     data: JSON.parse(JSON.stringify(srcData)),
     options: {
       ...JSON.parse(JSON.stringify(srcOptions)),
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
+      events: ["mousemove", "mouseout", "click", "touchstart", "touchmove", "touchend"],
       layout: { padding: { top: 8, right: 20, bottom: 10, left: 16 } },
       plugins: {
         ...(srcOptions.plugins || {}),
