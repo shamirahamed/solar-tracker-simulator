@@ -137,7 +137,7 @@ let latestSimulationResult = null;
 let latestSimulationData = [];
 let playTimer = null;
 
-const MAX_SHADOW_CHART_DISPLAY_M = 40;
+const MAX_SHADOW_CHART_DISPLAY_M = 50;
 const MAX_SHADOW_2D_DISPLAY_M = 18;
 const MIN_SHADING_VISUAL_PERCENT = 0.2;
 
@@ -865,7 +865,7 @@ function buildCharts(data) {
     const s = clampShadowForDisplay(r.shadow_length_without_backtracking);
     return (r.projected_solar_zenith ?? 0) >= 0 ? s : -s;
   });
-  const maxShadowDirAbs = Math.max(...shadowDirBt.map(Math.abs), ...shadowDirNoBt.map(Math.abs), 1);
+  const maxShadowDirAbs = MAX_SHADOW_CHART_DISPLAY_M; // fixed ±50 m scale — consistent across simulations
 
   shadowDirChart = new Chart(shadowDirCtx, {
     type: "line",
