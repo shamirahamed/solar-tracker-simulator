@@ -985,12 +985,14 @@ input[type="range"] { accent-color: var(--accent); }
 
 /* PDF filter modal */
 #pdfModal .chart-modal-content {
+  height: min(90vh, 600px);
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .pdf-filter-body {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
   height: auto !important;
@@ -998,6 +1000,9 @@ input[type="range"] { accent-color: var(--accent); }
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* scroll indicator */
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-bright) transparent;
 }
 .pdf-filter-group {
   display: flex;

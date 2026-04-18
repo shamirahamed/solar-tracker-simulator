@@ -324,9 +324,8 @@ function restoreSavedInputs() {
       if (el.type === "checkbox") {
         el.checked = !!data[key];
       } else if (key === "soiling_loss") {
-        // payload stores fraction (0–0.5); input shows percentage (0–50)
-        const pct = parseFloat(data[key]) * 100;
-        el.value = isNaN(pct) ? 0 : +pct.toFixed(1);
+        // always default to 0 — user picks soiling per run, don't carry over
+        el.value = 0;
       } else if (key === "wind_stow_speed") {
         // only restore slider value; checkbox (wind_stow_enable) defaults to unchecked
         const v = parseFloat(data[key]);
@@ -2296,7 +2295,41 @@ async function downloadPdf() {
 
     doc.setFontSize(9.5);
     doc.setTextColor(71, 85, 105);
-    doc.text("Geometry reference used for the current simulation inputs.", 14, 122, { maxWidth: 182 });
+    doc.text("Geometry reference used for the current simulation inputs.", 14, 120, { maxWidth: 182 });
+
+    // Dimension data table below diagram
+    {
+      const gcr = (payload.panel_width / payload.row_spacing).toFixed(3);
+      const rows = [
+        ["Panel width",    `${payload.panel_width} m`],
+        ["Panel height",   `${payload.panel_height} m`],
+        ["Tracker height", `${payload.tracker_height} m`],
+        ["Row spacing",    `${payload.row_spacing} m`],
+        ["GCR",            gcr],
+        ["Max angle",      `${payload.max_angle}°`],
+        ["Panel efficiency", `${(payload.panel_efficiency * 100).toFixed(1)}%`],
+        ["Soiling loss",   `${(payload.soiling_loss * 100).toFixed(1)}%`],
+        ["Wind stow",      payload.wind_stow_speed > 0 ? `${payload.wind_stow_speed} m/s` : "Disabled"],
+      ];
+      const col1 = 14, col2 = 110;
+      let ty = 132;
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.setFont(undefined, "bold");
+      doc.text("Input Parameters", col1, ty); ty += 7;
+      doc.setDrawColor(203, 213, 225);
+      doc.line(col1, ty, 196, ty); ty += 6;
+      doc.setFont(undefined, "normal");
+      rows.forEach(([label, val], i) => {
+        const rowY = ty + i * 13;
+        if (i % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(col1, rowY - 4, 182, 13, "F"); }
+        doc.setFontSize(10); doc.setTextColor(71, 85, 105);
+        doc.text(label, col1 + 3, rowY + 4);
+        doc.setTextColor(15, 23, 42); doc.setFont(undefined, "bold");
+        doc.text(val, col2, rowY + 4);
+        doc.setFont(undefined, "normal");
+      });
+    }
 
     // PAGE 3 — Tracker Angle + Solar Position (160×120mm JPEG, 2 per page)
     {
@@ -2362,16 +2395,16 @@ async function downloadPdf() {
       if (windImg) doc.addImage(windImg, "JPEG", X, 150, CW, CH);
     }
 
-    // PAGE 7 — Cloud Cover & Precipitation
+    // PAGE 7 — Cloud Cover & Precipitation (full page, single chart)
     {
-      const CW = 160, CH = 120;
+      const CW = 180, CH = 230;
       const X = 15;
       doc.addPage();
       pdfPageBackground(doc);
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Cloud Cover & Precipitation", X, 14);
-      if (cloudRainImg) doc.addImage(cloudRainImg, "JPEG", X, 18, CW, CH);
+      if (cloudRainImg) doc.addImage(cloudRainImg, "JPEG", X, 20, CW, CH);
     }
 
     // FINAL PAGE - NOTES
