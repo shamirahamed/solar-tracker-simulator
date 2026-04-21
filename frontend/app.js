@@ -1604,6 +1604,10 @@ function setup2DControls() {
   });
 }
 
+/** Cache browser-fetched weather to avoid duplicate Open-Meteo calls.
+ *  Key: "lat,lon,date" (rounded to 4dp) → weather dict returned by fetchWeatherFromBrowser. */
+const _weatherBrowserCache = new Map();
+
 /**
  * Fetch hourly weather from Open-Meteo directly in the browser.
  * Returns a dict keyed by "YYYY-MM-DDTHH:MM" (UTC) → {ghi,bhi,dhi,temp,
@@ -1611,6 +1615,10 @@ function setup2DControls() {
  * Mirrors the backend weather.py logic so the backend can use it as-is.
  */
 async function fetchWeatherFromBrowser(latitude, longitude, date) {
+  const cacheKey = `${Math.round(latitude*10000)/10000},${Math.round(longitude*10000)/10000},${date}`;
+  if (_weatherBrowserCache.has(cacheKey)) {
+    return _weatherBrowserCache.get(cacheKey);
+  }
   const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
   const ARCHIVE_URL  = "https://archive-api.open-meteo.com/v1/archive";
   const VARIABLES    = "shortwave_radiation,diffuse_radiation,direct_radiation,temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover,precipitation,relative_humidity_2m,dew_point_2m";
@@ -1723,6 +1731,7 @@ async function fetchWeatherFromBrowser(latitude, longitude, date) {
       dew_point:     safe(dewList, i, 10),
     };
   }
+  _weatherBrowserCache.set(cacheKey, result);
   return result;
 }
 
@@ -1736,7 +1745,9 @@ async function runSimulation() {
   // Fetch weather in the browser so Render's server never hits Open-Meteo
   // (shared IPs trigger 429 rate limits). Pass the data in the payload.
   if (payload.use_real_weather) {
-    showPopup("Fetching weather from Open-Meteo…", "info", 6000);
+    const _wCacheKey = `${Math.round(payload.latitude*10000)/10000},${Math.round(payload.longitude*10000)/10000},${payload.date}`;
+    const _fromCache = _weatherBrowserCache.has(_wCacheKey);
+    if (!_fromCache) showPopup("Fetching weather from Open-Meteo…", "info", 6000);
     try {
       const weatherData = await fetchWeatherFromBrowser(
         payload.latitude, payload.longitude, payload.date
@@ -1744,7 +1755,11 @@ async function runSimulation() {
       const hourCount = Object.keys(weatherData).length;
       if (hourCount < 10) throw new Error("Too few hours returned: " + hourCount);
       payload.weather_data = weatherData;
-      showPopup(`✓ Weather fetched (${hourCount} hours) — running simulation…`, "success", 4000);
+      if (_fromCache) {
+        showPopup(`✓ Weather from cache (${hourCount} hrs) — running simulation…`, "success", 3000);
+      } else {
+        showPopup(`✓ Weather fetched (${hourCount} hours) — running simulation…`, "success", 4000);
+      }
     } catch (weatherErr) {
       console.error("Browser weather fetch failed:", weatherErr);
       showPopup(`⚠ Weather fetch failed: ${weatherErr.message}. Using clear-sky instead.`, "error", 7000);
