@@ -1456,10 +1456,14 @@ canvas { width: 100% !important; height: 100% !important; }
   .location-row, .full-span, .timezone-search-wrap, .checkbox-row { grid-column: 1 / -1; }
   .timezone-col, .date-col { grid-column: auto; }
 
+  /* font-size must stay ≥16px — iOS Safari zooms on focus if below 16px */
   input[type="number"],
   input[type="text"],
   input[type="date"],
-  select { min-height: 34px; font-size: 14px; padding: 5px 10px; }
+  select { min-height: 32px; font-size: 16px; padding: 4px 8px; }
+
+  /* Financial inputs: even more compact in landscape */
+  #elec_rate, #num_panels { min-height: 28px; padding: 2px 8px; }
 
   .preset-row { grid-template-columns: repeat(4, minmax(0,1fr)); }
   .button-row { grid-template-columns: repeat(3, minmax(0,1fr)); }
