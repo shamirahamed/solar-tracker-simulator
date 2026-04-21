@@ -1620,10 +1620,24 @@ body[data-preview="desktop"] .app-shell            { max-width: 960px !important
 [data-theme="light"] .weather-summary { color: #475569; }
 
 /* ─── Financial Estimate table ───────────────────── */
-.financial-result { margin-top: 14px; }
+.financial-result {
+  margin-top: 14px;
+  overflow: hidden; /* stop table spilling past card edge */
+}
+
+/* Scroll wrapper — prevents the table forcing the page wider than
+   the viewport on mobile portrait (which causes the browser to zoom out) */
+.fin-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
 
 .fin-table {
   width: 100%;
+  min-width: 260px;
   border-collapse: collapse;
   font-size: var(--fs-sm);
 }
@@ -1634,6 +1648,7 @@ body[data-preview="desktop"] .app-shell            { max-width: 960px !important
   text-align: right;
   border-bottom: 1px solid var(--line);
   color: var(--muted2);
+  white-space: nowrap; /* keep numbers on one line */
 }
 
 .fin-table th:first-child,
@@ -1641,6 +1656,9 @@ body[data-preview="desktop"] .app-shell            { max-width: 960px !important
   text-align: left;
   color: var(--muted);
   font-size: var(--fs-xs);
+  white-space: normal;  /* allow row labels to wrap — keeps first col narrow */
+  min-width: 80px;
+  max-width: 110px;
 }
 
 .fin-table th {
