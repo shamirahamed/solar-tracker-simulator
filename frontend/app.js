@@ -1608,27 +1608,6 @@ function setup2DControls() {
  *  Key: "lat,lon,date" (rounded to 4dp) → weather dict returned by fetchWeatherFromBrowser. */
 const _weatherBrowserCache = new Map();
 
-/** Cache backend simulation responses to avoid duplicate API calls.
- *  Key: stable JSON of all physics params (excludes weather_data — derived from lat/lon/date).
- *  Capped at 10 entries (LRU-evict oldest) to prevent unbounded memory growth. */
-const _simulationCache = new Map();
-const _SIM_CACHE_MAX = 10;
-
-function _simCacheKey(payload) {
-  // Only include params that the backend uses for physics — exclude weather_data
-  // (it's deterministically derived from lat/lon/date via the weather cache).
-  const { weather_data, ...physics } = payload;
-  return JSON.stringify(physics, Object.keys(physics).sort());
-}
-
-function _simCacheSet(key, value) {
-  if (_simulationCache.size >= _SIM_CACHE_MAX) {
-    // Map preserves insertion order — delete the oldest entry
-    _simulationCache.delete(_simulationCache.keys().next().value);
-  }
-  _simulationCache.set(key, value);
-}
-
 /**
  * Fetch hourly weather from Open-Meteo directly in the browser.
  * Returns a dict keyed by "YYYY-MM-DDTHH:MM" (UTC) → {ghi,bhi,dhi,temp,
@@ -1761,11 +1740,7 @@ async function runSimulation() {
   localStorage.setItem("solarInputs", JSON.stringify(payload));
   updateScenarioHeader();
   preview.textContent = "Loading simulation...";
-  showPopup("Running simulation…", "info", 6000);
-  // Only warn about cold start if the server hasn't responded after 8s
-  const _coldStartTimer = setTimeout(() => {
-    showPopup("Server is waking up from sleep — usually ~30s on free tier…", "warning", 60000);
-  }, 8000);
+  showPopup("Running simulation… (first load may take ~30s to wake server)", "info", 8000);
 
   // Fetch weather in the browser so Render's server never hits Open-Meteo
   // (shared IPs trigger 429 rate limits). Pass the data in the payload.
@@ -1792,34 +1767,6 @@ async function runSimulation() {
     }
   }
 
-  // ── Simulation cache check ───────────────────────────────────────────────
-  const simKey = _simCacheKey(payload);
-  if (_simulationCache.has(simKey)) {
-    const cached = _simulationCache.get(simKey);
-    latestSimulationResult = cached;
-    latestSimulationData   = cached.data || [];
-    const modalSlider2 = document.getElementById("tracker2dModalSlider");
-    if (modalSlider2) modalSlider2.max = String(latestSimulationData.length - 1);
-    setBadge(badgeApi, "API: Connected", "badge-green");
-    updateSummary(cached);
-    updateFinancialCalc(cached);
-    buildCharts(latestSimulationData);
-    if (timeSlider) timeSlider.max = String(Math.max(0, latestSimulationData.length - 1));
-    update2DFrame(Math.min(720, Math.max(0, latestSimulationData.length - 1)));
-    stop2DPlayback();
-    const src = cached.weather_source || "clearsky (ineichen)";
-    const isReal = src.startsWith("Open-Meteo");
-    setBadge(
-      document.getElementById("badgeWeather"),
-      `Weather: ${isReal ? "Real ✓" : "Clear-sky"}`,
-      isReal ? "badge-green" : "badge-gray"
-    );
-    clearTimeout(_coldStartTimer);
-    showPopup("✓ Simulation from cache — no API call needed.", "success", 3000);
-    preview.textContent = "Loaded from cache.";
-    return;
-  }
-
   try {
     // 90s timeout — Render free tier can take ~30-50s to wake from sleep
     const controller = new AbortController();
@@ -1831,7 +1778,6 @@ async function runSimulation() {
       signal: controller.signal
     });
     clearTimeout(timeoutId);
-    clearTimeout(_coldStartTimer);
 
     if (!response.ok) {
       const text = await response.text();
@@ -1843,7 +1789,6 @@ async function runSimulation() {
     }
 
     const result = await response.json();
-    _simCacheSet(simKey, result);   // store for future re-runs (capped at 10)
     latestSimulationResult = result;
     latestSimulationData = result.data || [];
     // sync modal slider max to data length
@@ -1904,7 +1849,6 @@ preview.textContent = JSON.stringify(
       showPopup("Simulation complete — clearsky model.", "success", 3000);
     }
   } catch (error) {
-    clearTimeout(_coldStartTimer);
     preview.textContent = `Request failed:\n${error?.message ?? error}`;
     await handleApiError(error);
   }
