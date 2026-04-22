@@ -347,7 +347,7 @@ html, body {
   margin-left: auto;
 }
 
-/* Date bar above charts — always visible, works on mobile */
+/* Date bar above charts — sticky so it stays visible while scrolling all charts */
 .chart-date-bar {
   width: 100%;
   box-sizing: border-box;
@@ -361,6 +361,9 @@ html, body {
   color: var(--muted);
   letter-spacing: 0.03em;
   text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 .chart-date-bar.hidden { display: none; }
 /* mobile-only divider — hidden on desktop side-by-side layout */
