@@ -254,6 +254,15 @@ function setupTopButtons() {
   aboutBtn?.addEventListener("click", openAbout);
   closeAboutBtn?.addEventListener("click", closeAbout);
 
+  // Scenario bar collapse toggle
+  const scenarioToggle = document.getElementById("scenarioToggle");
+  const scenarioBody   = document.getElementById("scenarioBody");
+  scenarioToggle?.addEventListener("click", () => {
+    const collapsed = scenarioBody.classList.toggle("hidden");
+    scenarioToggle.textContent = collapsed ? "▶" : "▼";
+    scenarioToggle.title = collapsed ? "Show scenario details" : "Hide scenario details";
+  });
+
   saveApiBtn?.addEventListener("click", () => {
     const value = apiUrlInput?.value?.trim();
     if (!value) {

@@ -35,14 +35,19 @@
     </header>
 
     <section class="scenario-bar">
-      <div class="scenario-title">Scenario</div>
-      <div id="scenarioText" class="scenario-text">Not run yet</div>
-      <div class="badge-row">
-        <span id="badgeMode" class="badge badge-blue">Mode: --</span>
-        <span id="badgeShading" class="badge badge-gray">Shading: --</span>
-        <span id="badgeScale" class="badge badge-gray">View: --</span>
-        <span id="badgeApi" class="badge badge-gray">API: Not checked</span>
-        <span id="badgeWeather" class="badge badge-gray">Weather: --</span>
+      <div class="scenario-header">
+        <div class="scenario-title">Scenario</div>
+        <button type="button" id="scenarioToggle" class="scenario-toggle" title="Hide scenario details">▼</button>
+      </div>
+      <div id="scenarioBody" class="scenario-body">
+        <div id="scenarioText" class="scenario-text">Not run yet</div>
+        <div class="badge-row">
+          <span id="badgeMode" class="badge badge-blue">Mode: --</span>
+          <span id="badgeShading" class="badge badge-gray">Shading: --</span>
+          <span id="badgeScale" class="badge badge-gray">View: --</span>
+          <span id="badgeApi" class="badge badge-gray">API: Not checked</span>
+          <span id="badgeWeather" class="badge badge-gray">Weather: --</span>
+        </div>
       </div>
     </section>
 
