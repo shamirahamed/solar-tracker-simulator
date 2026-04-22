@@ -1412,10 +1412,10 @@ canvas { width: 100% !important; height: 100% !important; }
 
   .button-row button:first-child { grid-column: 1 / -1; }
 
-  .kpi-grid   { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
-  .kpi        { min-height: 64px; padding: 10px 6px; }
-  .kpi span   { font-size: 10px; letter-spacing: 0.03em; }
-  .kpi strong { font-size: 13px; }
+  .kpi-grid   { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 4px; }
+  .kpi        { min-height: 60px; padding: 8px 4px; }
+  .kpi span   { font-size: 9px; letter-spacing: 0.02em; }
+  .kpi strong { font-size: 12px; }
 
   .tracker-canvas-wrap { height: 240px; }
   .chart-container     { height: 240px; }
@@ -1617,10 +1617,10 @@ body[data-preview] .app-shell {
 body[data-preview="mobile"] .app-shell             { max-width: 375px !important; padding: 12px; }
 body[data-preview="mobile"] .layout-grid           { grid-template-columns: 1fr; } /* single col */
 body[data-preview="mobile"] .input-grid            { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 10px; }
-body[data-preview="mobile"] .kpi-grid              { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
-body[data-preview="mobile"] .kpi                   { min-height: 52px; padding: 8px 5px; }
-body[data-preview="mobile"] .kpi span              { font-size: 10px; letter-spacing: 0.03em; }
-body[data-preview="mobile"] .kpi strong            { font-size: 13px; }
+body[data-preview="mobile"] .kpi-grid              { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 4px; }
+body[data-preview="mobile"] .kpi                   { min-height: 60px; padding: 8px 4px; }
+body[data-preview="mobile"] .kpi span              { font-size: 9px; letter-spacing: 0.02em; }
+body[data-preview="mobile"] .kpi strong            { font-size: 12px; }
 body[data-preview="mobile"] .about-grid            { grid-template-columns: 1fr; }
 body[data-preview="mobile"] .chart-container       { height: 220px; }
 body[data-preview="mobile"] .tracker-canvas-wrap   { height: 280px; } /* taller on mobile */
