@@ -1605,6 +1605,10 @@ canvas { width: 100% !important; height: 100% !important; }
   gap: 6px;
 }
 
+@media (max-width: 767px) {
+  .dev-btn[data-device="tablet-p"] { display: none; }
+}
+
 /* ─── Preview frame overlay ──────────────────────── */
 body[data-preview] {
   background: var(--bg2);
