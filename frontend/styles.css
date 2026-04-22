@@ -346,6 +346,23 @@ html, body {
   text-transform: none;
   margin-left: auto;
 }
+
+/* Date bar above charts — always visible, works on mobile */
+.chart-date-bar {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+.chart-date-bar.hidden { display: none; }
 /* mobile-only divider — hidden on desktop side-by-side layout */
 .section-divider.mobile-only { display: none; }
 @media (max-width: 900px) {
@@ -1202,10 +1219,11 @@ canvas { width: 100% !important; height: 100% !important; }
   gap: 8px;
 }
 
-.status-popup.hidden  { display: none; }
-.status-popup.info    { background: #0ea5e9; }
-.status-popup.success { background: var(--accent); color: #000; }
-.status-popup.error   { background: var(--red); }
+.status-popup.hidden   { display: none; }
+.status-popup.info     { background: #0ea5e9; }
+.status-popup.success  { background: var(--accent); color: #000; }
+.status-popup.warning  { background: #f59e0b; color: #000; }
+.status-popup.error    { background: var(--red); }
 
 .popup-action-btn {
   align-self: flex-start;

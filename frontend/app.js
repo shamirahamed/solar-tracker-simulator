@@ -138,6 +138,7 @@ let latestSimulationResult = null;
 let latestSimulationData = [];
 let playTimer = null;
 let _timelineVisible = true;  // toggled by the Values button
+let _simDateLabel = "";       // set by buildCharts; read by timeLinePlugin to stamp charts
 
 function _resetTimeline() {
   _timelineVisible = true;
@@ -535,6 +536,19 @@ function destroyCharts() {
 const timeLinePlugin = {
   id: "timeLine",
   afterDraw(chart) {
+    // Date stamp — always drawn first, independent of timeline visibility or state
+    if (_simDateLabel && chart.chartArea) {
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = "bold 9px system-ui,sans-serif";
+      ctx.fillStyle = "#64748b";
+      ctx.globalAlpha = 0.8;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      ctx.fillText(_simDateLabel, chart.chartArea.right - 4, chart.chartArea.top + 4);
+      ctx.restore();
+    }
+
     if (!latestSimulationData.length || !timeSlider) return;
     if (!_timelineVisible) return;  // user toggled the Values line off
     if (_chartTouchActive) return;  // finger on canvas — Chart.js tooltip handles it, no pills
@@ -766,7 +780,7 @@ function buildCharts(data) {
   const labels = data.map((row) => formatTimeLabel(row.timestamp));
 
   // Derive a friendly date label from the simulation result
-  let _simDateLabel = "";
+  _simDateLabel = "";
   try {
     const raw = latestSimulationResult?.date || (data[0]?.timestamp || "").slice(0, 10);
     if (raw) {
@@ -779,6 +793,11 @@ function buildCharts(data) {
     const el = document.getElementById(id);
     if (el) el.textContent = _simDateLabel;
   });
+  // Date bar above all charts
+  const _dateBarLabel = document.getElementById("chartDateBarLabel");
+  const _dateBar = document.getElementById("chartDateBar");
+  if (_dateBarLabel) _dateBarLabel.textContent = _simDateLabel;
+  if (_dateBar) _dateBar.classList.toggle("hidden", !_simDateLabel);
 
   anglesChart = new Chart(anglesCtx, {
     type: "line",
