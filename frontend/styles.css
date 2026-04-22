@@ -337,6 +337,15 @@ html, body {
   background: var(--accent);
   opacity: 0.4;
 }
+
+.section-divider-date {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  text-transform: none;
+  margin-left: auto;
+}
 /* mobile-only divider — hidden on desktop side-by-side layout */
 .section-divider.mobile-only { display: none; }
 @media (max-width: 900px) {
