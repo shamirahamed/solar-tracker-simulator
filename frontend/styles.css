@@ -1456,6 +1456,11 @@ canvas { width: 100% !important; height: 100% !important; }
   .timezone-search-wrap, .timezone-col,
   .date-col { grid-column: auto; }
 
+  /* Use Location button: full-width row, hide blank spacer label */
+  .location-col { grid-column: 1 / -1; align-items: stretch; }
+  .location-col label { display: none; }
+  #getLocation { width: 100%; max-width: 100%; }
+
   .kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
 
   .chart-container     { height: 260px; }
