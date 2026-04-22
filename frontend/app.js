@@ -1668,6 +1668,7 @@ function setup2DControls() {
       if (!target) return;
       const visible = target.classList.toggle("info-visible");
       btn.classList.toggle("active", visible);
+      btn.textContent = visible ? "▲" : "▼";
     });
   });
 

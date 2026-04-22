@@ -824,42 +824,25 @@ button:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  background: var(--accent-dim);
-  border: 1px solid var(--accent-glow);
-  border-radius: 50%;
-  color: var(--accent);
-  font-size: 13px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 11px;
   cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
   flex-shrink: 0;
   line-height: 1;
-  transition: background 0.15s, color 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
-.info-toggle:hover, .info-toggle.active {
-  background: var(--accent);
-  color: #000;
-  border-color: var(--accent);
-}
+.info-toggle:hover  { background: var(--accent-dim); color: var(--accent); }
+.info-toggle.active { color: var(--accent); }
 .section-note-desktop { display: none; }
 .section-note-mobile  { display: none; }
 
-/* Desktop: show note inline, keep ⓘ smaller for detailed description */
+/* Desktop: also show inline note text alongside the arrow */
 @media (min-width: 901px) {
   .section-note-desktop { display: inline; }
-  .info-toggle {
-    width: 16px;
-    height: 16px;
-    font-size: 10px;
-    background: none;
-    border-color: var(--line-bright);
-    color: var(--muted);
-  }
-  .info-toggle:hover, .info-toggle.active {
-    background: var(--accent-dim);
-    border-color: var(--accent-glow);
-    color: var(--accent);
-  }
 }
 .chart-legend-note    { display: none; }
 .chart-legend-note.info-visible { display: block; }
