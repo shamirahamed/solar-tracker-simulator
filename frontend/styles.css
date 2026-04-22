@@ -823,17 +823,24 @@ button:hover {
 .info-toggle {
   display: inline-flex;
   align-items: center;
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: 14px;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-glow);
+  border-radius: 50%;
+  color: var(--accent);
+  font-size: 13px;
   cursor: pointer;
-  padding: 0 0 0 4px;
-  line-height: 1;
   flex-shrink: 0;
-  transition: color 0.15s;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
 }
-.info-toggle:hover, .info-toggle.active { color: var(--accent); }
+.info-toggle:hover, .info-toggle.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+}
 .section-note-desktop { display: none; }
 .section-note-mobile  { display: none; }
 .chart-legend-note    { display: none; }
