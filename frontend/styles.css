@@ -1629,10 +1629,19 @@ body[data-preview="mobile"] .helper-text           { display: none; }
 /* tablet portrait: 768px */
 body[data-preview="tablet-p"] .app-shell           { max-width: 768px !important; padding: 16px 14px; }
 body[data-preview="tablet-p"] .layout-grid         { grid-template-columns: repeat(2, minmax(0,1fr)); }
-body[data-preview="tablet-p"] .input-grid          { grid-template-columns: repeat(2, minmax(0,1fr)); }
+body[data-preview="tablet-p"] .input-grid          { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 12px; }
 body[data-preview="tablet-p"] .kpi-grid            { grid-template-columns: repeat(4, minmax(0,1fr)); }
 body[data-preview="tablet-p"] .chart-container     { height: 260px; }
 body[data-preview="tablet-p"] .tracker-canvas-wrap { height: 290px; }
+/* Match real tablet-p media query behaviour */
+body[data-preview="tablet-p"] .full-span,
+body[data-preview="tablet-p"] .location-row,
+body[data-preview="tablet-p"] .timezone-search-wrap,
+body[data-preview="tablet-p"] .timezone-col,
+body[data-preview="tablet-p"] .date-col           { grid-column: auto; }
+body[data-preview="tablet-p"] .location-col       { grid-column: 1 / -1; align-items: stretch; }
+body[data-preview="tablet-p"] .location-col label { display: none; }
+body[data-preview="tablet-p"] #getLocation        { width: 100%; max-width: 100%; }
 
 /* tablet landscape: 1024px */
 body[data-preview="tablet-l"] .app-shell           { max-width: 1024px !important; }
