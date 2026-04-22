@@ -840,10 +840,7 @@ button:hover {
 .section-note-desktop { display: none; }
 .section-note-mobile  { display: none; }
 
-/* Desktop: also show inline note text alongside the arrow */
-@media (min-width: 901px) {
-  .section-note-desktop { display: inline; }
-}
+/* Section notes only accessible via ▼ flip on all screen sizes */
 .chart-legend-note    { display: none; }
 .chart-legend-note.info-visible { display: block; }
 
