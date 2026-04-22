@@ -497,8 +497,14 @@ input[type="date"] {
 
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: pointer;
+  border-radius: 3px;
+  padding: 2px;
+}
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.5;
 }
 
 select option { background: var(--card); color: var(--text); }
