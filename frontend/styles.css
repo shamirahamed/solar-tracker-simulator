@@ -843,6 +843,12 @@ button:hover {
 }
 .section-note-desktop { display: none; }
 .section-note-mobile  { display: none; }
+
+/* Desktop: show note inline, hide ⓘ button */
+@media (min-width: 901px) {
+  .section-note-desktop { display: inline; }
+  .info-toggle          { display: none; }
+}
 .chart-legend-note    { display: none; }
 .chart-legend-note.info-visible { display: block; }
 
