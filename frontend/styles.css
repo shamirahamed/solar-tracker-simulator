@@ -1258,6 +1258,19 @@ canvas { width: 100% !important; height: 100% !important; }
   box-shadow: none;
 }
 
+/* Values timeline toggle button */
+.timeline-toggle {
+  font-size: 11px !important;
+  padding: 0 8px !important;
+  min-height: 28px !important;
+  min-width: unset !important;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.timeline-toggle:not(.active) {
+  opacity: 0.45;
+}
+
 /* Live mode button */
 .live-btn {
   white-space: nowrap;

@@ -60,6 +60,7 @@ const timeLabel = document.getElementById("timeLabel");
 const play2dBtn = document.getElementById("play2d");
 const pause2dBtn = document.getElementById("pause2d");
 const liveModeBtn = document.getElementById("liveMode");
+const timelineToggleBtn = document.getElementById("timelineToggle");
 
 let anglesChart = null;
 let sunChart = null;
@@ -136,6 +137,7 @@ let humidityChart  = null;
 let latestSimulationResult = null;
 let latestSimulationData = [];
 let playTimer = null;
+let _timelineVisible = true;  // toggled by the Values button
 
 const MAX_SHADOW_CHART_DISPLAY_M = 999; // effectively no clamp — y-axis uses data max + buffer
 const MAX_SHADOW_2D_DISPLAY_M = 18;
@@ -526,6 +528,7 @@ const timeLinePlugin = {
   id: "timeLine",
   afterDraw(chart) {
     if (!latestSimulationData.length || !timeSlider) return;
+    if (!_timelineVisible) return;  // user toggled the Values line off
     if (_chartTouchActive) return;  // finger on canvas — Chart.js tooltip handles it, no pills
     const idx   = parseInt(timeSlider.value || "0", 10);
     const total = latestSimulationData.length;
@@ -1609,6 +1612,14 @@ function setup2DControls() {
   });
 
   liveModeBtn?.addEventListener("click", toggleLiveMode);
+
+  timelineToggleBtn?.addEventListener("click", () => {
+    _timelineVisible = !_timelineVisible;
+    timelineToggleBtn.classList.toggle("active", _timelineVisible);
+    timelineToggleBtn.title = _timelineVisible ? "Hide value line on charts" : "Show value line on charts";
+    _clearAllChartTooltips();   // also clear any stuck tooltip when hiding
+    _refreshChartLines();       // redraw immediately so line vanishes/appears at once
+  });
 
   // ⓘ info toggle: show/hide .chart-legend-note on mobile
   document.querySelectorAll(".info-toggle").forEach(btn => {
