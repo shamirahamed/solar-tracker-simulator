@@ -844,10 +844,22 @@ button:hover {
 .section-note-desktop { display: none; }
 .section-note-mobile  { display: none; }
 
-/* Desktop: show note inline, hide ⓘ button */
+/* Desktop: show note inline, keep ⓘ smaller for detailed description */
 @media (min-width: 901px) {
   .section-note-desktop { display: inline; }
-  .info-toggle          { display: none; }
+  .info-toggle {
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    background: none;
+    border-color: var(--line-bright);
+    color: var(--muted);
+  }
+  .info-toggle:hover, .info-toggle.active {
+    background: var(--accent-dim);
+    border-color: var(--accent-glow);
+    color: var(--accent);
+  }
 }
 .chart-legend-note    { display: none; }
 .chart-legend-note.info-visible { display: block; }
