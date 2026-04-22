@@ -139,6 +139,14 @@ let latestSimulationData = [];
 let playTimer = null;
 let _timelineVisible = true;  // toggled by the Values button
 
+function _resetTimeline() {
+  _timelineVisible = true;
+  if (timelineToggleBtn) {
+    timelineToggleBtn.classList.add("active");
+    timelineToggleBtn.title = "Hide value line on charts";
+  }
+}
+
 const MAX_SHADOW_CHART_DISPLAY_M = 999; // effectively no clamp — y-axis uses data max + buffer
 const MAX_SHADOW_2D_DISPLAY_M = 18;
 const MIN_SHADING_VISUAL_PERCENT = 0.2;
@@ -1829,6 +1837,7 @@ async function runSimulation() {
     setBadge(badgeApi, "API: Connected", "badge-green");
     updateSummary(cached);
     updateFinancialCalc(cached);
+    _resetTimeline();
     buildCharts(latestSimulationData);
     if (timeSlider) timeSlider.max = String(Math.max(0, latestSimulationData.length - 1));
     update2DFrame(Math.min(720, Math.max(0, latestSimulationData.length - 1)));
@@ -1895,6 +1904,7 @@ preview.textContent = JSON.stringify(
 
     updateSummary(result);
     updateFinancialCalc(result);
+    _resetTimeline();
     buildCharts(latestSimulationData);
     if (timeSlider) timeSlider.max = String(Math.max(0, latestSimulationData.length - 1));
     update2DFrame(Math.min(720, Math.max(0, latestSimulationData.length - 1)));
