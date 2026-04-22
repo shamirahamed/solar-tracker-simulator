@@ -351,9 +351,14 @@ html, body {
 .chart-divider-date {
   font-size: 10px !important;
   font-weight: 700 !important;
-  color: var(--muted) !important;
+  color: var(--accent) !important;
   text-transform: none !important;
   letter-spacing: 0.03em !important;
+}
+/* Within-row dividers: hidden on desktop (charts are side-by-side), visible on mobile */
+.chart-row-divider-inner { display: none !important; }
+@media (max-width: 900px) {
+  .chart-row-divider-inner:not(.hidden) { display: flex !important; }
 }
 /* mobile-only divider — hidden on desktop side-by-side layout */
 .section-divider.mobile-only { display: none; }

@@ -536,19 +536,6 @@ function destroyCharts() {
 const timeLinePlugin = {
   id: "timeLine",
   afterDraw(chart) {
-    // Date stamp — always drawn first, independent of timeline visibility or state
-    if (_simDateLabel && chart.chartArea) {
-      const ctx = chart.ctx;
-      ctx.save();
-      ctx.font = "bold 9px system-ui,sans-serif";
-      ctx.fillStyle = "#64748b";
-      ctx.globalAlpha = 0.8;
-      ctx.textAlign = "right";
-      ctx.textBaseline = "top";
-      ctx.fillText(_simDateLabel, chart.chartArea.right - 4, chart.chartArea.top + 4);
-      ctx.restore();
-    }
-
     if (!latestSimulationData.length || !timeSlider) return;
     if (!_timelineVisible) return;  // user toggled the Values line off
     if (_chartTouchActive) return;  // finger on canvas — Chart.js tooltip handles it, no pills
