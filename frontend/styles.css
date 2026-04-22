@@ -141,8 +141,8 @@ html, body {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  padding: 6px 12px;
+  margin-bottom: 10px;
 }
 
 .scenario-header {
@@ -751,7 +751,7 @@ button:hover {
 .kpi.primary strong { color: var(--accent); }
 
 .comparison-summary {
-  margin: 0 0 12px;
+  margin: 0;
   padding: 10px 14px;
   background: var(--card-soft);
   border: 1px solid var(--line-bright);
