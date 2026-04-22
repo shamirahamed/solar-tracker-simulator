@@ -1449,6 +1449,9 @@ function setPlaybackState(isPlaying) {
   play2dBtn.setAttribute("aria-pressed", isPlaying ? "true" : "false");
   pause2dBtn.setAttribute("aria-pressed", isPlaying ? "false" : "true");
 
+  // Show hint when playing so users know to pause to inspect chart values
+  document.getElementById("chartHint")?.classList.toggle("hidden", !isPlaying);
+
   // Disable pointer/touch events on chart canvases during playback so
   // touch-scroll and accidental taps don't trigger Chart.js hover redraws
   // that collide with the play-loop updates and cause visible blinking.
@@ -1498,6 +1501,7 @@ function stopLiveMode() {
   if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
   liveModeBtn?.classList.remove("live-active");
   liveModeBtn?.setAttribute("aria-pressed", "false");
+  document.getElementById("chartHint")?.classList.add("hidden");
   const warn = document.getElementById("liveDateWarn");
   if (warn) warn.style.display = "none";
   // Restore chart touch interaction
@@ -1510,6 +1514,7 @@ function startLiveMode() {
   if (!latestSimulationData.length) {
     showPopup("Run simulation first.", "error"); return;
   }
+  document.getElementById("chartHint")?.classList.remove("hidden");
   stop2DPlayback();         // stop animation playback if running
   liveModeBtn?.classList.add("live-active");
   // Disable chart touch during live updates (same as play mode)
