@@ -683,6 +683,18 @@ function _refreshChartLines() {
   });
 }
 
+/** Dismiss any stuck tooltip on every chart — call when play/live mode starts. */
+function _clearAllChartTooltips() {
+  [anglesChart, sunChart, shadingChart, powerChart,
+   powerWChart, shadowDirChart, tempChart, ghiCompChart, windChart, cloudRainChart, humidityChart].forEach(c => {
+    try {
+      if (!c) return;
+      c.tooltip.setActiveElements([], { x: 0, y: 0 });
+      c.update("none");
+    } catch (_) {}
+  });
+}
+
 function compactLegendOptions() {
   const isMobile = window.innerWidth <= 640;
   return {
@@ -1458,6 +1470,10 @@ function setPlaybackState(isPlaying) {
   document.querySelectorAll(".chart-container canvas").forEach(c => {
     c.style.pointerEvents = isPlaying ? "none" : "";
   });
+
+  // Clear any tooltip that was open before play started — otherwise it
+  // gets frozen on screen because pointer-events:none prevents mouseleave.
+  if (isPlaying) _clearAllChartTooltips();
 }
 
 function stop2DPlayback() {
@@ -1515,6 +1531,7 @@ function startLiveMode() {
     showPopup("Run simulation first.", "error"); return;
   }
   document.getElementById("chartHint")?.classList.remove("hidden");
+  _clearAllChartTooltips();
   stop2DPlayback();         // stop animation playback if running
   liveModeBtn?.classList.add("live-active");
   // Disable chart touch during live updates (same as play mode)
