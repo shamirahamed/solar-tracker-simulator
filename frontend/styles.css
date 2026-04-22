@@ -347,25 +347,14 @@ html, body {
   margin-left: auto;
 }
 
-/* Date bar above charts — sticky so it stays visible while scrolling all charts */
-.chart-date-bar {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 6px 14px;
-  background: var(--bg2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  margin-bottom: 6px;
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  color: var(--muted);
-  letter-spacing: 0.03em;
-  text-align: center;
-  position: sticky;
-  top: 0;
-  z-index: 20;
+/* Date span inside chart-row dividers */
+.chart-divider-date {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: var(--muted) !important;
+  text-transform: none !important;
+  letter-spacing: 0.03em !important;
 }
-.chart-date-bar.hidden { display: none; }
 /* mobile-only divider — hidden on desktop side-by-side layout */
 .section-divider.mobile-only { display: none; }
 @media (max-width: 900px) {

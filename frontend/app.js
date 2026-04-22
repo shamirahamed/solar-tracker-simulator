@@ -793,11 +793,12 @@ function buildCharts(data) {
     const el = document.getElementById(id);
     if (el) el.textContent = _simDateLabel;
   });
-  // Date bar above all charts
-  const _dateBarLabel = document.getElementById("chartDateBarLabel");
-  const _dateBar = document.getElementById("chartDateBar");
-  if (_dateBarLabel) _dateBarLabel.textContent = _simDateLabel;
-  if (_dateBar) _dateBar.classList.toggle("hidden", !_simDateLabel);
+  // Show date dividers between charts
+  document.querySelectorAll(".chart-row-divider").forEach(el => {
+    el.classList.toggle("hidden", !_simDateLabel);
+    const span = el.querySelector(".chart-divider-date");
+    if (span) span.textContent = _simDateLabel;
+  });
 
   anglesChart = new Chart(anglesCtx, {
     type: "line",
