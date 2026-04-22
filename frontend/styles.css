@@ -1474,10 +1474,10 @@ canvas { width: 100% !important; height: 100% !important; }
 
   .input-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 12px; }
 
-  /* keep full-span cols full width on tablet-p */
-  .full-span, .location-row,
+  /* timezone/date fields sit side-by-side; location row stays full-width */
   .timezone-search-wrap, .timezone-col,
   .date-col { grid-column: auto; }
+  .full-span, .location-row { grid-column: 1 / -1; }
 
   /* Use Location button: full-width row, hide blank spacer label */
   .location-col { grid-column: 1 / -1; align-items: stretch; }
@@ -1659,11 +1659,11 @@ body[data-preview="tablet-p"] .kpi-grid            { grid-template-columns: repe
 body[data-preview="tablet-p"] .chart-container     { height: 260px; }
 body[data-preview="tablet-p"] .tracker-canvas-wrap { height: 290px; }
 /* Match real tablet-p media query behaviour */
-body[data-preview="tablet-p"] .full-span,
-body[data-preview="tablet-p"] .location-row,
 body[data-preview="tablet-p"] .timezone-search-wrap,
 body[data-preview="tablet-p"] .timezone-col,
 body[data-preview="tablet-p"] .date-col           { grid-column: auto; }
+body[data-preview="tablet-p"] .full-span,
+body[data-preview="tablet-p"] .location-row       { grid-column: 1 / -1; }
 body[data-preview="tablet-p"] .location-col       { grid-column: 1 / -1; align-items: stretch; }
 body[data-preview="tablet-p"] .location-col label { display: none; }
 body[data-preview="tablet-p"] #getLocation        { width: 100%; max-width: 100%; }
