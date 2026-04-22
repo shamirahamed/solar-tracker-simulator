@@ -355,9 +355,9 @@ html, body {
   text-transform: none !important;
   letter-spacing: 0.03em !important;
 }
-/* Within-row dividers: hidden on desktop (charts are side-by-side), visible on mobile */
+/* Within-row dividers: hidden on tablet+desktop (2-col), visible on mobile only */
 .chart-row-divider-inner { display: none !important; }
-@media (max-width: 900px) {
+@media (max-width: 640px) {
   .chart-row-divider-inner:not(.hidden) { display: flex !important; }
 }
 /* mobile-only divider — hidden on desktop side-by-side layout */
@@ -1440,6 +1440,9 @@ canvas { width: 100% !important; height: 100% !important; }
 @media (min-width: 641px) and (max-width: 900px) {
   .app-shell { padding: 16px 14px; }
 
+  /* 2-column layout same as desktop */
+  .layout-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+
   .input-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 12px; }
 
   /* keep full-span cols full width on tablet-p */
@@ -1614,8 +1617,7 @@ body[data-preview="mobile"] .helper-text           { display: none; }
 
 /* tablet portrait: 768px */
 body[data-preview="tablet-p"] .app-shell           { max-width: 768px !important; padding: 16px 14px; }
-body[data-preview="tablet-p"] .layout-grid         { grid-template-columns: 1fr; } /* single col */
-body[data-preview="tablet-p"] .card                { grid-column: 1 / -1; }
+body[data-preview="tablet-p"] .layout-grid         { grid-template-columns: repeat(2, minmax(0,1fr)); }
 body[data-preview="tablet-p"] .input-grid          { grid-template-columns: repeat(2, minmax(0,1fr)); }
 body[data-preview="tablet-p"] .kpi-grid            { grid-template-columns: repeat(4, minmax(0,1fr)); }
 body[data-preview="tablet-p"] .chart-container     { height: 260px; }
