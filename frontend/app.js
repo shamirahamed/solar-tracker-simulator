@@ -721,7 +721,7 @@ function compactLegendOptions() {
   };
 }
 
-function chartBaseOptions(yText) {
+function chartBaseOptions(yText, xTitle) {
   const isLight = document.documentElement.dataset.theme === "light";
   const gridColor  = isLight ? "rgba(0,0,0,0.07)"  : "rgba(100,116,139,0.40)";
   const tickColor  = isLight ? "#64748b"            : "#64748b";
@@ -748,7 +748,8 @@ function chartBaseOptions(yText) {
     scales: {
       x: {
         ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: tickColor },
-        grid: { color: gridColor }
+        grid: { color: gridColor },
+        title: xTitle || { display: false }
       },
       y: {
         title: { display: false },
@@ -763,6 +764,21 @@ function buildCharts(data) {
   if (!anglesCtx || !sunCtx || !shadingCtx || !powerCtx) return;
   destroyCharts();
   const labels = data.map((row) => formatTimeLabel(row.timestamp));
+
+  // Derive a friendly date label from the first data timestamp
+  let _simDateLabel = "";
+  try {
+    const raw = latestSimulationResult?.date || (data[0]?.timestamp || "").slice(0, 10);
+    if (raw) {
+      const d = new Date(raw + "T12:00:00Z");
+      _simDateLabel = d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+    }
+  } catch (_) {}
+  // Push date into 2D section header
+  const sim2dDateEl = document.getElementById("sim2dDate");
+  if (sim2dDateEl) sim2dDateEl.textContent = _simDateLabel;
+  // X-axis title used on every chart
+  const _xTitle = _simDateLabel ? { display: true, text: _simDateLabel, color: "var(--muted)", font: { size: 10 } } : { display: false };
 
   anglesChart = new Chart(anglesCtx, {
     type: "line",
@@ -787,7 +803,7 @@ function buildCharts(data) {
         }
       ]
     },
-    options: chartBaseOptions("Angle (deg)")
+    options: chartBaseOptions("Angle (deg)", _xTitle)
   });
 
   sunChart = new Chart(sunCtx, {
@@ -801,7 +817,7 @@ function buildCharts(data) {
       ]
     },
     options: (() => {
-      const base = chartBaseOptions("Elevation (deg)");
+      const base = chartBaseOptions("Elevation (deg)", _xTitle);
       const isLight = document.documentElement.dataset.theme === "light";
       const gridColor = isLight ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)";
       const tickColor = "#64748b";
@@ -840,7 +856,7 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" } },
+        x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" }, title: _xTitle },
         y: {
           type: "linear",
           position: "left",
@@ -882,7 +898,7 @@ function buildCharts(data) {
       ]
     },
     options: (() => {
-      const base = chartBaseOptions("Irradiance (W/m²)");
+      const base = chartBaseOptions("Irradiance (W/m²)", _xTitle);
       base.scales.y = { ...base.scales.y, beginAtZero: true, max: axMax(maxIrr) };
       return base;
     })()
@@ -906,7 +922,7 @@ function buildCharts(data) {
       ]
     },
     options: (() => {
-      const base = chartBaseOptions("Power (W)");
+      const base = chartBaseOptions("Power (W)", _xTitle);
       base.scales.y = { ...base.scales.y, beginAtZero: true, max: axMax(maxPowerW) };
       return base;
     })()
@@ -943,7 +959,7 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(100,116,139,0.40)" } },
+        x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(100,116,139,0.40)" }, title: _xTitle },
         y:  { type: "linear", position: "left", min: -maxShadowDirAbs, max: maxShadowDirAbs,
               title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(100,116,139,0.40)" } },
         y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100,
@@ -956,7 +972,7 @@ function buildCharts(data) {
   const _tempAmb  = data.map(r => r.temp      != null ? Number(r.temp)      : 20);
   const _tempCell = data.map(r => r.cell_temp != null ? Number(r.cell_temp) : 20);
   const _tempBase = (() => {
-    const base = chartBaseOptions("Temperature (°C)");
+    const base = chartBaseOptions("Temperature (°C)", _xTitle);
     const _tMax = Math.max(..._tempCell, ..._tempAmb);
     const _tMin = Math.min(..._tempAmb);
     base.scales.y = { ...base.scales.y,
@@ -1004,7 +1020,7 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+        x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor }, title: _xTitle },
         y:  { type: "linear", position: "left",  beginAtZero: true, max: axMax(maxGhi), title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
         y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { drawOnChartArea: false } },
       }
@@ -1054,7 +1070,7 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+        x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor }, title: _xTitle },
         y: { type: "linear", position: "left", beginAtZero: true, max: axMax(maxWind), title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } }
       }
     }
@@ -1094,7 +1110,7 @@ function buildCharts(data) {
         interaction: { mode: "index", intersect: false },
         plugins: { legend: compactLegendOptions() },
         scales: {
-          x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+          x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor }, title: _xTitle },
           y:  { type: "linear", position: "left",  min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
           y1: { type: "linear", position: "right", beginAtZero: true, max: Math.max(axMax(maxPrecip), 1),
                 title: { display: false }, ticks: { font: { size: 10 }, color: "#38bdf8" }, grid: { drawOnChartArea: false } }
@@ -1133,7 +1149,7 @@ function buildCharts(data) {
         interaction: { mode: "index", intersect: false },
         plugins: { legend: compactLegendOptions() },
         scales: {
-          x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor } },
+          x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: gridColor }, title: _xTitle },
           y:  { type: "linear", position: "left",  min: 0, max: 100, title: { display: false }, ticks: { font: { size: 10 }, color: "#60a5fa" }, grid: { color: gridColor } },
           y1: { type: "linear", position: "right", min: dewMin, max: dewMax,
                 title: { display: false }, ticks: { font: { size: 10 }, color: "#34d399" }, grid: { drawOnChartArea: false } }
