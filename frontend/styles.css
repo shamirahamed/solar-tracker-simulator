@@ -380,7 +380,7 @@ html, body {
 }
 /* Within-row dividers: hidden on tablet+desktop (2-col), visible on mobile only */
 .chart-row-divider-inner { display: none !important; }
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .chart-row-divider-inner:not(.hidden) { display: flex !important; }
 }
 /* mobile-only divider — hidden on desktop side-by-side layout */
@@ -558,7 +558,7 @@ select option { background: var(--card); color: var(--text); }
 
 #getLocation { width: 100px; font-size: 10.5px; padding: 0 6px; min-height: 34px; }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .location-col { grid-column: 1 / -1; align-items: stretch; }
   #getLocation  { width: 100%; font-size: var(--fs-base); padding: 0 14px; }
 }
@@ -845,7 +845,7 @@ button:hover {
 .chart-legend-note    { display: none; }
 .chart-legend-note.info-visible { display: block; }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .section-note-mobile { display: inline; color: var(--muted); font-size: var(--fs-sm); }
 }
 
@@ -923,7 +923,7 @@ input[type="range"] { accent-color: var(--accent); }
   color: #475569;
   margin-left: auto;
 }
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .pvlib-credit-version { display: none; }
 }
 
@@ -1360,7 +1360,7 @@ canvas { width: 100% !important; height: 100% !important; }
   .about-grid { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .app-shell { padding: 12px; }
 
   .topbar h1  { font-size: 20px; }
@@ -1458,7 +1458,7 @@ canvas { width: 100% !important; height: 100% !important; }
   select { font-size: 16px; min-height: 40px; padding: 8px 12px; }
 }
 
-@media (min-width: 641px) {
+@media (min-width: 768px) {
   .input-grid { gap: 8px 12px; }
 
   #latitude, #longitude,
@@ -1478,8 +1478,8 @@ canvas { width: 100% !important; height: 100% !important; }
   }
 }
 
-/* ─── Tablet portrait: 641 – 900px ───────────────── */
-@media (min-width: 641px) and (max-width: 900px) {
+/* ─── Tablet portrait: 768 – 900px ───────────────── */
+@media (min-width: 768px) and (max-width: 900px) {
   .app-shell { padding: 16px 14px; }
 
   /* 2-column layout same as desktop */

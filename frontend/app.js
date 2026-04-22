@@ -717,7 +717,7 @@ function _clearAllChartTooltips() {
 }
 
 function compactLegendOptions() {
-  const isMobile = window.innerWidth <= 640;
+  const isMobile = window.innerWidth <= 767;
   return {
     position: "bottom",
     align: "start",
@@ -3040,10 +3040,10 @@ function openChartModal(canvasId) {
         legend: {
           ...(srcOptions.plugins?.legend || {}),
           labels: { ...(srcOptions.plugins?.legend?.labels || {}), color: titleColor,
-            font: { size: window.innerWidth <= 640 ? 11 : 10 },
-            boxWidth:  window.innerWidth <= 640 ? 12 : 8,
-            boxHeight: window.innerWidth <= 640 ? 12 : 8,
-            padding:   window.innerWidth <= 640 ? 10 : 8 }
+            font: { size: window.innerWidth <= 767 ? 11 : 10 },
+            boxWidth:  window.innerWidth <= 767 ? 12 : 8,
+            boxHeight: window.innerWidth <= 767 ? 12 : 8,
+            padding:   window.innerWidth <= 767 ? 10 : 8 }
         },
         tooltip: {
           backgroundColor: isLight ? "rgba(255,255,255,0.97)" : "rgba(13,20,32,0.97)",
@@ -3074,10 +3074,10 @@ function buildModalScales(srcScales, gridColor, tickColor, titleColor) {
         font: { size: 11 },
         padding: isX ? 6 : 4,
         ...(isX ? {
-          maxTicksLimit: window.innerWidth <= 640 ? 6 : 8,
+          maxTicksLimit: window.innerWidth <= 767 ? 6 : 8,
           maxRotation: 0,
           minRotation: 0,
-          font: { size: window.innerWidth <= 640 ? 11 : 12 },
+          font: { size: window.innerWidth <= 767 ? 11 : 12 },
         } : {}),
       },
       grid:  { ...(scale.grid  || {}), color: gridColor },
