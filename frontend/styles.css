@@ -655,9 +655,11 @@ select option { background: var(--card); color: var(--text); }
   font-size: var(--fs-base);
 }
 
-/* Backtracking toggle — sits below Max Angle input in same grid cell */
-.bt-label { margin-top: 5px; font-size: 11px; }
-.bt-label span { color: var(--muted2); }
+/* Max Angle + Backtracking — side by side in the same grid cell */
+.max-bt-inline { display: flex; align-items: center; gap: 6px; }
+.max-bt-inline input[type="number"] { flex: 1; min-width: 0; }
+.bt-label { flex-shrink: 0; font-size: 11px; gap: 4px; }
+.bt-label span { color: var(--muted2); white-space: nowrap; }
 
 .checkbox-inline input {
   width: 15px;
