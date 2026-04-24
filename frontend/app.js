@@ -427,8 +427,10 @@ function calculateGcr() {
 }
 
 function clampShadowForDisplay(value, maxDisplay = MAX_SHADOW_CHART_DISPLAY_M, sunElevation = null) {
-  // Return null (chart gap) when sun is below the horizon — shadow is undefined
-  if (sunElevation !== null && sunElevation <= 0) return null;
+  // Below 3° elevation irradiance is near zero — shadow length is astronomically
+  // large (>28 m) but carries no useful tracking information. Show as a gap so
+  // the y-axis scales to the real tracking-hour range (typically 5–40 m).
+  if (sunElevation !== null && sunElevation < 3) return null;
   const n = Number(value || 0);
   if (!Number.isFinite(n) || n <= 0) return null;
   return Math.min(n, maxDisplay);
