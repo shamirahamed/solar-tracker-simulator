@@ -378,10 +378,15 @@ html, body {
   text-transform: none !important;
   letter-spacing: 0.03em !important;
 }
-/* Within-row dividers: hidden on tablet+desktop (2-col), visible on mobile only */
-.chart-row-divider-inner { display: none !important; }
+/* Chart date dividers: ALL hidden by default (prevent breaking 2-col grid on desktop/tablet) */
+.chart-row-divider { display: none !important; }
+/* Mobile portrait only: show between stacked charts */
 @media (max-width: 767px) {
-  .chart-row-divider-inner:not(.hidden) { display: flex !important; }
+  .chart-row-divider:not(.hidden) { display: flex !important; }
+}
+/* Mobile landscape: re-hide — 2-col layout, must not break chart pairs */
+@media (orientation: landscape) and (max-height: 520px) {
+  .chart-row-divider { display: none !important; }
 }
 /* mobile-only divider — hidden on desktop side-by-side layout */
 .section-divider.mobile-only { display: none; }
@@ -1557,8 +1562,6 @@ canvas { width: 100% !important; height: 100% !important; }
   .preset-row { grid-template-columns: repeat(4, minmax(0,1fr)); }
   .button-row { grid-template-columns: repeat(3, minmax(0,1fr)); }
   .button-row button:first-child { grid-column: auto; }
-  /* Hide intra-row chart dividers in landscape — charts flow 2-per-row naturally */
-  .chart-row-divider-inner { display: none !important; }
 }
 
 /* ─── Device preview buttons (in Settings panel) ─── */
@@ -1656,7 +1659,6 @@ body[data-preview="mobile"] .helper-text           { display: none; }
   body[data-preview="mobile"] .timezone-col,
   body[data-preview="mobile"] .date-col                    { grid-column: auto; }
   body[data-preview="mobile"] .input-grid                  { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px 10px; }
-  body[data-preview="mobile"] .chart-row-divider-inner     { display: none !important; }
 }
 
 /* tablet portrait: 768px */
