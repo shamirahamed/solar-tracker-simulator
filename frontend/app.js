@@ -2424,11 +2424,11 @@ async function downloadPdf() {
 
     // Build chart images from detached offscreen canvases.
     // Option B: read checkbox states from PDF filter modal.
-    // Sample every 5th minute (1440 → 288 pts) so Chart.js category scale
-    // distributes data across the full canvas width (1440 string labels in a
-    // 1200px responsive:false canvas causes all data to bunch at the right edge).
+    // Sample every 2nd minute (1440 → 720 pts). Denser than the old every-5th
+    // so rapid shadow spikes near sunrise/sunset are captured faithfully.
+    // x-axis uses maxTicksLimit:10 so only 10 labels show — no crowding.
     const _d   = latestSimulationData;
-    const _ds  = _d.filter((_, i) => i % 5 === 0);   // one point per 5 min
+    const _ds  = _d.filter((_, i) => i % 2 === 0);   // one point per 2 min
     const _lbl = _ds.map(r => formatTimeLabel(r.timestamp));
     const _chk = id => document.getElementById(id)?.checked !== false;
 
