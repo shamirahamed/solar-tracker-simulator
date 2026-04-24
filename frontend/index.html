@@ -419,6 +419,7 @@
         <div class="section-head">
           <h2>Tracker Angle</h2>
           <span class="section-note section-note-desktop">Ideal / Limited / BT from pvlib tracking</span>
+          <span class="sim-chart-date"></span>
           <button class="info-toggle" aria-label="More info" data-target="info-angles">▼</button>
         </div>
         <div class="chart-legend-note" id="info-angles"><span class="section-note section-note-mobile">Ideal / Limited / BT from pvlib tracking</span><br class="section-note-mobile">Ideal = unconstrained, Limited = max-angle limited, BT = backtracking.</div>
@@ -431,6 +432,7 @@
         <div class="section-head">
           <h2>Solar Position</h2>
           <span class="section-note section-note-desktop">Elevation and azimuth from pvlib</span>
+          <span class="sim-chart-date"></span>
           <button class="info-toggle" aria-label="More info" data-target="info-sun">▼</button>
         </div>
         <div class="chart-legend-note" id="info-sun"><span class="section-note section-note-mobile">Elevation and azimuth from pvlib</span><br class="section-note-mobile">Shows solar movement through the day.</div>
@@ -443,6 +445,7 @@
         <div class="section-head">
           <h2>Inter-row Shadowing</h2>
           <span class="section-note section-note-desktop">Displayed shadow + actual shading %</span>
+          <span class="sim-chart-date"></span>
           <button class="info-toggle" aria-label="More info" data-target="info-shading">▼</button>
         </div>
         <div class="chart-legend-note" id="info-shading"><span class="section-note section-note-mobile">Displayed shadow + actual shading %</span><br class="section-note-mobile">Displayed shadow is scaled for readability. Shading % better represents actual panel-to-panel impact.</div>
@@ -455,6 +458,7 @@
         <div class="section-head">
           <h2>Irradiance Comparison</h2>
           <span class="section-note section-note-desktop">Fixed panel vs Tracker No BT vs Tracker BT (W/m²)</span>
+          <span class="sim-chart-date"></span>
           <button class="info-toggle" aria-label="More info" data-target="info-power">▼</button>
         </div>
         <div class="chart-legend-note" id="info-power"><span class="section-note section-note-mobile">Fixed panel vs Tracker No BT vs Tracker BT (W/m²)</span><br class="section-note-mobile">Fixed panel at latitude tilt. Tracker irradiance accounts for POA and row shading.</div>
@@ -539,6 +543,7 @@
         <div class="section-head">
           <h2>Power Output</h2>
           <span class="section-note section-note-desktop">Fixed / No BT / BT (W) — temperature-derated</span>
+          <span class="sim-chart-date"></span>
           <button class="info-toggle" aria-label="More info" data-target="info-powerW">▼</button>
         </div>
         <div class="chart-legend-note" id="info-powerW">Temperature-derated power via pvlib noct_sam. Drop during wind stow shows real-world impact. More actionable than W/m².</div>
@@ -551,6 +556,7 @@
         <div class="section-head">
           <h2>Shadow Direction E/W</h2>
           <span class="section-note section-note-desktop">pvlib projected_solar_zenith sign</span>
+          <span class="sim-chart-date"></span>
           <button class="info-toggle" aria-label="More info" data-target="info-shadowDir">▼</button>
         </div>
         <div class="chart-legend-note" id="info-shadowDir">+ value = East shadow (morning), − value = West shadow (afternoon). Flips when sun crosses tracker axis near solar noon. Shading % overlaid on right axis.</div>
@@ -563,6 +569,7 @@
         <div class="section-head">
           <h2>Cell Temperature</h2>
           <span class="section-note section-note-desktop">Ambient vs cell — pvlib noct_sam (°C)</span>
+          <span class="sim-chart-date"></span>
           <button class="info-toggle" aria-label="More info" data-target="info-temp">▼</button>
         </div>
         <div class="chart-legend-note" id="info-temp">Cell temp is higher than ambient due to solar heating. Wind speed lowers cell temp (cooling effect). Hot climates lose more power to derating.</div>
@@ -575,6 +582,7 @@
         <div class="section-head">
           <h2>Cloud Cover &amp; GHI</h2>
           <span class="section-note section-note-desktop">Actual vs clear-sky GHI + cloud cover %</span>
+          <span class="sim-chart-date"></span>
           <button class="info-toggle" aria-label="More info" data-target="info-ghiComp">▼</button>
         </div>
         <div class="chart-legend-note" id="info-ghiComp">Left axis: GHI irradiance (W/m²). Right axis: cloud cover %. Gap between actual and clear-sky lines shows weather impact. Lines are identical when using clear-sky mode.</div>
@@ -587,6 +595,7 @@
         <div class="section-head">
           <h2>Wind Speed &amp; Stow</h2>
           <span class="section-note section-note-desktop">Wind speed (m/s) with stow threshold</span>
+          <span class="sim-chart-date"></span>
           <button class="info-toggle" aria-label="More info" data-target="info-wind">▼</button>
         </div>
         <div class="chart-legend-note" id="info-wind">Orange dashed line = stow threshold. Red dots = minutes when tracker is stowed flat (0°). Only shows real wind data when "Use real weather" is enabled.</div>
@@ -599,6 +608,7 @@
         <div class="section-head">
           <h2>Cloud Cover &amp; Precipitation</h2>
           <span class="section-note section-note-desktop">Cloud cover (%) and precipitation (mm/h)</span>
+          <span class="sim-chart-date"></span>
           <button class="info-toggle" aria-label="More info" data-target="info-cloudrain">▼</button>
         </div>
         <div class="chart-legend-note" id="info-cloudrain">Cloud cover (left axis, %) shown as filled area. Precipitation (right axis, mm/h) shown as bars. Only shows real data when "Use real weather" is enabled.</div>
@@ -611,6 +621,7 @@
         <div class="section-head">
           <h2>Humidity &amp; Dew Point</h2>
           <span class="section-note section-note-desktop">Relative humidity (%) and dew point (°C)</span>
+          <span class="sim-chart-date"></span>
           <button class="info-toggle" aria-label="More info" data-target="info-humidity">▼</button>
         </div>
         <div class="chart-legend-note" id="info-humidity">Relative humidity % (left axis). Dew point °C (right axis) — when cell temp drops below dew point, condensation can form on panels. Only shows real data when "Use real weather" is enabled.</div>

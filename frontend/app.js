@@ -784,12 +784,12 @@ function buildCharts(data) {
       _simDateLabel = d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
     }
   } catch (_) {}
-  // Push date into 2D section header, 2D popup modal header, and Charts section divider
+  // Push date into 2D section header, 2D popup modal header, Charts section divider, and every chart card header
   ["sim2dDate", "sim2dModalDate", "simChartsDate"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = _simDateLabel;
   });
-  // Chart-row-dividers stay hidden always — date is shown in the Charts section header above.
+  document.querySelectorAll(".sim-chart-date").forEach(el => { el.textContent = _simDateLabel; });
 
   anglesChart = new Chart(anglesCtx, {
     type: "line",
