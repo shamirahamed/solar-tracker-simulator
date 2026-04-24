@@ -2588,7 +2588,7 @@ async function downloadPdf() {
       }
     });
 
-    const _maxPrecipPdf = Math.max(..._ds.map(r => Number(r.precipitation ?? 0)), 0.1);
+    const _maxPrecipPdf = Math.max(..._d.map(r => Number(r.precipitation ?? 0)), 0.1);
     const cloudRainImg = pdfOffscreenChart({
       type: "bar",
       data: { labels: _lbl, datasets: [
@@ -2614,10 +2614,12 @@ async function downloadPdf() {
       }
     });
 
-    // Shadow Direction chart — same mapping as live chart, no hard clamp
-    const _sdBtPdf   = _ds.map(r => { const s = Math.max(Number(r.shadow_length_with_backtracking    || 0), 0); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _sdNoBtPdf = _ds.map(r => { const s = Math.max(Number(r.shadow_length_without_backtracking || 0), 0); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _rawMaxSdPdf = Math.max(..._sdBtPdf.map(Math.abs), ..._sdNoBtPdf.map(Math.abs), 1);
+    // Shadow Direction chart — clamp matches live chart; max from full dataset
+    const _sdBtPdf   = _ds.map(r => { const s = clampShadowForDisplay(r.shadow_length_with_backtracking);    return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _sdNoBtPdf = _ds.map(r => { const s = clampShadowForDisplay(r.shadow_length_without_backtracking); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _sdBtFull   = _d.map(r => { const s = clampShadowForDisplay(r.shadow_length_with_backtracking);    return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _sdNoBtFull = _d.map(r => { const s = clampShadowForDisplay(r.shadow_length_without_backtracking); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _rawMaxSdPdf = Math.max(..._sdBtFull.map(Math.abs), ..._sdNoBtFull.map(Math.abs), 1);
     const _maxSdPdf = Math.ceil(axMax(_rawMaxSdPdf) / 5) * 5; // +10%, rounded to nearest 5 m
     const shadowDirImg = pdfOffscreenChart({
       type: "line",
@@ -2642,14 +2644,16 @@ async function downloadPdf() {
       }
     });
 
-    // Humidity & Dew Point chart
+    // Humidity & Dew Point chart — use null for missing data (matches live chart)
+    const _dewMinPdf = axMin(Math.min(..._d.map(r => Number(r.dew_point ?? 0))));
+    const _dewMaxPdf = axMax(Math.max(..._d.map(r => Number(r.dew_point ?? 20))));
     const humidityImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Relative Humidity (%)", hidden: !_chk("pdf_humidity"),  data: _ds.map(r => Number(r.humidity ?? 50)),
+        { label: "Relative Humidity (%)", hidden: !_chk("pdf_humidity"),  data: _ds.map(r => r.humidity  != null ? Number(r.humidity)  : null),
           borderColor: "#60a5fa", backgroundColor: "rgba(96,165,250,0.12)",
           borderWidth: 3.0, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y" },
-        { label: "Dew Point (°C)",        hidden: !_chk("pdf_dew_point"), data: _ds.map(r => Number(r.dew_point ?? 10)),
+        { label: "Dew Point (°C)",        hidden: !_chk("pdf_dew_point"), data: _ds.map(r => r.dew_point != null ? Number(r.dew_point) : null),
           borderColor: "#34d399", borderWidth: 3.0, borderDash: [4,3],
           pointRadius: 0, tension: 0.22, yAxisID: "y1" }
       ]},
@@ -2659,7 +2663,7 @@ async function downloadPdf() {
           y:  { type: "linear", position: "left",  min: 0, max: 100,
                 title: { display: true, text: "Humidity (%)", font: { size: 26, weight: "700" }, color: "#60a5fa" },
                 ticks: { font: { size: 22 }, color: "#60a5fa" }, grid: { color: "rgba(0,0,0,0.11)" } },
-          y1: { type: "linear", position: "right",
+          y1: { type: "linear", position: "right", min: _dewMinPdf, max: _dewMaxPdf,
                 title: { display: true, text: "Dew Point (°C)", font: { size: 26, weight: "700" }, color: "#34d399" },
                 ticks: { font: { size: 22 }, color: "#34d399" }, grid: { drawOnChartArea: false } }
         }
