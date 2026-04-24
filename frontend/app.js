@@ -2459,9 +2459,14 @@ async function downloadPdf() {
 
     const _snoBt  = _ds.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking));
     const _sBt    = _ds.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking));
-    const _maxSh  = Math.max(..._snoBt, ..._sBt, 1);
-    const _maxPct = Math.max(..._ds.map(r => Number(r.shading_percent_without_backtracking || 0)),
-                             ..._ds.map(r => Number(r.shading_percent_with_backtracking    || 0)), 1);
+    // Axis max must come from the FULL dataset — subsampled _ds misses sharp
+    // sunrise/sunset shadow spikes so the PDF scale would be lower than the live chart.
+    const _maxSh  = Math.max(
+      ..._d.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking)),
+      ..._d.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking)), 1);
+    const _maxPct = Math.max(
+      ..._d.map(r => Number(r.shading_percent_without_backtracking || 0)),
+      ..._d.map(r => Number(r.shading_percent_with_backtracking    || 0)), 1);
     const shadingImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
@@ -2484,9 +2489,9 @@ async function downloadPdf() {
     });
 
     const _maxIrrPdf = Math.max(
-      ..._ds.map(r => Number(r.irradiance_fixed               || 0)),
-      ..._ds.map(r => Number(r.irradiance_without_backtracking || 0)),
-      ..._ds.map(r => Number(r.irradiance_with_backtracking    || 0)), 1);
+      ..._d.map(r => Number(r.irradiance_fixed               || 0)),
+      ..._d.map(r => Number(r.irradiance_without_backtracking || 0)),
+      ..._d.map(r => Number(r.irradiance_with_backtracking    || 0)), 1);
     const powerImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
@@ -2503,12 +2508,12 @@ async function downloadPdf() {
     });
 
     const _maxPowPdf = Math.max(
-      ..._ds.map(r => Number(r.power_fixed               || 0)),
-      ..._ds.map(r => Number(r.power_without_backtracking || 0)),
-      ..._ds.map(r => Number(r.power_with_backtracking    || 0)), 1);
+      ..._d.map(r => Number(r.power_fixed               || 0)),
+      ..._d.map(r => Number(r.power_without_backtracking || 0)),
+      ..._d.map(r => Number(r.power_with_backtracking    || 0)), 1);
     const windStowSpeedPdf = document.getElementById("wind_stow_enable")?.checked
       ? parseFloat(document.getElementById("wind_stow_speed")?.value || "15") : 0;
-    const _maxWindPdf = Math.max(..._ds.map(r => Number(r.wind_speed || 0)), windStowSpeedPdf || 0, 5);
+    const _maxWindPdf = Math.max(..._d.map(r => Number(r.wind_speed || 0)), windStowSpeedPdf || 0, 5);
 
     const powerWImg = pdfOffscreenChart({
       type: "line",
@@ -2525,8 +2530,8 @@ async function downloadPdf() {
       }
     });
 
-    const _maxTempPdf = Math.max(..._ds.map(r => Number(r.cell_temp || r.temp || 20)), 1);
-    const _minTempPdf = Math.min(..._ds.map(r => Number(r.temp || 20)));
+    const _maxTempPdf = Math.max(..._d.map(r => Number(r.cell_temp || r.temp || 20)), 1);
+    const _minTempPdf = Math.min(..._d.map(r => Number(r.temp || 20)));
     const tempImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
@@ -2542,8 +2547,8 @@ async function downloadPdf() {
     });
 
     const _maxGhiPdf = Math.max(
-      ..._ds.map(r => Number(r.clearsky_ghi   || 0)),
-      ..._ds.map(r => Number(r.irradiance_raw || 0)), 1);
+      ..._d.map(r => Number(r.clearsky_ghi   || 0)),
+      ..._d.map(r => Number(r.irradiance_raw || 0)), 1);
     const ghiCompImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
