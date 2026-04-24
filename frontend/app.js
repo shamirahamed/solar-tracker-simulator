@@ -2468,7 +2468,7 @@ async function downloadPdf() {
     const _lblFull = _dFull.map(r => formatTimeLabel(r.timestamp));
     const _snoBt  = _dFull.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation));
     const _sBt    = _dFull.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation));
-    const _maxSh  = Math.max(..._snoBt.filter(v => v != null), ...._sBt.filter(v => v != null), 1);
+    const _maxSh  = Math.max(..._snoBt.filter(v => v != null), ..._sBt.filter(v => v != null), 1);
     const _maxPct = Math.max(
       ..._dFull.map(r => Number(r.shading_percent_without_backtracking || 0)),
       ..._dFull.map(r => Number(r.shading_percent_with_backtracking    || 0)), 1);
