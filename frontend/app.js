@@ -596,9 +596,10 @@ const timeLinePlugin = {
       entries.push({ yPx: Math.max(top + 5, Math.min(bottom - 5, yPx)), text, color });
     });
 
-    // During play or live mode: prepend the current time as first pill at top of line
-    if ((liveTimer || playTimer) && latestSimulationData[idx]) {
-      entries.unshift({ yPx: top + 6, text: formatTimeLabel(latestSimulationData[idx].timestamp), color: "#22c55e", isTime: true });
+    // Always show current time as first pill at top of the line
+    if (latestSimulationData[idx]) {
+      const timeColor = liveTimer ? "#22c55e" : accent;
+      entries.unshift({ yPx: top + 6, text: formatTimeLabel(latestSimulationData[idx].timestamp), color: timeColor, isTime: true });
     }
 
     if (!entries.length) { ctx.restore(); return; }
@@ -785,7 +786,7 @@ function buildCharts(data) {
     }
   } catch (_) {}
   // Push date into 2D section header, 2D popup modal header, Charts section divider, and every chart card header
-  ["sim2dDate", "sim2dModalDate", "simChartsDate"].forEach(id => {
+  ["sim2dDate", "sim2dModalDate", "simChartsDate", "chartModalDate"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.textContent = _simDateLabel;
   });
