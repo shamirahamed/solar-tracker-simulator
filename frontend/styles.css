@@ -572,7 +572,7 @@ select option { background: var(--card); color: var(--text); }
   align-items: flex-end;
 }
 
-#getLocation { width: auto; min-width: 38px; font-size: 16px; padding: 0 8px; min-height: 34px; }
+#getLocation { width: 100px; font-size: 10.5px; padding: 0 6px; min-height: 34px; }
 
 @media (max-width: 767px) {
   .location-col { grid-column: 1 / -1; align-items: stretch; }

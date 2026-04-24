@@ -374,7 +374,7 @@ function updateLocationPreviewFromInputs() {
   }
 
   if (locationPreview && locationText && mapLink) {
-    locationText.textContent = `📍 Location: ${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)}`;
+    locationText.textContent = `📍 ${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)}`;
     mapLink.href = `https://maps.google.com/?q=${lat},${lon}`;
     locationPreview.classList.remove("hidden");
   }
