@@ -789,12 +789,7 @@ function buildCharts(data) {
     const el = document.getElementById(id);
     if (el) el.textContent = _simDateLabel;
   });
-  // Show date dividers between charts
-  document.querySelectorAll(".chart-row-divider").forEach(el => {
-    el.classList.toggle("hidden", !_simDateLabel);
-    const span = el.querySelector(".chart-divider-date");
-    if (span) span.textContent = _simDateLabel;
-  });
+  // Chart-row-dividers stay hidden always — date is shown in the Charts section header above.
 
   anglesChart = new Chart(anglesCtx, {
     type: "line",
