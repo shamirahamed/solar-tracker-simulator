@@ -2424,11 +2424,12 @@ async function downloadPdf() {
 
     // Build chart images from detached offscreen canvases.
     // Option B: read checkbox states from PDF filter modal.
-    // Sample every 2nd minute (1440 → 720 pts). Denser than the old every-5th
-    // so rapid shadow spikes near sunrise/sunset are captured faithfully.
-    // x-axis uses maxTicksLimit:10 so only 10 labels show — no crowding.
-    const _d   = latestSimulationData;
-    const _ds  = _d.filter((_, i) => i % 2 === 0);   // one point per 2 min
+    // General charts: every 3rd minute (480 pts) — good balance of fidelity/speed.
+    // Shadow charts use _dFull (all 1440 pts) so rapid spikes at sunrise/sunset
+    // are never missed. x-axis maxTicksLimit:10 keeps labels uncluttered regardless.
+    const _d      = latestSimulationData;
+    const _ds     = _d.filter((_, i) => i % 3 === 0);   // 480 pts for most charts
+    const _dFull  = _d;                                   // all 1440 pts for shadow
     const _lbl = _ds.map(r => formatTimeLabel(r.timestamp));
     const _chk = id => document.getElementById(id)?.checked !== false;
 
@@ -2461,22 +2462,21 @@ async function downloadPdf() {
       }
     });
 
-    const _snoBt  = _ds.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation));
-    const _sBt    = _ds.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation));
-    // Axis max from full dataset, nulls excluded (sun below horizon)
-    const _maxSh  = Math.max(
-      ..._d.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation) ?? 0),
-      ..._d.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation) ?? 0), 1);
+    // Shadow charts use ALL 1440 points so no spike is ever missed
+    const _lblFull = _dFull.map(r => formatTimeLabel(r.timestamp));
+    const _snoBt  = _dFull.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation));
+    const _sBt    = _dFull.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation));
+    const _maxSh  = Math.max(..._snoBt.filter(v => v != null), ...._sBt.filter(v => v != null), 1);
     const _maxPct = Math.max(
-      ..._d.map(r => Number(r.shading_percent_without_backtracking || 0)),
-      ..._d.map(r => Number(r.shading_percent_with_backtracking    || 0)), 1);
+      ..._dFull.map(r => Number(r.shading_percent_without_backtracking || 0)),
+      ..._dFull.map(r => Number(r.shading_percent_with_backtracking    || 0)), 1);
     const shadingImg = pdfOffscreenChart({
       type: "line",
-      data: { labels: _lbl, datasets: [
+      data: { labels: _lblFull, datasets: [
         { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#38bdf8", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#4ade80", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _ds.map(r => r.shading_percent_without_backtracking), borderColor: "#fb923c", borderWidth: 2.2, borderDash: [8,4], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _ds.map(r => r.shading_percent_with_backtracking),    borderColor: "#22c55e", borderWidth: 2.2, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _dFull.map(r => r.shading_percent_without_backtracking), borderColor: "#fb923c", borderWidth: 2.2, borderDash: [8,4], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _dFull.map(r => r.shading_percent_with_backtracking),    borderColor: "#22c55e", borderWidth: 2.2, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
@@ -2617,21 +2617,19 @@ async function downloadPdf() {
       }
     });
 
-    // Shadow Direction chart — clamp + null-on-horizon matches live chart; max from full dataset
-    const _sdBtPdf   = _ds.map(r => { const s = clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation); if (s === null) return null; return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _sdNoBtPdf = _ds.map(r => { const s = clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation); if (s === null) return null; return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _sdBtFull   = _d.map(r => { const s = clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation); if (s === null) return null; return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _sdNoBtFull = _d.map(r => { const s = clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation); if (s === null) return null; return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _rawMaxSdPdf = Math.max(..._sdBtFull.filter(v => v != null).map(Math.abs), ..._sdNoBtFull.filter(v => v != null).map(Math.abs), 1);
-    const _maxSdPdf = Math.ceil(axMax(_rawMaxSdPdf) / 5) * 5; // +10%, rounded to nearest 5 m
+    // Shadow Direction — all 1440 pts so no spike is missed
+    const _sdBtPdf   = _dFull.map(r => { const s = clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation); if (s === null) return null; return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _sdNoBtPdf = _dFull.map(r => { const s = clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation); if (s === null) return null; return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _rawMaxSdPdf = Math.max(..._sdBtPdf.filter(v => v != null).map(Math.abs), ..._sdNoBtPdf.filter(v => v != null).map(Math.abs), 1);
+    const _maxSdPdf = Math.ceil(axMax(_rawMaxSdPdf) / 5) * 5;
     const shadowDirImg = pdfOffscreenChart({
       type: "line",
-      data: { labels: _lbl, datasets: [
+      data: { labels: _lblFull, datasets: [
         { label: "Shadow BT (+ East / − West)",    data: _sdBtPdf,
           borderColor: "#00e5ff", borderWidth: 3.0, pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "Shadow No BT (+ East / − West)", data: _sdNoBtPdf,
           borderColor: "#f59e0b", borderWidth: 2.5, borderDash: [5,4], pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shading % BT", data: _ds.map(r => r.shading_percent_with_backtracking),
+        { label: "Shading % BT", data: _dFull.map(r => r.shading_percent_with_backtracking),
           borderColor: "#ef4444", borderWidth: 2.5, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
       ]},
       options: { ..._pdfChartOpts("Shadow (m)"),
