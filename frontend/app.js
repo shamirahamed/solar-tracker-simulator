@@ -148,7 +148,7 @@ function _resetTimeline() {
   }
 }
 
-const MAX_SHADOW_CHART_DISPLAY_M = 999; // effectively no clamp — y-axis uses data max + buffer
+const MAX_SHADOW_CHART_DISPLAY_M = Infinity; // no cap — show actual backend values
 const MAX_SHADOW_2D_DISPLAY_M = 18;
 const MIN_SHADING_VISUAL_PERCENT = 0.2;
 
