@@ -1732,17 +1732,25 @@ body[data-preview="desktop"] .app-shell            { max-width: 960px !important
 [data-theme="light"] .weather-summary { color: #475569; }
 
 /* ─── Financial Estimate table ───────────────────── */
-.financial-result { margin-top: 14px; }
+/* ─── Financial Estimate card — compact to match chart card height ── */
+.financial-card { padding: 10px 12px; }
+.financial-card .section-head { margin-bottom: 6px; }
+.financial-card .input-grid   { gap: 6px 10px; }
+.financial-card label         { font-size: 9px; }
+.financial-card input         { min-height: 30px; padding: 4px 8px; font-size: 12px; }
+.financial-card .comparison-summary { padding: 6px 10px; font-size: 11px; margin-top: 8px; }
+
+.financial-result { margin-top: 8px; }
 
 .fin-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--fs-sm);
+  font-size: 11px;
 }
 
 .fin-table th,
 .fin-table td {
-  padding: 6px 8px;
+  padding: 3px 6px;
   text-align: right;
   border-bottom: 1px solid var(--line);
   color: var(--muted2);
@@ -1752,11 +1760,11 @@ body[data-preview="desktop"] .app-shell            { max-width: 960px !important
 .fin-table td:first-child {
   text-align: left;
   color: var(--muted);
-  font-size: var(--fs-xs);
+  font-size: 10px;
 }
 
 .fin-table th {
-  font-size: var(--fs-xs);
+  font-size: 9px;
   color: var(--muted);
   font-weight: 700;
   text-transform: uppercase;
