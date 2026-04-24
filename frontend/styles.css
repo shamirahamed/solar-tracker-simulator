@@ -655,6 +655,10 @@ select option { background: var(--card); color: var(--text); }
   font-size: var(--fs-base);
 }
 
+/* Backtracking toggle — sits below Max Angle input in same grid cell */
+.bt-label { margin-top: 5px; font-size: 11px; }
+.bt-label span { color: var(--muted2); }
+
 .checkbox-inline input {
   width: 15px;
   height: 15px;
