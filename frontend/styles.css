@@ -657,7 +657,7 @@ select option { background: var(--card); color: var(--text); }
 
 /* Max Angle + Backtracking — side by side in the same grid cell */
 .max-bt-inline { display: flex; align-items: center; gap: 6px; }
-.max-bt-inline input[type="number"] { flex: 1; min-width: 0; }
+.max-bt-inline input[type="number"] { flex: 1; min-width: 0; width: auto; }
 .bt-label { flex-shrink: 0; font-size: 11px; gap: 4px; }
 .bt-label span { color: var(--muted2); white-space: nowrap; }
 
