@@ -1663,6 +1663,12 @@ body[data-preview="mobile"] .legend-swatch         { width: 10px; height: 10px; 
 body[data-preview="mobile"] .chart-yaxis-label     { font-size: 9px; margin-top: -2px; margin-bottom: 2px; }
 body[data-preview="mobile"] .helper-text           { display: none; }
 
+/* 2D header: shrink controls + hide Values toggle so date label doesn't overflow */
+body[data-preview="mobile"] .tracker2d-header-controls         { gap: 3px; }
+body[data-preview="mobile"] .tracker2d-header-controls button  { min-height: 24px; min-width: 24px; font-size: 10px; padding: 2px 5px; }
+body[data-preview="mobile"] #timelineToggle                    { display: none; }
+body[data-preview="mobile"] #sim2dDate                         { font-size: 9px; }
+
 /* On a real landscape mobile, "Mobile" preview = same 2-col layout as Desktop/landscape.
    Only fires in orientation:landscape + max-height:520px — never affects portrait or desktop. */
 @media (orientation: landscape) and (max-height: 520px) {
