@@ -427,10 +427,8 @@ function calculateGcr() {
 }
 
 function clampShadowForDisplay(value, maxDisplay = MAX_SHADOW_CHART_DISPLAY_M, sunElevation = null) {
-  // Below 3° elevation irradiance is near zero — shadow length is astronomically
-  // large (>28 m) but carries no useful tracking information. Show as a gap so
-  // the y-axis scales to the real tracking-hour range (typically 5–40 m).
-  if (sunElevation !== null && sunElevation < 3) return null;
+  // Null only at nighttime (sun below horizon) — real shadow starts at sunrise
+  if (sunElevation !== null && sunElevation <= 0) return null;
   const n = Number(value || 0);
   if (!Number.isFinite(n) || n <= 0) return null;
   return Math.min(n, maxDisplay);
@@ -458,9 +456,9 @@ function updateSummary(result) {
   document.getElementById("maxBacktracking").textContent = `${maxVal("backtracking_angle").toFixed(1)}°`;
   document.getElementById("maxSun").textContent = `${maxVal("sun_elevation").toFixed(1)}°`;
   document.getElementById("maxAzimuth").textContent = `${maxVal("sun_azimuth").toFixed(1)}°`;
-  // Max shadow only during tracking hours (sun_elevation ≥ 3°) — same threshold as chart
-  const trackingRows = data.filter(d => Number(d.sun_elevation || 0) >= 3);
-  const maxShadowVal = (key) => Math.max(...trackingRows.map(d => Number(d[key] || 0)), 0);
+  // Max shadow during daylight only (sun above horizon)
+  const daylightRows = data.filter(d => Number(d.sun_elevation || 0) > 0);
+  const maxShadowVal = (key) => Math.max(...daylightRows.map(d => Number(d[key] || 0)), 0);
   document.getElementById("maxShadowWithout").textContent = formatShadowMetric(maxShadowVal("shadow_length_without_backtracking"));
   document.getElementById("maxShadowWith").textContent = formatShadowMetric(maxShadowVal("shadow_length_with_backtracking"));
   document.getElementById("maxPowerWithout").textContent = `${maxVal("power_without_backtracking").toFixed(1)} W`;
@@ -852,8 +850,8 @@ function buildCharts(data) {
 
   const maxShadowLen = Math.max(...shadowNoBtDisplay.filter(v => v != null), ...shadowBtDisplay.filter(v => v != null), 1);
   const maxShadingPercent = Math.max(
-    ...data.filter(r => Number(r.sun_elevation || 0) >= 3).map(r => Number(r.shading_percent_without_backtracking || 0)),
-    ...data.filter(r => Number(r.sun_elevation || 0) >= 3).map(r => Number(r.shading_percent_with_backtracking    || 0)),
+    ...data.filter(r => Number(r.sun_elevation || 0) > 0).map(r => Number(r.shading_percent_without_backtracking || 0)),
+    ...data.filter(r => Number(r.sun_elevation || 0) > 0).map(r => Number(r.shading_percent_with_backtracking    || 0)),
     1
   );
 
