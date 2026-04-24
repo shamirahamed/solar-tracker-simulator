@@ -458,8 +458,11 @@ function updateSummary(result) {
   document.getElementById("maxBacktracking").textContent = `${maxVal("backtracking_angle").toFixed(1)}°`;
   document.getElementById("maxSun").textContent = `${maxVal("sun_elevation").toFixed(1)}°`;
   document.getElementById("maxAzimuth").textContent = `${maxVal("sun_azimuth").toFixed(1)}°`;
-  document.getElementById("maxShadowWithout").textContent = formatShadowMetric(maxVal("shadow_length_without_backtracking"));
-  document.getElementById("maxShadowWith").textContent = formatShadowMetric(maxVal("shadow_length_with_backtracking"));
+  // Max shadow only during tracking hours (sun_elevation ≥ 3°) — same threshold as chart
+  const trackingRows = data.filter(d => Number(d.sun_elevation || 0) >= 3);
+  const maxShadowVal = (key) => Math.max(...trackingRows.map(d => Number(d[key] || 0)), 0);
+  document.getElementById("maxShadowWithout").textContent = formatShadowMetric(maxShadowVal("shadow_length_without_backtracking"));
+  document.getElementById("maxShadowWith").textContent = formatShadowMetric(maxShadowVal("shadow_length_with_backtracking"));
   document.getElementById("maxPowerWithout").textContent = `${maxVal("power_without_backtracking").toFixed(1)} W`;
   document.getElementById("maxPowerWith").textContent = `${maxVal("power_with_backtracking").toFixed(1)} W`;
   document.getElementById("maxShadingNoBt").textContent = `${maxVal("shading_percent_without_backtracking").toFixed(2)}%`;
@@ -849,8 +852,8 @@ function buildCharts(data) {
 
   const maxShadowLen = Math.max(...shadowNoBtDisplay.filter(v => v != null), ...shadowBtDisplay.filter(v => v != null), 1);
   const maxShadingPercent = Math.max(
-    ...data.map((r) => Number(r.shading_percent_without_backtracking || 0)),
-    ...data.map((r) => Number(r.shading_percent_with_backtracking || 0)),
+    ...data.filter(r => Number(r.sun_elevation || 0) >= 3).map(r => Number(r.shading_percent_without_backtracking || 0)),
+    ...data.filter(r => Number(r.sun_elevation || 0) >= 3).map(r => Number(r.shading_percent_with_backtracking    || 0)),
     1
   );
 
