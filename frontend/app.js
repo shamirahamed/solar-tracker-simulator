@@ -426,9 +426,11 @@ function calculateGcr() {
   return { ratio, percent: ratio * 100 };
 }
 
-function clampShadowForDisplay(value, maxDisplay = MAX_SHADOW_CHART_DISPLAY_M) {
+function clampShadowForDisplay(value, maxDisplay = MAX_SHADOW_CHART_DISPLAY_M, sunElevation = null) {
+  // Return null (chart gap) when sun is below the horizon — shadow is undefined
+  if (sunElevation !== null && sunElevation <= 0) return null;
   const n = Number(value || 0);
-  if (!Number.isFinite(n) || n <= 0) return 0;
+  if (!Number.isFinite(n) || n <= 0) return null;
   return Math.min(n, maxDisplay);
 }
 
@@ -840,10 +842,10 @@ function buildCharts(data) {
     })()
   });
 
-  const shadowNoBtDisplay = data.map((r) => clampShadowForDisplay(r.shadow_length_without_backtracking));
-  const shadowBtDisplay = data.map((r) => clampShadowForDisplay(r.shadow_length_with_backtracking));
+  const shadowNoBtDisplay = data.map((r) => clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation));
+  const shadowBtDisplay   = data.map((r) => clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation));
 
-  const maxShadowLen = Math.max(...shadowNoBtDisplay, ...shadowBtDisplay, 1);
+  const maxShadowLen = Math.max(...shadowNoBtDisplay.filter(v => v != null), ...shadowBtDisplay.filter(v => v != null), 1);
   const maxShadingPercent = Math.max(
     ...data.map((r) => Number(r.shading_percent_without_backtracking || 0)),
     ...data.map((r) => Number(r.shading_percent_with_backtracking || 0)),
@@ -943,15 +945,17 @@ function buildCharts(data) {
   // ── Shadow Direction E/W — pvlib projected_solar_zenith sign ──────────
   // Clamp before applying sign so extreme low-elevation shadows don't blow the scale
   const shadowDirBt   = data.map(r => {
-    const s = clampShadowForDisplay(r.shadow_length_with_backtracking);
+    const s = clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation);
+    if (s === null) return null;
     return (r.projected_solar_zenith ?? 0) >= 0 ? s : -s;
   });
   const shadowDirNoBt = data.map(r => {
-    const s = clampShadowForDisplay(r.shadow_length_without_backtracking);
+    const s = clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation);
+    if (s === null) return null;
     return (r.projected_solar_zenith ?? 0) >= 0 ? s : -s;
   });
   // Round up to next 5 m above the data max so there's always a small margin
-  const _rawMaxDir = Math.max(...shadowDirBt.map(Math.abs), ...shadowDirNoBt.map(Math.abs), 1);
+  const _rawMaxDir = Math.max(...shadowDirBt.filter(v => v != null).map(Math.abs), ...shadowDirNoBt.filter(v => v != null).map(Math.abs), 1);
   const maxShadowDirAbs = Math.ceil(axMax(_rawMaxDir) / 5) * 5; // round up to nearest 5 m
 
   shadowDirChart = new Chart(shadowDirCtx, {
@@ -2457,13 +2461,12 @@ async function downloadPdf() {
       }
     });
 
-    const _snoBt  = _ds.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking));
-    const _sBt    = _ds.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking));
-    // Axis max must come from the FULL dataset — subsampled _ds misses sharp
-    // sunrise/sunset shadow spikes so the PDF scale would be lower than the live chart.
+    const _snoBt  = _ds.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation));
+    const _sBt    = _ds.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation));
+    // Axis max from full dataset, nulls excluded (sun below horizon)
     const _maxSh  = Math.max(
-      ..._d.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking)),
-      ..._d.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking)), 1);
+      ..._d.map(r => clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation) ?? 0),
+      ..._d.map(r => clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation) ?? 0), 1);
     const _maxPct = Math.max(
       ..._d.map(r => Number(r.shading_percent_without_backtracking || 0)),
       ..._d.map(r => Number(r.shading_percent_with_backtracking    || 0)), 1);
@@ -2614,12 +2617,12 @@ async function downloadPdf() {
       }
     });
 
-    // Shadow Direction chart — clamp matches live chart; max from full dataset
-    const _sdBtPdf   = _ds.map(r => { const s = clampShadowForDisplay(r.shadow_length_with_backtracking);    return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _sdNoBtPdf = _ds.map(r => { const s = clampShadowForDisplay(r.shadow_length_without_backtracking); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _sdBtFull   = _d.map(r => { const s = clampShadowForDisplay(r.shadow_length_with_backtracking);    return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _sdNoBtFull = _d.map(r => { const s = clampShadowForDisplay(r.shadow_length_without_backtracking); return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
-    const _rawMaxSdPdf = Math.max(..._sdBtFull.map(Math.abs), ..._sdNoBtFull.map(Math.abs), 1);
+    // Shadow Direction chart — clamp + null-on-horizon matches live chart; max from full dataset
+    const _sdBtPdf   = _ds.map(r => { const s = clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation); if (s === null) return null; return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _sdNoBtPdf = _ds.map(r => { const s = clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation); if (s === null) return null; return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _sdBtFull   = _d.map(r => { const s = clampShadowForDisplay(r.shadow_length_with_backtracking,    MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation); if (s === null) return null; return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _sdNoBtFull = _d.map(r => { const s = clampShadowForDisplay(r.shadow_length_without_backtracking, MAX_SHADOW_CHART_DISPLAY_M, r.sun_elevation); if (s === null) return null; return (r.projected_solar_zenith ?? 0) >= 0 ?  s : -s; });
+    const _rawMaxSdPdf = Math.max(..._sdBtFull.filter(v => v != null).map(Math.abs), ..._sdNoBtFull.filter(v => v != null).map(Math.abs), 1);
     const _maxSdPdf = Math.ceil(axMax(_rawMaxSdPdf) / 5) * 5; // +10%, rounded to nearest 5 m
     const shadowDirImg = pdfOffscreenChart({
       type: "line",
