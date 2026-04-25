@@ -417,7 +417,7 @@ html, body {
 
 /* side-by-side inputs + metrics on wider screens */
 @media (min-width: 901px) {
-  .layout-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .layout-grid { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); }
 }
 
 /* ─── Cards ──────────────────────────────────── */
