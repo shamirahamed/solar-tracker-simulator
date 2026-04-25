@@ -146,6 +146,7 @@ function _resetTimeline() {
   if (timelineToggleBtn) {
     timelineToggleBtn.classList.add("active");
     timelineToggleBtn.title = "Hide value line on charts";
+    timelineToggleBtn.style.display = "inline-flex"; // data ready → show in paused state
   }
 }
 
@@ -1504,6 +1505,11 @@ function setPlaybackState(isPlaying) {
 
   play2dBtn.setAttribute("aria-pressed", isPlaying ? "true" : "false");
   pause2dBtn.setAttribute("aria-pressed", isPlaying ? "false" : "true");
+
+  // Values toggle: visible only when paused and simulation data is loaded
+  if (timelineToggleBtn) {
+    timelineToggleBtn.style.display = (isPlaying || !latestSimulationData.length) ? "none" : "inline-flex";
+  }
 
   // Show hint when playing so users know to pause to inspect chart values
   document.getElementById("chartHint")?.classList.toggle("hidden", !isPlaying);
