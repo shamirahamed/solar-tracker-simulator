@@ -418,6 +418,30 @@ html, body {
 /* side-by-side inputs + metrics on wider screens */
 @media (min-width: 901px) {
   .layout-grid { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); }
+
+  /* Compact inputs card: smaller text, tighter inputs */
+  .inputs-card label {
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .inputs-card input[type="number"],
+  .inputs-card input[type="text"],
+  .inputs-card input[type="date"],
+  .inputs-card select {
+    font-size: 12px;
+    min-height: 30px;
+    padding: 3px 8px;
+  }
+
+  /* All 3 action buttons on one row */
+  .inputs-card .button-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 6px;
+  }
+  .inputs-card .button-row button { grid-column: auto; }
 }
 
 /* ─── Cards ──────────────────────────────────── */
