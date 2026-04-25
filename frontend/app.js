@@ -2010,26 +2010,8 @@ async function downloadCsv() {
 
 
 function setupPresetButtons() {
-const presetDublin = document.getElementById("presetDublin");
-const presetDubai = document.getElementById("presetDubai");
 const detectTimezoneBtn = document.getElementById("detectTimezoneBtn");
 const resetPresetBtn = document.getElementById("resetPresetBtn");
-
-presetDublin?.addEventListener("click", () => {
-document.getElementById("latitude").value = "53.3498";
-document.getElementById("longitude").value = "-6.2603";
-document.getElementById("timezone").value = "Europe/Dublin";
-updateLocationPreviewFromInputs();
-updateScenarioHeader();
-});
-
-presetDubai?.addEventListener("click", () => {
-document.getElementById("latitude").value = "25.2048";
-document.getElementById("longitude").value = "55.2708";
-document.getElementById("timezone").value = "Asia/Dubai";
-updateLocationPreviewFromInputs();
-updateScenarioHeader();
-});
 
 detectTimezoneBtn?.addEventListener("click", () => {
 const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
