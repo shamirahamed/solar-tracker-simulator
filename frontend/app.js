@@ -803,9 +803,9 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Ideal",        data: data.map((r) => r.ideal_tracker_angle),       borderColor: "#60a5fa", borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
-        { label: "Limited",      data: data.map((r) => r.limited_tracker_angle),     borderColor: "#34d399", borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
-        { label: "Backtracking", data: data.map((r) => r.backtracking_angle),        borderColor: "#fb923c", borderWidth: 1.5, pointRadius: 0, tension: 0.22 },
+        { label: "Ideal",        data: data.map((r) => r.ideal_tracker_angle),       borderColor: "#60a5fa", borderWidth: 1.5, borderDash: [8,4], pointRadius: 0, tension: 0.22 },
+        { label: "Limited",      data: data.map((r) => r.limited_tracker_angle),     borderColor: "#fbbf24", borderWidth: 1.5, borderDash: [3,3], pointRadius: 0, tension: 0.22 },
+        { label: "Backtracking", data: data.map((r) => r.backtracking_angle),        borderColor: "#f87171", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
         {
           label: "Wind Stow",
           data: data.map((r) => r.wind_stow ? 0 : null),
@@ -861,10 +861,10 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "No BT",   data: shadowNoBtDisplay,                                          borderColor: "#38bdf8", borderWidth: 1.5, borderDash: [6,3], pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "No BT",   data: shadowNoBtDisplay,                                          borderColor: "#f472b6", borderWidth: 1.5, borderDash: [6,3], pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "BT",      data: shadowBtDisplay,                                             borderColor: "#4ade80", borderWidth: 2.5,                  pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "% No BT", data: data.map((r) => r.shading_percent_without_backtracking),     borderColor: "#fb923c", borderWidth: 1.8, pointRadius: 0, tension: 0.18, borderDash: [8, 4], yAxisID: "y1" },
-        { label: "% BT",    data: data.map((r) => r.shading_percent_with_backtracking),        borderColor: "#22c55e", borderWidth: 1.8, pointRadius: 0, tension: 0.18, borderDash: [3, 3], yAxisID: "y1" }
+        { label: "% BT",    data: data.map((r) => r.shading_percent_with_backtracking),        borderColor: "#c084fc", borderWidth: 1.8, pointRadius: 0, tension: 0.18, borderDash: [3, 3], yAxisID: "y1" }
       ]
     },
     options: {
@@ -909,7 +909,7 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Fixed Panel",     data: data.map((r) => r.irradiance_fixed),                 borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.07)",  borderWidth: 1.5, borderDash: [2,4], pointRadius: 0, tension: 0.22 },
+        { label: "Fixed Panel",     data: data.map((r) => r.irradiance_fixed),                 borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.07)", borderWidth: 1.5, borderDash: [2,4], pointRadius: 0, tension: 0.22 },
         { label: "Tracker – No BT", data: data.map((r) => r.irradiance_without_backtracking),  borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.07)", borderWidth: 1.5, borderDash: [6,3], pointRadius: 0, tension: 0.22 },
         { label: "Tracker – BT",    data: data.map((r) => r.irradiance_with_backtracking),     borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",  borderWidth: 2.5,                  pointRadius: 0, tension: 0.22 }
       ]
@@ -933,7 +933,7 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Fixed Panel",     data: data.map(r => r.power_fixed),                borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.07)",   borderWidth: 1.5, borderDash: [2,4], pointRadius: 0, tension: 0.22 },
+        { label: "Fixed Panel",     data: data.map(r => r.power_fixed),                borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.07)",  borderWidth: 1.5, borderDash: [2,4], pointRadius: 0, tension: 0.22 },
         { label: "Tracker – No BT", data: data.map(r => r.power_without_backtracking), borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.07)",  borderWidth: 1.5, borderDash: [6,3], pointRadius: 0, tension: 0.22 },
         { label: "Tracker – BT",    data: data.map(r => r.power_with_backtracking),    borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",   borderWidth: 2.5,                  pointRadius: 0, tension: 0.22 },
       ]
@@ -2439,9 +2439,9 @@ async function downloadPdf() {
     const anglesImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Ideal",        hidden: !_chk("pdf_ideal"),        data: _ds.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
-        { label: "Limited",      hidden: !_chk("pdf_limited"),      data: _ds.map(r => r.limited_tracker_angle), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
-        { label: "Backtracking", hidden: !_chk("pdf_backtracking"), data: _ds.map(r => r.backtracking_angle),    borderColor: "#16a34a", borderWidth: 2.5, pointRadius: 0, tension: 0.22 }
+        { label: "Ideal",        hidden: !_chk("pdf_ideal"),        data: _ds.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 2.0, borderDash: [8,4], pointRadius: 0, tension: 0.22 },
+        { label: "Limited",      hidden: !_chk("pdf_limited"),      data: _ds.map(r => r.limited_tracker_angle), borderColor: "#ca8a04", borderWidth: 2.0, borderDash: [3,3], pointRadius: 0, tension: 0.22 },
+        { label: "Backtracking", hidden: !_chk("pdf_backtracking"), data: _ds.map(r => r.backtracking_angle),    borderColor: "#dc2626", borderWidth: 3.0, pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Angle (deg)")
     });
@@ -2476,10 +2476,10 @@ async function downloadPdf() {
     const shadingImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lblFull, datasets: [
-        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#38bdf8", borderWidth: 2.0, borderDash: [6,3], pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#db2777", borderWidth: 2.0, borderDash: [6,3], pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#4ade80", borderWidth: 3.0,                  pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _dFull.map(r => r.shading_percent_without_backtracking), borderColor: "#fb923c", borderWidth: 2.2, borderDash: [8,4], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _dFull.map(r => r.shading_percent_with_backtracking),    borderColor: "#22c55e", borderWidth: 2.2, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
+        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _dFull.map(r => r.shading_percent_with_backtracking),    borderColor: "#c084fc", borderWidth: 2.2, borderDash: [3,3], pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
@@ -2501,7 +2501,7 @@ async function downloadPdf() {
     const powerImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Fixed Panel",     hidden: !_chk("pdf_fixed"),    data: _ds.map(r => r.irradiance_fixed),                 borderColor: "#16a34a", borderWidth: 2.0, borderDash: [2,4], pointRadius: 0, tension: 0.22 },
+        { label: "Fixed Panel",     hidden: !_chk("pdf_fixed"),    data: _ds.map(r => r.irradiance_fixed),                 borderColor: "#64748b", borderWidth: 2.0, borderDash: [2,4], pointRadius: 0, tension: 0.22 },
         { label: "Tracker – No BT", hidden: !_chk("pdf_irr_nobt"), data: _ds.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 2.0, borderDash: [6,3], pointRadius: 0, tension: 0.22 },
         { label: "Tracker – BT",    hidden: !_chk("pdf_irr_bt"),   data: _ds.map(r => r.irradiance_with_backtracking),    borderColor: "#2563eb", borderWidth: 3.0,                  pointRadius: 0, tension: 0.22 }
       ]},
@@ -2524,7 +2524,7 @@ async function downloadPdf() {
     const powerWImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Fixed Panel",     hidden: !_chk("pdf_pow_fixed"), data: _ds.map(r => r.power_fixed),                borderColor: "#16a34a", borderWidth: 2.0, borderDash: [2,4], pointRadius: 0, tension: 0.22 },
+        { label: "Fixed Panel",     hidden: !_chk("pdf_pow_fixed"), data: _ds.map(r => r.power_fixed),                borderColor: "#64748b", borderWidth: 2.0, borderDash: [2,4], pointRadius: 0, tension: 0.22 },
         { label: "Tracker – No BT", hidden: !_chk("pdf_pow_nobt"),  data: _ds.map(r => r.power_without_backtracking), borderColor: "#d97706", borderWidth: 2.0, borderDash: [6,3], pointRadius: 0, tension: 0.22 },
         { label: "Tracker – BT",    hidden: !_chk("pdf_pow_bt"),    data: _ds.map(r => r.power_with_backtracking),    borderColor: "#00e5ff", borderWidth: 3.0,                  pointRadius: 0, tension: 0.22 }
       ]},
