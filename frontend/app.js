@@ -810,7 +810,7 @@ function buildCharts(data) {
       datasets: [
         { label: "Limited",      data: data.map((r) => r.limited_tracker_angle),     borderColor: "#fde047", borderWidth: 2,   borderDash: [4,5],  pointRadius: 0, tension: 0.22 },
         { label: "Ideal",        data: data.map((r) => r.ideal_tracker_angle),       borderColor: "#7dd3fc", borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.22 },
-        { label: "Backtracking", data: data.map((r) => r.backtracking_angle),        borderColor: "#f87171", borderWidth: 3,   pointRadius: 0, tension: 0.22 },
+        { label: "Backtracking", data: data.map((r) => r.backtracking_angle),        borderColor: "#f87171", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
         {
           label: "Wind Stow",
           data: data.map((r) => r.wind_stow ? 0 : null),
@@ -834,8 +834,8 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Elevation", data: data.map((r) => r.sun_elevation), borderColor: "#d97706", borderWidth: 1.5, pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Azimuth",   data: data.map((r) => r.sun_azimuth),   borderColor: "#38bdf8", borderWidth: 1.5, pointRadius: 0, tension: 0.22, yAxisID: "y1" }
+        { label: "Elevation", data: data.map((r) => Number(r.sun_elevation)),                                                   borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, cubicInterpolationMode: "monotone", tension: 0.22, yAxisID: "y" },
+        { label: "Azimuth",   data: data.map((r) => Number(r.sun_elevation) > -6 ? Number(r.sun_azimuth) : null), spanGaps: false, borderColor: "#38bdf8", borderWidth: 2.5, pointRadius: 0, cubicInterpolationMode: "monotone", tension: 0.22, yAxisID: "y1" }
       ]
     },
     options: (() => {
@@ -866,7 +866,7 @@ function buildCharts(data) {
         { label: "No BT",   data: shadowNoBtDisplay,                                          borderColor: "#38bdf8", borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "% No BT", data: data.map((r) => r.shading_percent_without_backtracking),     borderColor: "#fb923c", borderWidth: 2,   borderDash: [2,6],  pointRadius: 0, tension: 0.18, yAxisID: "y1" },
         { label: "% BT",    data: data.map((r) => r.shading_percent_with_backtracking),        borderColor: "#c084fc", borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "BT",      data: shadowBtDisplay,                                             borderColor: "#4ade80", borderWidth: 3,   pointRadius: 0, tension: 0.18, yAxisID: "y" }
+        { label: "BT",      data: shadowBtDisplay,                                             borderColor: "#4ade80", borderWidth: 2.5, pointRadius: 0, tension: 0.18, yAxisID: "y" }
       ]
     },
     options: {
@@ -913,7 +913,7 @@ function buildCharts(data) {
       datasets: [
         { label: "Fixed Panel",     data: data.map((r) => r.irradiance_fixed),                 borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.07)", borderWidth: 2,   borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
         { label: "Tracker – No BT", data: data.map((r) => r.irradiance_without_backtracking),  borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.07)",  borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – BT",    data: data.map((r) => r.irradiance_with_backtracking),     borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",   borderWidth: 3,                    pointRadius: 0, tension: 0.22 }
+        { label: "Tracker – BT",    data: data.map((r) => r.irradiance_with_backtracking),     borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",   borderWidth: 2.5,                  pointRadius: 0, tension: 0.22 }
       ]
     },
     options: (() => {
@@ -937,7 +937,7 @@ function buildCharts(data) {
       datasets: [
         { label: "Fixed Panel",     data: data.map(r => r.power_fixed),                borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.07)", borderWidth: 2,   borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
         { label: "Tracker – No BT", data: data.map(r => r.power_without_backtracking), borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.07)",  borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – BT",    data: data.map(r => r.power_with_backtracking),    borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",   borderWidth: 3,                    pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",    data: data.map(r => r.power_with_backtracking),    borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",   borderWidth: 2.5,                  pointRadius: 0, tension: 0.22 },
       ]
     },
     options: (() => {
@@ -971,7 +971,7 @@ function buildCharts(data) {
       datasets: [
         { label: "Shading % BT", data: data.map(r => r.shading_percent_with_backtracking), borderColor: "#ef4444", borderWidth: 2,   borderDash: [2,6],  pointRadius: 0, tension: 0.18, yAxisID: "y1" },
         { label: "Shadow No BT (+ East / − West)", data: shadowDirNoBt, borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.06)", borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "Shadow BT (+ East / − West)",    data: shadowDirBt,   borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",  borderWidth: 3,                    pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "Shadow BT (+ East / − West)",    data: shadowDirBt,   borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",  borderWidth: 2.5,                  pointRadius: 0, tension: 0.18, yAxisID: "y" },
       ]
     },
     options: {
@@ -1009,8 +1009,8 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Ambient (°C)",   data: _tempAmb,  borderColor: "#94a3b8", borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, tension: 0.22 },
-        { label: "Cell Temp (°C)", data: _tempCell, borderColor: "#f97316", backgroundColor: "rgba(249,115,22,0.08)", borderWidth: 2, pointRadius: 0, tension: 0.22 },
+        { label: "Ambient (°C)",   data: _tempAmb,  borderColor: "#94a3b8", borderWidth: 2,   borderDash: [4,3], pointRadius: 0, tension: 0.22 },
+        { label: "Cell Temp (°C)", data: _tempCell, borderColor: "#f97316", backgroundColor: "rgba(249,115,22,0.08)", borderWidth: 2.5, pointRadius: 0, tension: 0.22 },
       ]
     },
     options: _tempBase
@@ -1027,9 +1027,9 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Clear-sky GHI", data: data.map(r => r.clearsky_ghi   != null ? Number(r.clearsky_ghi)   : (r.ghi != null ? Number(r.ghi) : 0)), borderColor: "#f59e0b", borderWidth: 1.5, borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Actual GHI",    data: data.map(r => r.irradiance_raw != null ? Number(r.irradiance_raw) : (r.ghi != null ? Number(r.ghi) : 0)), borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.07)", borderWidth: 2, pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Cloud Cover %", data: data.map(r => Number(r.cloud_cover ?? 0)), borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.10)", borderWidth: 1.5, borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" },
+        { label: "Clear-sky GHI", data: data.map(r => r.clearsky_ghi   != null ? Number(r.clearsky_ghi)   : (r.ghi != null ? Number(r.ghi) : 0)), borderColor: "#f59e0b", borderWidth: 2,   borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Actual GHI",    data: data.map(r => r.irradiance_raw != null ? Number(r.irradiance_raw) : (r.ghi != null ? Number(r.ghi) : 0)), borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.07)", borderWidth: 2.5, pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Cloud Cover %", data: data.map(r => Number(r.cloud_cover ?? 0)), borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.10)", borderWidth: 2,   borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" },
       ]
     },
     options: {
@@ -1066,12 +1066,12 @@ function buildCharts(data) {
           label: "Wind Speed (m/s)",
           data: data.map(r => r.wind_speed != null ? Number(r.wind_speed) : 1),
           borderColor: "#38bdf8", backgroundColor: "rgba(56,189,248,0.08)",
-          borderWidth: 2, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y"
+          borderWidth: 2.5, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y"
         },
         {
           label: windStowEnabled ? `Stow @ ${windStowSpeed} m/s` : "Stow disabled",
           data: windStowEnabled ? data.map(() => windStowSpeed) : data.map(() => null),
-          borderColor: "#fb923c", borderWidth: 1.5, borderDash: [6,4],
+          borderColor: "#fb923c", borderWidth: 2, borderDash: [6,4],
           pointRadius: 0, tension: 0, yAxisID: "y"
         },
         {
@@ -1108,7 +1108,7 @@ function buildCharts(data) {
             label: "Cloud Cover (%)",
             data: data.map(r => r.cloud_cover != null ? Number(r.cloud_cover) : 0),
             borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.15)",
-            borderWidth: 1.5, pointRadius: 0, tension: 0.22, fill: true,
+            borderWidth: 2, pointRadius: 0, tension: 0.22, fill: true,
             yAxisID: "y"
           },
           {
@@ -1151,12 +1151,12 @@ function buildCharts(data) {
             label: "Relative Humidity (%)",
             data: data.map(r => r.humidity != null ? Number(r.humidity) : null),
             borderColor: "#60a5fa", backgroundColor: "rgba(96,165,250,0.12)",
-            borderWidth: 1.5, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y"
+            borderWidth: 2, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y"
           },
           {
             label: "Dew Point (°C)",
             data: data.map(r => r.dew_point != null ? Number(r.dew_point) : null),
-            borderColor: "#34d399", borderWidth: 1.5, borderDash: [4, 3],
+            borderColor: "#34d399", borderWidth: 2, borderDash: [4, 3],
             pointRadius: 0, tension: 0.22, fill: false, yAxisID: "y1"
           }
         ]
