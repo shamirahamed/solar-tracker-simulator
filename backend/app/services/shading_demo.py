@@ -142,7 +142,7 @@ def _mode_results(
     panel_area: float,
     panel_efficiency: float,
     t_ambient: float = 20.0,
-) -> Tuple[float, bool, float, float, float]:
+) -> Tuple[float, bool, float, float, float, float]:
     solar_zenith = float(row["apparent_zenith"])
     solar_azimuth = float(row["sun_azimuth"])
     sun_elevation = float(row["sun_elevation"])

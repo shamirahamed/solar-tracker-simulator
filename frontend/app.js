@@ -1175,6 +1175,13 @@ function buildCharts(data) {
       }
     });
   }
+
+  // Mark weather-only charts with clear-sky indicator when real weather is not active
+  const _isRealWeather = latestSimulationResult?.weather_source?.startsWith("Open-Meteo");
+  ["windChart", "cloudRainChart", "humidityChart"].forEach(id => {
+    const card = document.getElementById(id)?.closest(".card");
+    if (card) card.dataset.clearsky = _isRealWeather ? "" : "true";
+  });
 }
 
 function resizeTrackerCanvas() {
@@ -1984,6 +1991,21 @@ preview.textContent = JSON.stringify(
 
 async function downloadCsv() {
   const payload = getPayload();
+
+  if (payload.use_real_weather) {
+    const _wKey = `${Math.round(payload.latitude*10000)/10000},${Math.round(payload.longitude*10000)/10000},${payload.date}`;
+    if (_weatherBrowserCache.has(_wKey)) {
+      payload.weather_data = _weatherBrowserCache.get(_wKey);
+    } else {
+      showPopup("Fetching weather for CSV…", "info", 6000);
+      try {
+        payload.weather_data = await fetchWeatherFromBrowser(payload.latitude, payload.longitude, payload.date);
+      } catch (_) {
+        showPopup("⚠ Weather fetch failed — CSV will use clear-sky.", "warning", 5000);
+      }
+    }
+  }
+
   try {
     const response = await fetch(`${API_BASE}/simulate/day.csv`, {
       method: "POST",
@@ -2863,7 +2885,7 @@ async function downloadPdf() {
     pdfTextBlock(doc, [
       "This report reflects the current UI inputs and the latest simulation loaded in the browser.",
       "It is intended for practical engineering analysis and comparison, not a full bankable performance model.",
-      "Clear-sky irradiance is used in this practical version unless measured weather data is added later.",
+      "When 'Use real weather data' is enabled, Open-Meteo provides hourly GHI/DHI/temperature/wind data. Otherwise the Ineichen clear-sky model is used.",
       "Very large shadow values can occur at low solar elevation, so display scaling may be applied for readability."
     ], 18, 104, 6);
 

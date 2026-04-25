@@ -175,9 +175,8 @@ def _build_response(payload: SimulationRequest) -> Dict:
         if daily_irr_no_bt > 0 else 0.0
     )
 
-    panel_area = payload.panel_width * payload.panel_height
     daily_energy_fixed = round(
-        daily_irr_fixed * panel_area * payload.panel_efficiency / 1000.0, 3
+        sum(row.get("power_fixed", 0.0) for row in simulation_data) * interval_hours / 1000.0, 3
     )
 
     return {
