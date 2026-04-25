@@ -103,8 +103,9 @@ function applyTheme(theme) {
   const icon = isLight ? "🌙" : "☀️";
   const label = isLight ? "Switch to Dark" : "Switch to Light";
   const statusText = isLight ? "Current: Light" : "Current: Dark";
-  document.getElementById("themeToggleBtn")?.setAttribute("title", label);
-  document.getElementById("themeToggleBtn").textContent = icon;
+  const themeBtn = document.getElementById("themeToggleBtn");
+  themeBtn?.setAttribute("title", label);
+  if (themeBtn) themeBtn.textContent = icon;
   const settingBtn = document.getElementById("themeToggleSetting");
   if (settingBtn) settingBtn.textContent = `${icon} ${label}`;
   const statusEl = document.getElementById("themeStatus");
@@ -444,7 +445,7 @@ function formatShadowMetric(value) {
 
 function updateScenarioHeader() {
   const p = getPayload();
-  scenarioText.textContent = `${p.latitude.toFixed(4)}, ${p.longitude.toFixed(4)} | ${p.timezone} | ${p.date} | ${p.backtracking ? "Backtracking ON" : "Backtracking OFF"}`;
+  if (scenarioText) scenarioText.textContent = `${p.latitude.toFixed(4)}, ${p.longitude.toFixed(4)} | ${p.timezone} | ${p.date} | ${p.backtracking ? "Backtracking ON" : "Backtracking OFF"}`;
 }
 
 function updateSummary(result) {
@@ -779,6 +780,9 @@ function chartBaseOptions(yText) {
 function buildCharts(data) {
   if (!anglesCtx || !sunCtx || !shadingCtx || !powerCtx) return;
   destroyCharts();
+  const isLight   = document.documentElement.dataset.theme === "light";
+  const gridColor = isLight ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)";
+  const tickColor = "#64748b";
   const labels = data.map((row) => formatTimeLabel(row.timestamp));
 
   // Derive a friendly date label from the simulation result
@@ -835,9 +839,6 @@ function buildCharts(data) {
     },
     options: (() => {
       const base = chartBaseOptions("Elevation (deg)");
-      const isLight = document.documentElement.dataset.theme === "light";
-      const gridColor = isLight ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)";
-      const tickColor = "#64748b";
       base.scales.y  = { ...base.scales.y,  position: "left",  title: { display: false }, ticks: { font: { size: 10 }, color: tickColor }, grid: { color: gridColor } };
       base.scales.y1 = { type: "linear", position: "right", min: 0, max: 360, title: { display: false },
                          ticks: { font: { size: 10 }, color: tickColor, stepSize: 90 }, grid: { drawOnChartArea: false } };
@@ -873,7 +874,7 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" } },
+        x: { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: tickColor }, grid: { color: gridColor } },
         y: {
           type: "linear",
           position: "left",
@@ -881,8 +882,8 @@ function buildCharts(data) {
           min: 0,
           max: Math.max(5, axMax(maxShadowLen)),
           title: { display: false },
-          ticks: { font: { size: 10 }, color: "#64748b" },
-          grid: { color: document.documentElement.dataset.theme === "light" ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)" }
+          ticks: { font: { size: 10 }, color: tickColor },
+          grid: { color: gridColor }
         },
         y1: {
           type: "linear",
@@ -978,9 +979,9 @@ function buildCharts(data) {
       interaction: { mode: "index", intersect: false },
       plugins: { legend: compactLegendOptions() },
       scales: {
-        x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(100,116,139,0.40)" } },
+        x:  { ticks: { maxTicksLimit: 8, maxRotation: 0, font: { size: 10 }, color: tickColor }, grid: { color: gridColor } },
         y:  { type: "linear", position: "left", min: -maxShadowDirAbs, max: maxShadowDirAbs,
-              title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { color: "rgba(100,116,139,0.40)" } },
+              title: { display: false }, ticks: { font: { size: 10 }, color: tickColor }, grid: { color: gridColor } },
         y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100,
               title: { display: false }, ticks: { font: { size: 10 }, color: "#64748b" }, grid: { drawOnChartArea: false } },
       }
@@ -1015,9 +1016,6 @@ function buildCharts(data) {
   });
 
   // ── Cloud Cover & GHI — dual-axis ─────────────────────────────────────
-  const isLight = document.documentElement.dataset.theme === "light";
-  const gridColor = isLight ? "rgba(0,0,0,0.07)" : "rgba(100,116,139,0.40)";
-
   const maxGhi = Math.max(
     ...data.map(r => Number(r.clearsky_ghi   ?? r.ghi ?? 0)),
     ...data.map(r => Number(r.irradiance_raw ?? r.ghi ?? 0)), 1);
@@ -1868,8 +1866,8 @@ async function runSimulation() {
     const cached = _simulationCache.get(simKey);
     latestSimulationResult = cached;
     latestSimulationData   = cached.data || [];
-    const _ms2 = document.getElementById("tracker2dModalSlider");
-    if (_ms2) _ms2.max = String(latestSimulationData.length - 1);
+    const modalSlider = document.getElementById("tracker2dModalSlider");
+    if (modalSlider) modalSlider.max = String(latestSimulationData.length - 1);
     setBadge(badgeApi, "API: Connected", "badge-green");
     updateSummary(cached);
     updateFinancialCalc(cached);
@@ -2010,25 +2008,6 @@ async function downloadCsv() {
   }
 }
 
-function addTextBlock(doc, lines, x, y, lineHeight = 6) {
-  lines.forEach((line) => {
-    doc.text(String(line), x, y);
-    y += lineHeight;
-  });
-  return y;
-}
-
-function addMetricBox(doc, x, y, w, h, title, value) {
-  doc.setDrawColor(220, 226, 232);
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(x, y, w, h, 2, 2, "FD");
-  doc.setFontSize(9);
-  doc.setTextColor(71, 85, 105);
-  doc.text(title, x + 3, y + 5);
-  doc.setFontSize(12);
-  doc.setTextColor(15, 23, 42);
-  doc.text(String(value), x + 3, y + 12);
-}
 
 function setupPresetButtons() {
 const presetDublin = document.getElementById("presetDublin");
@@ -2222,13 +2201,6 @@ function pdfSafeTrackerData() {
   }
 }
 
-function pdfFormatShadowMetric(value) {
-  const n = Number(value || 0);
-  if (!Number.isFinite(n)) return "--";
-  if (n > 9999) return `${n.toExponential(2)} m`;
-  if (n > 999) return `${Math.round(n)} m`;
-  return `${n.toFixed(2)} m`;
-}
 
 function pdfBuildSummarySentence(result) {
   const gainVsFixed = Number(result?.irradiance_gain_bt_vs_fixed || 0);
@@ -2722,8 +2694,8 @@ async function downloadPdf() {
     pdfTextBlock(doc, [
       `Max shading without backtracking: ${metrics.maxShadingNoBt.toFixed(2)}%`,
       `Max shading with backtracking: ${metrics.maxShadingBt.toFixed(2)}%`,
-      `Max shadow without backtracking: ${pdfFormatShadowMetric(metrics.maxShadowNoBt)}`,
-      `Max shadow with backtracking: ${pdfFormatShadowMetric(metrics.maxShadowBt)}`,
+      `Max shadow without backtracking: ${formatShadowMetric(metrics.maxShadowNoBt)}`,
+      `Max shadow with backtracking: ${formatShadowMetric(metrics.maxShadowBt)}`,
       `Peak irradiance – Fixed: ${metrics.maxIrrFixed.toFixed(1)} W/m²`,
       `Peak irradiance – No BT: ${metrics.maxIrrNoBt.toFixed(1)} W/m²`,
       `Peak irradiance – BT: ${metrics.maxIrrBt.toFixed(1)} W/m²`
