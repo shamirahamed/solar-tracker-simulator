@@ -803,8 +803,8 @@ function buildCharts(data) {
     data: {
       labels,
       datasets: [
-        { label: "Limited",      data: data.map((r) => r.limited_tracker_angle),     borderColor: "#fbbf24", borderWidth: 2,   borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
-        { label: "Ideal",        data: data.map((r) => r.ideal_tracker_angle),       borderColor: "#60a5fa", borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.22 },
+        { label: "Limited",      data: data.map((r) => r.limited_tracker_angle),     borderColor: "#fde047", borderWidth: 2,   borderDash: [4,5],  pointRadius: 0, tension: 0.22 },
+        { label: "Ideal",        data: data.map((r) => r.ideal_tracker_angle),       borderColor: "#7dd3fc", borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.22 },
         { label: "Backtracking", data: data.map((r) => r.backtracking_angle),        borderColor: "#f87171", borderWidth: 3,   pointRadius: 0, tension: 0.22 },
         {
           label: "Wind Stow",
@@ -2439,8 +2439,8 @@ async function downloadPdf() {
     const anglesImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Limited",      hidden: !_chk("pdf_limited"),      data: _ds.map(r => r.limited_tracker_angle), borderColor: "#ca8a04", borderWidth: 2.5, borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
-        { label: "Ideal",        hidden: !_chk("pdf_ideal"),        data: _ds.map(r => r.ideal_tracker_angle),   borderColor: "#2563eb", borderWidth: 2.5, borderDash: [10,5], pointRadius: 0, tension: 0.22 },
+        { label: "Limited",      hidden: !_chk("pdf_limited"),      data: _ds.map(r => r.limited_tracker_angle), borderColor: "#ca8a04", borderWidth: 2.5, borderDash: [4,5],  pointRadius: 0, tension: 0.22 },
+        { label: "Ideal",        hidden: !_chk("pdf_ideal"),        data: _ds.map(r => r.ideal_tracker_angle),   borderColor: "#0284c7", borderWidth: 2.5, borderDash: [10,5], pointRadius: 0, tension: 0.22 },
         { label: "Backtracking", hidden: !_chk("pdf_backtracking"), data: _ds.map(r => r.backtracking_angle),    borderColor: "#dc2626", borderWidth: 3.0,                   pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Angle (deg)")
