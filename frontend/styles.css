@@ -1805,3 +1805,15 @@ body[data-preview="desktop"] .app-shell            { max-width: 960px !important
 [data-theme="light"] .fin-table th:first-child,
 [data-theme="light"] .fin-table td:first-child { color: #64748b; }
 [data-theme="light"] .fin-highlight td { color: var(--accent) !important; }
+
+/* ── iOS Safari: prevent auto-zoom on input focus ─────────────────────────
+   iOS zooms any input with font-size < 16px. This @supports block targets
+   only Apple WebKit (iOS/iPadOS) and has no effect on desktop browsers.   */
+@supports (-webkit-touch-callout: none) {
+  input[type="number"],
+  input[type="text"],
+  input[type="date"],
+  select {
+    font-size: 16px !important;
+  }
+}
