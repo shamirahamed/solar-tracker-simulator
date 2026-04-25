@@ -1341,7 +1341,7 @@ canvas { width: 100% !important; height: 100% !important; }
 
 /* Values timeline toggle button */
 .timeline-toggle {
-  font-size: 15px !important;
+  font-size: 18px !important;
   padding: 0 !important;
   width: 28px !important;
   min-height: 28px !important;
