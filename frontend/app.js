@@ -862,7 +862,7 @@ function buildCharts(data) {
       labels,
       datasets: [
         { label: "BT",      data: shadowBtDisplay,                                             borderColor: "#4ade80", borderWidth: 3,   pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "No BT",   data: shadowNoBtDisplay,                                          borderColor: "#f472b6", borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "No BT",   data: shadowNoBtDisplay,                                          borderColor: "#38bdf8", borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "% BT",    data: data.map((r) => r.shading_percent_with_backtracking),        borderColor: "#c084fc", borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
         { label: "% No BT", data: data.map((r) => r.shading_percent_without_backtracking),     borderColor: "#fb923c", borderWidth: 2,   borderDash: [2,6],  pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]
@@ -2477,7 +2477,7 @@ async function downloadPdf() {
       type: "line",
       data: { labels: _lblFull, datasets: [
         { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#16a34a", borderWidth: 3.0,                   pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#db2777", borderWidth: 2.5, borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#0284c7", borderWidth: 2.5, borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _dFull.map(r => r.shading_percent_with_backtracking),    borderColor: "#7c3aed", borderWidth: 2.5, borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
         { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _dFull.map(r => r.shading_percent_without_backtracking), borderColor: "#ea580c", borderWidth: 2.5, borderDash: [2,6],  pointRadius: 0, tension: 0.18, yAxisID: "y1" }
       ]},
