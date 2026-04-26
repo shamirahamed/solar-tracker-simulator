@@ -415,33 +415,77 @@ html, body {
 
 .full-width { grid-column: 1 / -1; }
 
+/* Preset buttons tucked into section header */
+.section-head-actions {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+  flex-shrink: 0;
+  align-items: center;
+}
+
 /* side-by-side inputs + metrics on wider screens */
 @media (min-width: 901px) {
-  .layout-grid { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); }
+  .layout-grid { grid-template-columns: minmax(0, 400px) minmax(0, 1fr); }
 
-  /* Compact inputs card: smaller text, tighter inputs */
+  /* Compact inputs card */
+  .inputs-card { padding: 10px 11px; }
+  .inputs-card .section-head { margin-bottom: 6px; }
+
+  .inputs-card .input-grid { gap: 5px 7px; }
+
   .inputs-card label {
-    font-size: 10px;
+    font-size: 9px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-bottom: 3px;
   }
   .inputs-card input[type="number"],
   .inputs-card input[type="text"],
   .inputs-card input[type="date"],
   .inputs-card select {
     font-size: 12px;
-    min-height: 30px;
-    padding: 3px 8px;
+    min-height: 26px;
+    padding: 2px 6px;
+  }
+
+  /* Location preview: tighter */
+  .inputs-card .location-preview { padding: 5px 9px; }
+
+  /* Weather accordion: tighter */
+  .inputs-card .weather-details { margin-top: 7px; }
+  .inputs-card .weather-summary { padding: 5px 10px; font-size: 11px; }
+
+  /* Preset buttons in header: very compact */
+  .inputs-card .section-head-actions .small-btn {
+    min-height: 22px;
+    font-size: 10px;
+    padding: 0 7px;
+    border-radius: 5px;
   }
 
   /* All 3 action buttons on one row */
   .inputs-card .button-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0,1fr));
-    gap: 6px;
+    gap: 5px;
+    margin-top: 8px;
   }
   .inputs-card .button-row button { grid-column: auto; }
+
+  /* Run Simulation: accent fill on desktop */
+  .inputs-card .button-row button[type="submit"] {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 800;
+  }
+  .inputs-card .button-row button[type="submit"]:hover {
+    background: var(--accent-dark);
+    border-color: var(--accent-dark);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
 }
 
 /* ─── Cards ──────────────────────────────────── */
