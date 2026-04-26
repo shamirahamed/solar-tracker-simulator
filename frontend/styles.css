@@ -652,17 +652,16 @@ select option { background: var(--card); color: var(--text); }
   flex-wrap: wrap;
 }
 
-.location-preview div {
-  margin: 0;
-  font-size: var(--fs-sm);
-  color: var(--text);
-  font-weight: 600;
-}
-
-.location-preview a {
+.location-coords-link {
   color: var(--accent);
   font-weight: 700;
   font-size: var(--fs-sm);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.location-coords-link:hover {
+  text-decoration: underline;
+  opacity: 0.85;
 }
 
 .checkbox-row {

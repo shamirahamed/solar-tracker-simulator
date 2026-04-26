@@ -32,7 +32,6 @@ const aboutPanel = document.getElementById("aboutPanel");
 const closeAboutBtn = document.getElementById("close-about");
 
 const locationPreview = document.getElementById("locationPreview");
-const locationText = document.getElementById("locationText");
 const mapLink = document.getElementById("mapLink");
 
 const scenarioText = document.getElementById("scenarioText");
@@ -375,8 +374,8 @@ function updateLocationPreviewFromInputs() {
     return;
   }
 
-  if (locationPreview && locationText && mapLink) {
-    locationText.textContent = `📍 ${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)}`;
+  if (locationPreview && mapLink) {
+    mapLink.textContent = `📍 ${Number(lat).toFixed(4)}, ${Number(lon).toFixed(4)} ↗`;
     mapLink.href = `https://maps.google.com/?q=${lat},${lon}`;
     locationPreview.classList.remove("hidden");
   }
@@ -2160,10 +2159,13 @@ function pdfOffscreenChart(config) {
   }
 }
 
-function pdfTextBlock(doc, lines, x, y, lineHeight = 5.6) {
+function pdfTextBlock(doc, lines, x, y, lineHeight = 5.6, maxWidth = 170) {
   lines.forEach((line) => {
-    doc.text(String(line), x, y);
-    y += lineHeight;
+    const wrapped = doc.splitTextToSize(String(line), maxWidth);
+    wrapped.forEach((wline) => {
+      doc.text(wline, x, y);
+      y += lineHeight;
+    });
   });
   return y;
 }
@@ -2900,7 +2902,7 @@ async function downloadPdf() {
     doc.text("Formulas", 14, 28);
     pdfSectionBox(doc, 12, 32, 186, 50);
     doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
+    doc.setTextColor(0, 0, 0);
     pdfTextBlock(doc, [
       "GCR = panel width / row spacing",
       "Tracker angle and backtracking are calculated using pvlib single-axis tracker logic.",
@@ -2914,7 +2916,7 @@ async function downloadPdf() {
     doc.text("Notes / disclaimer", 14, 94);
     pdfSectionBox(doc, 12, 98, 186, 42);
     doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
+    doc.setTextColor(0, 0, 0);
     pdfTextBlock(doc, [
       "This report reflects the current UI inputs and the latest simulation loaded in the browser.",
       "It is intended for practical engineering analysis and comparison, not a full bankable performance model.",
@@ -2926,7 +2928,7 @@ async function downloadPdf() {
     doc.text("pvlib reference", 14, 154);
     pdfSectionBox(doc, 12, 158, 186, 16);
     doc.setFontSize(10);
-    doc.setTextColor(30, 41, 59);
+    doc.setTextColor(0, 0, 0);
     doc.text("https://pvlib-python.readthedocs.io/", 18, 168);
 
     doc.save(`solar_tracker_report_${payload.date}.pdf`);
