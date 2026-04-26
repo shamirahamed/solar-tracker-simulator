@@ -3015,10 +3015,15 @@ function openChartModal(canvasId) {
   const srcData    = source.config.data;
   const srcOptions = source.config.options || {};
 
+  const _modalData = JSON.parse(JSON.stringify(srcData));
+  _modalData.datasets?.forEach(ds => {
+    if (ds.borderWidth) ds.borderWidth = Math.round(ds.borderWidth * 1.5);
+  });
+
   _modalChart = new Chart(modalCanvas, {
     type: source.config.type,
     plugins: [timeLinePlugin],
-    data: JSON.parse(JSON.stringify(srcData)),
+    data: _modalData,
     options: {
       ...JSON.parse(JSON.stringify(srcOptions)),
       responsive: true,
