@@ -835,7 +835,7 @@ function buildCharts(data) {
       labels,
       datasets: [
         { label: "Elevation", data: data.map((r) => Number(r.sun_elevation)),                                                   borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, cubicInterpolationMode: "monotone", tension: 0.22, yAxisID: "y" },
-        { label: "Azimuth",   data: data.map((r, i, a) => { const az = Number(r.sun_azimuth); return (i > 0 && Math.abs(az - Number(a[i-1].sun_azimuth)) > 180) ? null : az; }), spanGaps: false, borderColor: "#38bdf8", borderWidth: 2.5, pointRadius: 0, cubicInterpolationMode: "monotone", tension: 0.22, yAxisID: "y1" }
+        { label: "Azimuth",   data: data.map((r) => Number(r.sun_azimuth)),                                        borderColor: "#38bdf8", borderWidth: 2.5, pointRadius: 0, cubicInterpolationMode: "monotone", tension: 0.22, yAxisID: "y1" }
       ]
     },
     options: (() => {
