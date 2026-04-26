@@ -3031,10 +3031,10 @@ function openChartModal(canvasId) {
         legend: {
           ...(srcOptions.plugins?.legend || {}),
           labels: { ...(srcOptions.plugins?.legend?.labels || {}), color: titleColor,
-            font: { size: window.innerWidth <= 767 ? 11 : 10 },
-            boxWidth:  window.innerWidth <= 767 ? 12 : 8,
-            boxHeight: window.innerWidth <= 767 ? 12 : 8,
-            padding:   window.innerWidth <= 767 ? 10 : 8 }
+            font: { size: window.innerWidth <= 767 ? 12 : 13 },
+            boxWidth:  window.innerWidth <= 767 ? 14 : 12,
+            boxHeight: window.innerWidth <= 767 ? 14 : 12,
+            padding:   window.innerWidth <= 767 ? 12 : 14 }
         },
         tooltip: {
           backgroundColor: isLight ? "rgba(255,255,255,0.97)" : "rgba(13,20,32,0.97)",
@@ -3062,13 +3062,13 @@ function buildModalScales(srcScales, gridColor, tickColor, titleColor) {
       ticks: {
         ...(scale.ticks || {}),
         color: tickColor,
-        font: { size: 11 },
-        padding: isX ? 6 : 4,
+        font: { size: 12 },
+        padding: isX ? 8 : 6,
         ...(isX ? {
-          maxTicksLimit: window.innerWidth <= 767 ? 6 : 8,
+          maxTicksLimit: window.innerWidth <= 767 ? 6 : 10,
           maxRotation: 0,
           minRotation: 0,
-          font: { size: window.innerWidth <= 767 ? 11 : 12 },
+          font: { size: window.innerWidth <= 767 ? 11 : 13 },
         } : {}),
       },
       grid:  { ...(scale.grid  || {}), color: gridColor },

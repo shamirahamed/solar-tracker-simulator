@@ -1037,11 +1037,9 @@ input[type="range"] { accent-color: var(--accent); }
 
 .chart-modal-body {
   position: relative;
-  height: 65vh;
-  background: var(--bg2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px;
+  height: 72vh;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .chart-modal-footer {
