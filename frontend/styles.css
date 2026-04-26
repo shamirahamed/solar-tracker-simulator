@@ -428,6 +428,17 @@ html, body {
 @media (min-width: 901px) {
   .layout-grid { grid-template-columns: minmax(0, 400px) minmax(0, 1fr); }
 
+  /* Chart cards in same grid row — stretch chart to fill card height equally */
+  .layout-grid > .card:not(.inputs-card):not(.financial-card):not(.full-width) {
+    display: flex;
+    flex-direction: column;
+  }
+  .layout-grid > .card:not(.inputs-card):not(.financial-card):not(.full-width) .chart-container {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 220px;
+  }
+
   /* Compact inputs card */
   .inputs-card { padding: 10px 11px; }
   .inputs-card .section-head { margin-bottom: 6px; }
