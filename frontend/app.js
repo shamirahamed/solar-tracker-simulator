@@ -706,7 +706,7 @@ function _refreshChartLines() {
   requestAnimationFrame(() => {
     _rafPending = false;
     [anglesChart, sunChart, shadingChart, powerChart,
-     powerWChart, shadowDirChart, tempChart, ghiCompChart, windChart, cloudRainChart, humidityChart].forEach(c => {
+     powerWChart, shadowDirChart, tempChart, ghiCompChart, windChart, cloudRainChart, humidityChart, _modalChart].forEach(c => {
       try { if (c) c.update("none"); } catch (e) {}
     });
   });
@@ -3017,7 +3017,7 @@ function openChartModal(canvasId) {
 
   _modalChart = new Chart(modalCanvas, {
     type: source.config.type,
-    plugins: [],   // no timeLinePlugin in expand popup — scrub via main slider on main page
+    plugins: [timeLinePlugin],
     data: JSON.parse(JSON.stringify(srcData)),
     options: {
       ...JSON.parse(JSON.stringify(srcOptions)),
