@@ -646,10 +646,14 @@ select option { background: var(--card); color: var(--text); }
   border: 1px solid var(--line-bright);
   border-radius: 8px;
   padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .location-preview div {
-  margin: 0 0 3px;
+  margin: 0;
   font-size: var(--fs-sm);
   color: var(--text);
   font-weight: 600;
