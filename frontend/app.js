@@ -2804,11 +2804,11 @@ async function downloadPdf() {
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Tracker Angle", X, 14);
-      if (anglesImg) doc.addImage(anglesImg, "JPEG", X, 18, CW, CH);
+      if (anglesImg) doc.addImage(anglesImg, "PNG", X, 18, CW, CH);
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Solar Position", X, 146);
-      if (sunImg) doc.addImage(sunImg, "JPEG", X, 150, CW, CH);
+      if (sunImg) doc.addImage(sunImg, "PNG", X, 150, CW, CH);
     }
 
     // PAGE 4 — Inter-row Shadowing + Irradiance Comparison (160×120mm JPEG)
@@ -2820,11 +2820,11 @@ async function downloadPdf() {
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Inter-row Shadowing", X, 14);
-      if (shadingImg) doc.addImage(shadingImg, "JPEG", X, 18, CW, CH);
+      if (shadingImg) doc.addImage(shadingImg, "PNG", X, 18, CW, CH);
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Irradiance Comparison", X, 146);
-      if (powerImg) doc.addImage(powerImg, "JPEG", X, 150, CW, CH);
+      if (powerImg) doc.addImage(powerImg, "PNG", X, 150, CW, CH);
     }
 
     // PAGE 5 — Power Output (W) + Cell Temperature
@@ -2836,11 +2836,11 @@ async function downloadPdf() {
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Power Output (W)", X, 14);
-      if (powerWImg) doc.addImage(powerWImg, "JPEG", X, 18, CW, CH);
+      if (powerWImg) doc.addImage(powerWImg, "PNG", X, 18, CW, CH);
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Cell Temperature", X, 146);
-      if (tempImg) doc.addImage(tempImg, "JPEG", X, 150, CW, CH);
+      if (tempImg) doc.addImage(tempImg, "PNG", X, 150, CW, CH);
     }
 
     // PAGE 6 — Cloud Cover & GHI + Wind Speed & Stow
@@ -2852,11 +2852,11 @@ async function downloadPdf() {
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Cloud Cover & GHI", X, 14);
-      if (ghiCompImg) doc.addImage(ghiCompImg, "JPEG", X, 18, CW, CH);
+      if (ghiCompImg) doc.addImage(ghiCompImg, "PNG", X, 18, CW, CH);
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Wind Speed & Stow", X, 146);
-      if (windImg) doc.addImage(windImg, "JPEG", X, 150, CW, CH);
+      if (windImg) doc.addImage(windImg, "PNG", X, 150, CW, CH);
     }
 
     // PAGE 7 — Cloud Cover & Precipitation + Shadow Direction
@@ -2868,11 +2868,11 @@ async function downloadPdf() {
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Cloud Cover & Precipitation", X, 14);
-      if (cloudRainImg) doc.addImage(cloudRainImg, "JPEG", X, 18, CW, CH);
+      if (cloudRainImg) doc.addImage(cloudRainImg, "PNG", X, 18, CW, CH);
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Shadow Direction E/W", X, 146);
-      if (shadowDirImg) doc.addImage(shadowDirImg, "JPEG", X, 150, CW, CH);
+      if (shadowDirImg) doc.addImage(shadowDirImg, "PNG", X, 150, CW, CH);
     }
 
     // PAGE 8 — Humidity & Dew Point (single chart)
@@ -2884,20 +2884,23 @@ async function downloadPdf() {
 
       doc.setFontSize(13); doc.setTextColor(15, 23, 42);
       doc.text("Humidity & Dew Point", X, 14);
-      if (humidityImg) doc.addImage(humidityImg, "JPEG", X, 18, CW, CH);
+      if (humidityImg) doc.addImage(humidityImg, "PNG", X, 18, CW, CH);
     }
 
     // FINAL PAGE - NOTES
     doc.addPage();
-    pdfPageBackground(doc);
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, 210, 297, "F");
+    doc.setFont(undefined, "normal");
     doc.setFontSize(16);
-    doc.setTextColor(15, 23, 42);
+    doc.setTextColor(0, 0, 0);
     doc.text("Formulas and notes", 14, 16);
 
-    pdfSectionTitle(doc, "Formulas", 14, 28);
-    pdfSectionBox(doc, 12, 32, 186, 48);
+    doc.setFontSize(11); doc.setTextColor(0, 0, 0);
+    doc.text("Formulas", 14, 28);
+    pdfSectionBox(doc, 12, 32, 186, 50);
     doc.setFontSize(10);
-    doc.setTextColor(51, 65, 85);
+    doc.setTextColor(30, 41, 59);
     pdfTextBlock(doc, [
       "GCR = panel width / row spacing",
       "Tracker angle and backtracking are calculated using pvlib single-axis tracker logic.",
@@ -2907,22 +2910,24 @@ async function downloadPdf() {
       "Power = applied POA x panel area x panel efficiency."
     ], 18, 40, 6);
 
-    pdfSectionTitle(doc, "Notes / disclaimer", 14, 92);
-    pdfSectionBox(doc, 12, 96, 186, 42);
+    doc.setFontSize(11); doc.setTextColor(0, 0, 0);
+    doc.text("Notes / disclaimer", 14, 94);
+    pdfSectionBox(doc, 12, 98, 186, 42);
     doc.setFontSize(10);
-    doc.setTextColor(51, 65, 85);
+    doc.setTextColor(30, 41, 59);
     pdfTextBlock(doc, [
       "This report reflects the current UI inputs and the latest simulation loaded in the browser.",
       "It is intended for practical engineering analysis and comparison, not a full bankable performance model.",
       "When 'Use real weather data' is enabled, Open-Meteo provides hourly GHI/DHI/temperature/wind data. Otherwise the Ineichen clear-sky model is used.",
       "Very large shadow values can occur at low solar elevation, so display scaling may be applied for readability."
-    ], 18, 104, 6);
+    ], 18, 106, 6);
 
-    pdfSectionTitle(doc, "pvlib reference", 14, 152);
-    pdfSectionBox(doc, 12, 156, 186, 16);
+    doc.setFontSize(11); doc.setTextColor(0, 0, 0);
+    doc.text("pvlib reference", 14, 154);
+    pdfSectionBox(doc, 12, 158, 186, 16);
     doc.setFontSize(10);
-    doc.setTextColor(51, 65, 85);
-    doc.text("https://pvlib-python.readthedocs.io/", 18, 166);
+    doc.setTextColor(30, 41, 59);
+    doc.text("https://pvlib-python.readthedocs.io/", 18, 168);
 
     doc.save(`solar_tracker_report_${payload.date}.pdf`);
     showPopup("PDF downloaded successfully.", "success");
