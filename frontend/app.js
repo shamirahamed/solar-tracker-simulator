@@ -2099,8 +2099,8 @@ function pdfSectionBox(doc, x, y, w, h) {
 // Multiply target pt size × 2.64:
 //   legend/title 11pt → 29px | ticks 9pt → 24px
 function _pdfChartOpts(yText) {
-  const grid = "rgba(0,0,0,0.11)";
-  const tick = "#1e293b";
+  const grid = "rgba(100,116,139,0.35)";
+  const tick = "#94a3b8";
   return {
     responsive: false,
     animation: false,
@@ -2108,13 +2108,13 @@ function _pdfChartOpts(yText) {
     layout: { padding: { top: 6, right: 24, bottom: 6, left: 6 } },
     plugins: {
       legend: { display: true, position: "top",
-        labels: { font: { size: 26, weight: "600" }, color: "#0f172a", boxWidth: 24, padding: 32 } },
+        labels: { font: { size: 26, weight: "600" }, color: "#e2e8f0", boxWidth: 26, padding: 32 } },
       tooltip: { enabled: false }
     },
     scales: {
       x: { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: tick, maxRotation: 0 },
            grid: { color: grid } },
-      y: { title: { display: true, text: yText, font: { size: 26, weight: "700" }, color: "#0f172a" },
+      y: { title: { display: true, text: yText, font: { size: 26, weight: "700" }, color: "#94a3b8" },
            ticks: { font: { size: 22 }, color: tick }, grid: { color: grid } }
     }
   };
@@ -2145,11 +2145,11 @@ function pdfOffscreenChart(config) {
     const out = document.createElement("canvas");
     out.width = CW; out.height = CH;
     const ctx = out.getContext("2d");
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#0d1421";
     ctx.fillRect(0, 0, CW, CH);
     ctx.drawImage(chartCanvas, 0, 0);
 
-    const data = out.toDataURL("image/jpeg", 0.92);
+    const data = out.toDataURL("image/png");
     chart.destroy();
     return data;
   } catch (e) {
@@ -2368,14 +2368,14 @@ function pdfAddTwoChartsPage(doc, title, chartA, chartB) {
     doc.setFontSize(14);
     doc.setTextColor(15, 23, 42);
     doc.text(chartA.title, 15, 24);
-    doc.addImage(chartA.img, "JPEG", 15, 28, 160, 120);
+    doc.addImage(chartA.img, "PNG", 15, 28, 160, 120);
   }
 
   if (chartB?.img) {
     doc.setFontSize(14);
     doc.setTextColor(15, 23, 42);
     doc.text(chartB.title, 15, 156);
-    doc.addImage(chartB.img, "JPEG", 15, 160, 160, 120);
+    doc.addImage(chartB.img, "PNG", 15, 160, 160, 120);
   }
 }
 
@@ -2421,9 +2421,9 @@ async function downloadPdf() {
     const anglesImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Limited",      hidden: !_chk("pdf_limited"),      data: _ds.map(r => r.limited_tracker_angle), borderColor: "#ca8a04", borderWidth: 2.5, borderDash: [4,5],  pointRadius: 0, tension: 0.22 },
-        { label: "Ideal",        hidden: !_chk("pdf_ideal"),        data: _ds.map(r => r.ideal_tracker_angle),   borderColor: "#0284c7", borderWidth: 2.5, borderDash: [10,5], pointRadius: 0, tension: 0.22 },
-        { label: "Backtracking", hidden: !_chk("pdf_backtracking"), data: _ds.map(r => r.backtracking_angle),    borderColor: "#dc2626", borderWidth: 3.0,                   pointRadius: 0, tension: 0.22 }
+        { label: "Limited",      hidden: !_chk("pdf_limited"),      data: _ds.map(r => r.limited_tracker_angle), borderColor: "#fde047", borderWidth: 5, borderDash: [4,5],  pointRadius: 0, tension: 0.22 },
+        { label: "Ideal",        hidden: !_chk("pdf_ideal"),        data: _ds.map(r => r.ideal_tracker_angle),   borderColor: "#7dd3fc", borderWidth: 5, borderDash: [10,5], pointRadius: 0, tension: 0.22 },
+        { label: "Backtracking", hidden: !_chk("pdf_backtracking"), data: _ds.map(r => r.backtracking_angle),    borderColor: "#f87171", borderWidth: 6,                   pointRadius: 0, tension: 0.22 }
       ]},
       options: _pdfChartOpts("Angle (deg)")
     });
@@ -2431,18 +2431,18 @@ async function downloadPdf() {
     const sunImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Elevation", hidden: !_chk("pdf_elevation"), data: _ds.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 2.5, pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Azimuth",   hidden: !_chk("pdf_azimuth"),   data: _ds.map(r => r.sun_azimuth),   borderColor: "#38bdf8", borderWidth: 2.5, pointRadius: 0, tension: 0.22, yAxisID: "y1" }
+        { label: "Elevation", hidden: !_chk("pdf_elevation"), data: _ds.map(r => r.sun_elevation), borderColor: "#d97706", borderWidth: 6, pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Azimuth",   hidden: !_chk("pdf_azimuth"),   data: _ds.map(r => r.sun_azimuth),   borderColor: "#38bdf8", borderWidth: 6, pointRadius: 0, tension: 0.22, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Elevation (deg)"),
         scales: {
-          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#94a3b8", maxRotation: 0 }, grid: { color: "rgba(100,116,139,0.35)" } },
           y:  { type: "linear", position: "left",
-                title: { display: true, text: "Elevation (deg)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
+                title: { display: true, text: "Elevation (deg)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+                ticks: { font: { size: 22 }, color: "#94a3b8" }, grid: { color: "rgba(100,116,139,0.35)" } },
           y1: { type: "linear", position: "right", min: 0, max: 360,
-                title: { display: true, text: "Azimuth (deg)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-                ticks: { font: { size: 22 }, color: "#1e293b", stepSize: 90 }, grid: { drawOnChartArea: false } }
+                title: { display: true, text: "Azimuth (deg)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+                ticks: { font: { size: 22 }, color: "#94a3b8", stepSize: 90 }, grid: { drawOnChartArea: false } }
         }
       }
     });
@@ -2458,20 +2458,20 @@ async function downloadPdf() {
     const shadingImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lblFull, datasets: [
-        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#0284c7", borderWidth: 2.5, borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y" },
-        { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _dFull.map(r => r.shading_percent_without_backtracking), borderColor: "#ea580c", borderWidth: 2.5, borderDash: [2,6],  pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _dFull.map(r => r.shading_percent_with_backtracking),    borderColor: "#7c3aed", borderWidth: 2.5, borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
-        { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#16a34a", borderWidth: 3.0,                   pointRadius: 0, tension: 0.18, yAxisID: "y" }
+        { label: "No BT",   hidden: !_chk("pdf_shadow_nobt"),  data: _snoBt, borderColor: "#38bdf8", borderWidth: 5, borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y" },
+        { label: "% No BT", hidden: !_chk("pdf_shading_nobt"), data: _dFull.map(r => r.shading_percent_without_backtracking), borderColor: "#fb923c", borderWidth: 5, borderDash: [2,6],  pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "% BT",    hidden: !_chk("pdf_shading_bt"),   data: _dFull.map(r => r.shading_percent_with_backtracking),    borderColor: "#c084fc", borderWidth: 5, borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+        { label: "BT",      hidden: !_chk("pdf_shadow_bt"),    data: _sBt,   borderColor: "#4ade80", borderWidth: 6,                   pointRadius: 0, tension: 0.18, yAxisID: "y" }
       ]},
       options: { ..._pdfChartOpts("Shadow Length (m)"),
         scales: {
-          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#94a3b8", maxRotation: 0 }, grid: { color: "rgba(100,116,139,0.35)" } },
           y:  { type: "linear", position: "left",  beginAtZero: true, min: 0, max: Math.max(5, axMax(_maxSh)),
-                title: { display: true, text: "Shadow Length (m)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
+                title: { display: true, text: "Shadow Length (m)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+                ticks: { font: { size: 22 }, color: "#94a3b8" }, grid: { color: "rgba(100,116,139,0.35)" } },
           y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: Math.max(5, axMax(_maxPct)),
-                title: { display: true, text: "Shading (%)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { drawOnChartArea: false } }
+                title: { display: true, text: "Shading (%)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+                ticks: { font: { size: 22 }, color: "#94a3b8" }, grid: { drawOnChartArea: false } }
         }
       }
     });
@@ -2483,15 +2483,15 @@ async function downloadPdf() {
     const powerImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Fixed Panel",     hidden: !_chk("pdf_fixed"),    data: _ds.map(r => r.irradiance_fixed),                borderColor: "#64748b", borderWidth: 2.5, borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – No BT", hidden: !_chk("pdf_irr_nobt"), data: _ds.map(r => r.irradiance_without_backtracking), borderColor: "#d97706", borderWidth: 2.5, borderDash: [10,5], pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – BT",    hidden: !_chk("pdf_irr_bt"),   data: _ds.map(r => r.irradiance_with_backtracking),    borderColor: "#1d4ed8", borderWidth: 3.0,                   pointRadius: 0, tension: 0.22 }
+        { label: "Fixed Panel",     hidden: !_chk("pdf_fixed"),    data: _ds.map(r => r.irradiance_fixed),                borderColor: "#94a3b8", borderWidth: 5, borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", hidden: !_chk("pdf_irr_nobt"), data: _ds.map(r => r.irradiance_without_backtracking), borderColor: "#f59e0b", borderWidth: 5, borderDash: [10,5], pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",    hidden: !_chk("pdf_irr_bt"),   data: _ds.map(r => r.irradiance_with_backtracking),    borderColor: "#00e5ff", borderWidth: 6,                   pointRadius: 0, tension: 0.22 }
       ]},
       options: { ..._pdfChartOpts("Irradiance (W/m²)"),
         scales: { ...(_pdfChartOpts("Irradiance (W/m²)").scales || {}),
           y: { type: "linear", beginAtZero: true, max: axMax(_maxIrrPdf),
-               title: { display: true, text: "Irradiance (W/m²)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-               ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } } }
+               title: { display: true, text: "Irradiance (W/m²)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+               ticks: { font: { size: 22 }, color: "#94a3b8" }, grid: { color: "rgba(100,116,139,0.35)" } } }
       }
     });
 
@@ -2506,15 +2506,15 @@ async function downloadPdf() {
     const powerWImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Fixed Panel",     hidden: !_chk("pdf_pow_fixed"), data: _ds.map(r => r.power_fixed),                borderColor: "#64748b", borderWidth: 2.5, borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – No BT", hidden: !_chk("pdf_pow_nobt"),  data: _ds.map(r => r.power_without_backtracking), borderColor: "#d97706", borderWidth: 2.5, borderDash: [10,5], pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – BT",    hidden: !_chk("pdf_pow_bt"),    data: _ds.map(r => r.power_with_backtracking),    borderColor: "#0369a1", borderWidth: 3.0,                   pointRadius: 0, tension: 0.22 }
+        { label: "Fixed Panel",     hidden: !_chk("pdf_pow_fixed"), data: _ds.map(r => r.power_fixed),                borderColor: "#94a3b8", borderWidth: 5, borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", hidden: !_chk("pdf_pow_nobt"),  data: _ds.map(r => r.power_without_backtracking), borderColor: "#f59e0b", borderWidth: 5, borderDash: [10,5], pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",    hidden: !_chk("pdf_pow_bt"),    data: _ds.map(r => r.power_with_backtracking),    borderColor: "#00e5ff", borderWidth: 6,                   pointRadius: 0, tension: 0.22 }
       ]},
       options: { ..._pdfChartOpts("Power (W)"),
         scales: { ...(_pdfChartOpts("Power (W)").scales || {}),
           y: { type: "linear", beginAtZero: true, max: axMax(_maxPowPdf),
-               title: { display: true, text: "Power (W)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-               ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } } }
+               title: { display: true, text: "Power (W)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+               ticks: { font: { size: 22 }, color: "#94a3b8" }, grid: { color: "rgba(100,116,139,0.35)" } } }
       }
     });
 
@@ -2523,14 +2523,14 @@ async function downloadPdf() {
     const tempImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Ambient (°C)",   hidden: !_chk("pdf_temp_amb"),  data: _ds.map(r => r.temp),      borderColor: "#94a3b8", borderWidth: 3.0, borderDash: [4,3], pointRadius: 0, tension: 0.22 },
-        { label: "Cell Temp (°C)", hidden: !_chk("pdf_temp_cell"), data: _ds.map(r => r.cell_temp), borderColor: "#f97316", borderWidth: 3.0, pointRadius: 0, tension: 0.22 }
+        { label: "Ambient (°C)",   hidden: !_chk("pdf_temp_amb"),  data: _ds.map(r => r.temp),      borderColor: "#94a3b8", borderWidth: 5, borderDash: [4,3], pointRadius: 0, tension: 0.22 },
+        { label: "Cell Temp (°C)", hidden: !_chk("pdf_temp_cell"), data: _ds.map(r => r.cell_temp), borderColor: "#f97316", borderWidth: 6, pointRadius: 0, tension: 0.22 }
       ]},
       options: { ..._pdfChartOpts("Temperature (°C)"),
         scales: { ...(_pdfChartOpts("Temperature (°C)").scales || {}),
           y: { type: "linear", min: axMin(_minTempPdf), max: axMax(_maxTempPdf),
-               title: { display: true, text: "Temperature (°C)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-               ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } } }
+               title: { display: true, text: "Temperature (°C)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+               ticks: { font: { size: 22 }, color: "#94a3b8" }, grid: { color: "rgba(100,116,139,0.35)" } } }
       }
     });
 
@@ -2540,19 +2540,19 @@ async function downloadPdf() {
     const ghiCompImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Clear-sky GHI", hidden: !_chk("pdf_ghi_cs"),    data: _ds.map(r => r.clearsky_ghi),   borderColor: "#f59e0b", borderWidth: 3.0, borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Actual GHI",    hidden: !_chk("pdf_ghi_act"),   data: _ds.map(r => r.irradiance_raw), borderColor: "#3b82f6", borderWidth: 3.0, pointRadius: 0, tension: 0.22, yAxisID: "y" },
-        { label: "Cloud Cover %", hidden: !_chk("pdf_ghi_cloud"), data: _ds.map(r => Number(r.cloud_cover || 0)), borderColor: "#94a3b8", borderWidth: 3.0, borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" }
+        { label: "Clear-sky GHI", hidden: !_chk("pdf_ghi_cs"),    data: _ds.map(r => r.clearsky_ghi),   borderColor: "#f59e0b", borderWidth: 5, borderDash: [5,4], pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Actual GHI",    hidden: !_chk("pdf_ghi_act"),   data: _ds.map(r => r.irradiance_raw), borderColor: "#3b82f6", borderWidth: 6, pointRadius: 0, tension: 0.22, yAxisID: "y" },
+        { label: "Cloud Cover %", hidden: !_chk("pdf_ghi_cloud"), data: _ds.map(r => Number(r.cloud_cover || 0)), borderColor: "#94a3b8", borderWidth: 5, borderDash: [3,3], pointRadius: 0, tension: 0.22, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("GHI (W/m²)"),
         scales: {
-          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#94a3b8", maxRotation: 0 }, grid: { color: "rgba(100,116,139,0.35)" } },
           y:  { type: "linear", position: "left",  beginAtZero: true, max: axMax(_maxGhiPdf),
-                title: { display: true, text: "GHI (W/m²)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
+                title: { display: true, text: "GHI (W/m²)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+                ticks: { font: { size: 22 }, color: "#94a3b8" }, grid: { color: "rgba(100,116,139,0.35)" } },
           y1: { type: "linear", position: "right", beginAtZero: true, min: 0, max: 100,
-                title: { display: true, text: "Cloud Cover (%)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { drawOnChartArea: false } }
+                title: { display: true, text: "Cloud Cover (%)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+                ticks: { font: { size: 22 }, color: "#94a3b8" }, grid: { drawOnChartArea: false } }
         }
       }
     });
@@ -2560,18 +2560,18 @@ async function downloadPdf() {
     const windImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Wind Speed (m/s)", hidden: !_chk("pdf_wind_speed"), data: _ds.map(r => Number(r.wind_speed || 0)), borderColor: "#38bdf8", borderWidth: 2.5, pointRadius: 0, tension: 0.22, fill: false },
+        { label: "Wind Speed (m/s)", hidden: !_chk("pdf_wind_speed"), data: _ds.map(r => Number(r.wind_speed || 0)), borderColor: "#38bdf8", borderWidth: 6, pointRadius: 0, tension: 0.22, fill: false },
         { label: windStowSpeedPdf > 0 ? `Stow @ ${windStowSpeedPdf} m/s` : "Stow disabled",
           hidden: !_chk("pdf_wind_stow"),
           data: windStowSpeedPdf > 0 ? _ds.map(() => windStowSpeedPdf) : _ds.map(() => null),
-          borderColor: "#fb923c", borderWidth: 2.2, borderDash: [6,4], pointRadius: 0, tension: 0 }
+          borderColor: "#fb923c", borderWidth: 5, borderDash: [6,4], pointRadius: 0, tension: 0 }
       ]},
       options: { ..._pdfChartOpts("Wind Speed (m/s)"),
         scales: {
-          x: { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          x: { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#94a3b8", maxRotation: 0 }, grid: { color: "rgba(100,116,139,0.35)" } },
           y: { type: "linear", position: "left", beginAtZero: true, max: axMax(_maxWindPdf),
-               title: { display: true, text: "Wind Speed (m/s)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-               ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } }
+               title: { display: true, text: "Wind Speed (m/s)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+               ticks: { font: { size: 22 }, color: "#94a3b8" }, grid: { color: "rgba(100,116,139,0.35)" } }
         }
       }
     });
@@ -2583,7 +2583,7 @@ async function downloadPdf() {
         { type: "line",  label: "Cloud Cover (%)",       hidden: !_chk("pdf_cloud_cover"),
           data: _ds.map(r => Number(r.cloud_cover || 0)),
           borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.15)",
-          borderWidth: 2.2, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y" },
+          borderWidth: 5, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y" },
         { type: "bar",   label: "Precipitation (mm/h)",  hidden: !_chk("pdf_precip"),
           data: _ds.map(r => Number(r.precipitation ?? 0)),
           backgroundColor: "rgba(56,189,248,0.55)", borderColor: "#38bdf8",
@@ -2591,10 +2591,10 @@ async function downloadPdf() {
       ]},
       options: { ..._pdfChartOpts("Cloud Cover (%)"),
         scales: {
-          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#94a3b8", maxRotation: 0 }, grid: { color: "rgba(100,116,139,0.35)" } },
           y:  { type: "linear", position: "left",  min: 0, max: 100,
-                title: { display: true, text: "Cloud Cover (%)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
+                title: { display: true, text: "Cloud Cover (%)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+                ticks: { font: { size: 22 }, color: "#94a3b8" }, grid: { color: "rgba(100,116,139,0.35)" } },
           y1: { type: "linear", position: "right", beginAtZero: true, max: Math.max(axMax(_maxPrecipPdf), 1),
                 title: { display: true, text: "Precipitation (mm/h)", font: { size: 26, weight: "700" }, color: "#38bdf8" },
                 ticks: { font: { size: 22 }, color: "#38bdf8" }, grid: { drawOnChartArea: false } }
@@ -2611,18 +2611,18 @@ async function downloadPdf() {
       type: "line",
       data: { labels: _lblFull, datasets: [
         { label: "Shading % BT", data: _dFull.map(r => r.shading_percent_with_backtracking),
-          borderColor: "#dc2626", borderWidth: 2.5, borderDash: [2,6],  pointRadius: 0, tension: 0.18, yAxisID: "y1" },
+          borderColor: "#ef4444", borderWidth: 5, borderDash: [2,6],  pointRadius: 0, tension: 0.18, yAxisID: "y1" },
         { label: "Shadow No BT (+ East / − West)", data: _sdNoBtPdf,
-          borderColor: "#d97706", borderWidth: 2.5, borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y" },
+          borderColor: "#f59e0b", borderWidth: 5, borderDash: [10,5], pointRadius: 0, tension: 0.18, yAxisID: "y" },
         { label: "Shadow BT (+ East / − West)",    data: _sdBtPdf,
-          borderColor: "#0369a1", borderWidth: 3.0,                   pointRadius: 0, tension: 0.18, yAxisID: "y" },
+          borderColor: "#00e5ff", borderWidth: 6,                   pointRadius: 0, tension: 0.18, yAxisID: "y" },
       ]},
       options: { ..._pdfChartOpts("Shadow (m)"),
         scales: {
-          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#94a3b8", maxRotation: 0 }, grid: { color: "rgba(100,116,139,0.35)" } },
           y:  { type: "linear", position: "left",  min: -_maxSdPdf, max: _maxSdPdf,
-                title: { display: true, text: "Shadow (m)", font: { size: 26, weight: "700" }, color: "#0f172a" },
-                ticks: { font: { size: 22 }, color: "#1e293b" }, grid: { color: "rgba(0,0,0,0.11)" } },
+                title: { display: true, text: "Shadow (m)", font: { size: 26, weight: "700" }, color: "#94a3b8" },
+                ticks: { font: { size: 22 }, color: "#94a3b8" }, grid: { color: "rgba(100,116,139,0.35)" } },
           y1: { type: "linear", position: "right", min: 0, max: 100,
                 title: { display: true, text: "Shading (%)", font: { size: 26, weight: "700" }, color: "#ef4444" },
                 ticks: { font: { size: 22 }, color: "#ef4444" }, grid: { drawOnChartArea: false } }
@@ -2638,17 +2638,17 @@ async function downloadPdf() {
       data: { labels: _lbl, datasets: [
         { label: "Relative Humidity (%)", hidden: !_chk("pdf_humidity"),  data: _ds.map(r => r.humidity  != null ? Number(r.humidity)  : null),
           borderColor: "#60a5fa", backgroundColor: "rgba(96,165,250,0.12)",
-          borderWidth: 3.0, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y" },
+          borderWidth: 5, pointRadius: 0, tension: 0.22, fill: true, yAxisID: "y" },
         { label: "Dew Point (°C)",        hidden: !_chk("pdf_dew_point"), data: _ds.map(r => r.dew_point != null ? Number(r.dew_point) : null),
-          borderColor: "#34d399", borderWidth: 3.0, borderDash: [4,3],
+          borderColor: "#34d399", borderWidth: 5, borderDash: [4,3],
           pointRadius: 0, tension: 0.22, yAxisID: "y1" }
       ]},
       options: { ..._pdfChartOpts("Humidity (%)"),
         scales: {
-          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#1e293b", maxRotation: 0 }, grid: { color: "rgba(0,0,0,0.11)" } },
+          x:  { ticks: { maxTicksLimit: 10, font: { size: 22 }, color: "#94a3b8", maxRotation: 0 }, grid: { color: "rgba(100,116,139,0.35)" } },
           y:  { type: "linear", position: "left",  min: 0, max: 100,
                 title: { display: true, text: "Humidity (%)", font: { size: 26, weight: "700" }, color: "#60a5fa" },
-                ticks: { font: { size: 22 }, color: "#60a5fa" }, grid: { color: "rgba(0,0,0,0.11)" } },
+                ticks: { font: { size: 22 }, color: "#60a5fa" }, grid: { color: "rgba(100,116,139,0.35)" } },
           y1: { type: "linear", position: "right", min: _dewMinPdf, max: _dewMaxPdf,
                 title: { display: true, text: "Dew Point (°C)", font: { size: 26, weight: "700" }, color: "#34d399" },
                 ticks: { font: { size: 22 }, color: "#34d399" }, grid: { drawOnChartArea: false } }
