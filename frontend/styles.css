@@ -426,7 +426,8 @@ html, body {
 
 /* side-by-side inputs + metrics on wider screens */
 @media (min-width: 901px) {
-  .layout-grid { grid-template-columns: minmax(0, 400px) minmax(0, 1fr); }
+  .layout-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inputs-card  { max-width: 420px; }
 
   /* Chart cards in same grid row — stretch chart to fill card height equally */
   .layout-grid > .card:not(.inputs-card):not(.financial-card):not(.full-width) {
