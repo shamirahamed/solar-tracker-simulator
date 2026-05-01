@@ -2062,7 +2062,25 @@ body[data-preview="desktop"] .app-shell            { max-width: 960px !important
 /* Map pin marker */
 .map-marker-pin { background: transparent; border: none; }
 
+/* Search row */
+.map-search-row {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.map-search-input {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text);
+  font-size: 13px;
+}
+.map-search-input::placeholder { color: var(--text-muted); }
+.map-place-display-footer { color: var(--text-muted); font-style: italic; }
+
 @media (max-width: 767px) {
-  .map-modal-content { height: 92dvh; gap: 8px; }
+  .map-modal-content { height: 92dvh; gap: 6px; }
   .map-place-display { display: none; }
 }

@@ -70,9 +70,10 @@ let _chartTouchActive = false;  // true while a finger is on any chart canvas
 let mdEnergyChart = null;
 let _mdRunning = false;
 
-let _mapInst   = null;   // Leaflet map instance (created once)
-let _mapMarker = null;   // draggable pin
-let _mapPending = null;  // { lat, lon } — confirmed when user clicks "Use"
+let _mapInst      = null;   // Leaflet map instance (created once)
+let _mapMarker    = null;   // draggable pin
+let _mapPending   = null;   // { lat, lon } — confirmed when user clicks "Use"
+let _mapTileLayer = null;   // current tile layer (swapped on theme change)
 
 /* ── Theme & accent system ─────────────────────────────────────────── */
 const ACCENTS = {
@@ -121,6 +122,11 @@ function applyTheme(theme) {
     const idx = parseInt(document.getElementById("timeSlider")?.value || "720", 10);
     const safeIdx = Math.max(0, Math.min(idx, latestSimulationData.length - 1));
     draw2DScene(latestSimulationData[safeIdx]);
+  }
+  // Swap Leaflet tile layer to match new theme
+  if (_mapInst && _mapTileLayer) {
+    _mapTileLayer.remove();
+    _mapTileLayer = _makeMapTileLayer(theme === "light").addTo(_mapInst);
   }
 }
 
@@ -1864,12 +1870,28 @@ async function fetchWeatherFromBrowser(latitude, longitude, date) {
 }
 
 /* ── Map location picker ───────────────────────────────────────────────── */
+const _CARTO_DARK  = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const _CARTO_LIGHT = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+const _CARTO_ATTR  = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+function _makeMapTileLayer(isLight) {
+  return L.tileLayer(isLight ? _CARTO_LIGHT : _CARTO_DARK, {
+    attribution: _CARTO_ATTR, subdomains: "abcd", maxZoom: 19,
+  });
+}
+
 function setupMapPicker() {
   document.getElementById("mapPickerBtn")?.addEventListener("click", openMapPicker);
   document.getElementById("mapPickerBackdrop")?.addEventListener("click", closeMapPicker);
   document.getElementById("mapPickerClose")?.addEventListener("click", closeMapPicker);
   document.getElementById("mapPickerCancel")?.addEventListener("click", closeMapPicker);
   document.getElementById("mapPickerConfirm")?.addEventListener("click", _confirmMapLocation);
+
+  // Search box
+  const searchInput = document.getElementById("mapSearchInput");
+  const searchBtn   = document.getElementById("mapSearchBtn");
+  searchBtn?.addEventListener("click", () => _forwardGeocode(searchInput?.value || ""));
+  searchInput?.addEventListener("keydown", e => { if (e.key === "Enter") _forwardGeocode(searchInput.value); });
 }
 
 function openMapPicker() {
@@ -1880,25 +1902,16 @@ function openMapPicker() {
   const modal = document.getElementById("mapPickerModal");
   modal.classList.remove("hidden");
 
-  const lat = parseFloat(document.getElementById("latitude").value)  || 51.505;
-  const lon = parseFloat(document.getElementById("longitude").value) || -0.09;
+  const lat = parseFloat(document.getElementById("latitude").value)  || 20;
+  const lon = parseFloat(document.getElementById("longitude").value) || 0;
   _mapPending = { lat, lon };
   _updateMapCoordDisplay(lat, lon);
 
   if (!_mapInst) {
+    // First open — create map at world-overview zoom
     _mapInst = L.map("mapPickerEl", { zoomControl: true });
-
-    const isDark = document.documentElement.dataset.theme !== "light";
-    L.tileLayer(
-      isDark
-        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-      {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: "abcd",
-        maxZoom: 19,
-      }
-    ).addTo(_mapInst);
+    const isLight = document.documentElement.dataset.theme === "light";
+    _mapTileLayer = _makeMapTileLayer(isLight).addTo(_mapInst);
 
     const accent = getAccentColor();
     const pinIcon = L.divIcon({
@@ -1930,17 +1943,22 @@ function openMapPicker() {
       _updateMapCoordDisplay(la, ln);
       _reverseGeocode(la, ln);
     });
+
+    // Leaflet needs two rAF ticks after the modal becomes visible to know its size
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      _mapInst.invalidateSize();
+      _mapInst.setView([lat, lon], 3);  // world overview on first open
+      _reverseGeocode(lat, lon);
+    }));
   } else {
+    // Subsequent opens — move pin, keep user's current zoom
     _mapMarker.setLatLng([lat, lon]);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      _mapInst.invalidateSize();
+      _mapInst.panTo([lat, lon]);
+      _reverseGeocode(lat, lon);
+    }));
   }
-
-  _mapInst.setView([lat, lon], Math.max(_mapInst.getZoom() || 0, 8));
-
-  // Leaflet needs two rAF ticks after the modal becomes visible to know its size
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    _mapInst.invalidateSize();
-    _reverseGeocode(lat, lon);
-  }));
 }
 
 function closeMapPicker() {
@@ -1980,6 +1998,35 @@ async function _reverseGeocode(lat, lon) {
     const pl = document.getElementById("mapPickerPlace");
     if (pl) pl.textContent = label;
   } catch (_) {}
+}
+
+async function _forwardGeocode(query) {
+  if (!query.trim()) return;
+  const searchInput = document.getElementById("mapSearchInput");
+  const origPlaceholder = searchInput?.placeholder || "";
+  if (searchInput) searchInput.placeholder = "Searching…";
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query.trim())}&limit=1`,
+      { headers: { "Accept-Language": "en" } }
+    );
+    if (!resp.ok) throw new Error("Network error");
+    const hits = await resp.json();
+    if (!hits.length) { showPopup("Location not found — try a different name.", "warning", 3000); return; }
+    const { lat, lon, display_name } = hits[0];
+    const la = parseFloat(lat), ln = parseFloat(lon);
+    _mapPending = { lat: la, lon: ln };
+    _mapMarker?.setLatLng([la, ln]);
+    _mapInst?.flyTo([la, ln], 10, { duration: 1.0 });
+    _updateMapCoordDisplay(la, ln);
+    const pl = document.getElementById("mapPickerPlace");
+    if (pl) pl.textContent = (display_name || "").split(",").slice(0, 2).join(",").trim();
+    if (searchInput) searchInput.value = "";
+  } catch (e) {
+    showPopup("Search failed — check connection.", "error", 3000);
+  } finally {
+    if (searchInput) searchInput.placeholder = origPlaceholder;
+  }
 }
 
 /* ── Tab navigation ────────────────────────────────────────────────────── */
@@ -2102,7 +2149,7 @@ async function runMultiDay() {
   let weatherByDate    = {};
 
   if (useRealWeather) {
-    showPopup(`Fetching weather for ${dates.length}-day range…`, "info", 10000);
+    progLabel.textContent = `Fetching weather…`;
     try {
       const allWeather = await fetchWeatherRangeFromBrowser(
         basePayload.latitude, basePayload.longitude, startDate, endDate
@@ -2112,9 +2159,10 @@ async function runMultiDay() {
         if (!weatherByDate[day]) weatherByDate[day] = {};
         weatherByDate[day][ts] = vals;
       }
-      showPopup(`✓ Weather fetched — simulating ${dates.length} days…`, "success", 4000);
+      progLabel.textContent = `Weather ready — Day 0 / ${dates.length}`;
     } catch (err) {
       showPopup(`⚠ Weather fetch failed: ${err.message}. Using clear-sky.`, "warning", 5000);
+      progLabel.textContent = `Clear-sky fallback — Day 0 / ${dates.length}`;
     }
   }
 

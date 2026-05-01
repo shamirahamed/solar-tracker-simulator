@@ -922,14 +922,17 @@
       <div class="chart-modal-header">
         <span class="chart-modal-title">🗺 Pick Location</span>
         <span id="mapPickerCoords" class="map-coords-display">–</span>
-        <span id="mapPickerPlace" class="map-place-display"></span>
         <button type="button" id="mapPickerClose" class="secondary-btn chart-modal-close-inline">✕</button>
+      </div>
+      <div class="map-search-row">
+        <input type="text" id="mapSearchInput" class="map-search-input" placeholder="🔍 Search city or address…" autocomplete="off" />
+        <button type="button" id="mapSearchBtn" class="secondary-btn">Go</button>
       </div>
       <div class="map-modal-body">
         <div id="mapPickerEl"></div>
       </div>
       <div class="chart-modal-footer" style="justify-content:space-between;align-items:center">
-        <small class="helper-text" style="display:block">Click anywhere on the map or drag the pin to set location.</small>
+        <small class="helper-text" style="display:block">Search, click map, or drag pin · <span id="mapPickerPlace" class="map-place-display-footer"></span></small>
         <div style="display:flex;gap:8px">
           <button type="button" id="mapPickerCancel" class="secondary-btn">Cancel</button>
           <button type="button" id="mapPickerConfirm" class="primary-btn">✓ Use This Location</button>
