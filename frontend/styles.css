@@ -1908,3 +1908,85 @@ body[data-preview="desktop"] .app-shell            { max-width: 960px !important
     font-size: 16px !important;
   }
 }
+
+/* ─── Tab navigation ─────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--accent);
+  margin-bottom: 14px;
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  min-height: 36px;
+  border: 1px solid var(--line-bright);
+  border-bottom: 2px solid transparent;
+  border-radius: 8px 8px 0 0;
+  background: var(--card-soft);
+  color: var(--muted2);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  padding: 0 20px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  position: relative;
+  bottom: -2px;
+  box-shadow: none;
+  letter-spacing: 0.01em;
+}
+
+.tab-btn:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.tab-btn.active {
+  background: var(--card);
+  color: var(--accent);
+  border-color: var(--accent);
+  border-bottom-color: var(--card);
+  box-shadow: none;
+}
+
+[data-theme="light"] .tab-btn.active { border-bottom-color: var(--bg); }
+
+@media (max-width: 767px) {
+  .tab-btn { font-size: var(--fs-xs); padding: 0 12px; min-height: 32px; }
+}
+
+/* ─── Multi-day progress bar ─────────────────────────────────── */
+.md-progress-wrap { margin-top: 12px; }
+
+.md-progress-bar {
+  height: 8px;
+  background: var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.md-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  width: 0%;
+  transition: width 0.25s ease;
+}
+
+/* ─── Multi-day shared-settings note ────────────────────────── */
+.md-shared-note {
+  display: block;
+  padding: 6px 10px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-glow);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  margin: 0 0 2px;
+}
+
+/* ─── Multi-day bar chart: taller than standard charts ──────── */
+.md-chart-tall { height: 340px; }
+@media (max-width: 900px) { .md-chart-tall { height: 280px; } }
+@media (max-width: 767px) { .md-chart-tall { height: 220px; } }

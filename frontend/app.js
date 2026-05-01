@@ -67,6 +67,9 @@ let shadingChart = null;
 let liveTimer = null;
 let _chartTouchActive = false;  // true while a finger is on any chart canvas
 
+let mdEnergyChart = null;
+let _mdRunning = false;
+
 /* ── Theme & accent system ─────────────────────────────────────────── */
 const ACCENTS = {
   cyber:    { base: "#00c853", dark: "#00a844", dim: "rgba(0,200,83,0.12)",    glow: "rgba(0,200,83,0.25)" },
@@ -1836,6 +1839,307 @@ async function fetchWeatherFromBrowser(latitude, longitude, date) {
   return result;
 }
 
+/* ── Tab navigation ────────────────────────────────────────────────────── */
+function setupTabs() {
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.tab;
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b === btn));
+      document.querySelectorAll(".tab-pane").forEach(p => {
+        p.classList.toggle("hidden", p.id !== `tab-${target}`);
+      });
+    });
+  });
+
+  // Default multi-day dates: last 7 days
+  const now = new Date();
+  const wkAgo = new Date(now);
+  wkAgo.setDate(wkAgo.getDate() - 6);
+  const endEl   = document.getElementById("md_end_date");
+  const startEl = document.getElementById("md_start_date");
+  if (endEl   && !endEl.value)   endEl.value   = now.toISOString().slice(0, 10);
+  if (startEl && !startEl.value) startEl.value = wkAgo.toISOString().slice(0, 10);
+
+  document.getElementById("md_run_btn")?.addEventListener("click", runMultiDay);
+}
+
+/* ── Fetch full weather range from Open-Meteo in one call ───────────── */
+async function fetchWeatherRangeFromBrowser(latitude, longitude, startDate, endDate) {
+  const ARCHIVE_URL  = "https://archive-api.open-meteo.com/v1/archive";
+  const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+  const VARIABLES    = "shortwave_radiation,diffuse_radiation,direct_radiation,temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover,precipitation,relative_humidity_2m,dew_point_2m";
+
+  async function _fw(url, ms) {
+    const ac  = new AbortController();
+    const tid = setTimeout(() => ac.abort(), ms);
+    try { return await fetch(url, { signal: ac.signal }); }
+    finally { clearTimeout(tid); }
+  }
+
+  const today  = new Date(); today.setUTCHours(0, 0, 0, 0);
+  const startD = new Date(startDate + "T00:00:00Z");
+  const endD   = new Date(endDate   + "T00:00:00Z");
+  const daysToEnd   = Math.round((today - endD)   / 86400000);
+  const daysToStart = Math.round((today - startD) / 86400000);
+
+  let url;
+  if (daysToEnd > 8) {
+    const params = new URLSearchParams({ latitude, longitude, start_date: startDate, end_date: endDate, timezone: "UTC" });
+    url = `${ARCHIVE_URL}?${params}&hourly=${VARIABLES}`;
+  } else {
+    const pastDays     = Math.min(92, Math.max(0, daysToStart + 2));
+    const forecastDays = Math.min(16, Math.max(2, Math.round((endD - today) / 86400000) + 2));
+    const params = new URLSearchParams({ latitude, longitude, past_days: pastDays, forecast_days: forecastDays, timezone: "UTC" });
+    url = `${FORECAST_URL}?${params}&hourly=${VARIABLES}`;
+  }
+
+  const resp = await _fw(url, 30000);
+  if (!resp.ok) throw new Error(`Open-Meteo HTTP ${resp.status}`);
+  const om = await resp.json();
+  if (om.error) throw new Error(om.reason || "Open-Meteo error");
+
+  const h     = om.hourly || {};
+  const times = h.time    || [];
+  const safe  = (arr, i, def = 0) => { const v = arr[i]; return (v == null || isNaN(v)) ? def : Number(v); };
+
+  const result = {};
+  for (let i = 0; i < times.length; i++) {
+    result[times[i]] = {
+      ghi:           Math.max(0, safe(h.shortwave_radiation,   i)),
+      bhi:           Math.max(0, safe(h.direct_radiation,      i)),
+      dhi:           Math.max(0, safe(h.diffuse_radiation,     i)),
+      temp:          safe(h.temperature_2m,        i, 20),
+      wind_speed:    Math.max(0, safe(h.wind_speed_10m,        i, 1)),
+      wind_dir:      safe(h.wind_direction_10m,    i),
+      cloud_cover:   Math.max(0, Math.min(100, safe(h.cloud_cover,          i))),
+      precipitation: Math.max(0, safe(h.precipitation,         i)),
+      humidity:      Math.max(0, Math.min(100, safe(h.relative_humidity_2m, i, 50))),
+      dew_point:     safe(h.dew_point_2m,          i, 10),
+    };
+  }
+  return result;
+}
+
+/* ── Run multi-day simulation ───────────────────────────────────────── */
+async function runMultiDay() {
+  if (_mdRunning) return;
+
+  const startDate = document.getElementById("md_start_date").value;
+  const endDate   = document.getElementById("md_end_date").value;
+  if (!startDate || !endDate) { showPopup("Please select start and end dates.", "error"); return; }
+  if (startDate > endDate)    { showPopup("Start date must be before end date.", "error"); return; }
+
+  // Build date list (max 92 days)
+  const dates = [];
+  const cur = new Date(startDate + "T00:00:00Z");
+  const end = new Date(endDate   + "T00:00:00Z");
+  while (cur <= end && dates.length < 92) {
+    dates.push(cur.toISOString().slice(0, 10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+
+  _mdRunning = true;
+  const runBtn     = document.getElementById("md_run_btn");
+  const progWrap   = document.getElementById("md_progress");
+  const progFill   = document.getElementById("md_progress_fill");
+  const progLabel  = document.getElementById("md_progress_label");
+  const statusNote = document.getElementById("md_status_note");
+
+  runBtn.disabled = true;
+  runBtn.textContent = "Running…";
+  progWrap.classList.remove("hidden");
+  progFill.style.width = "0%";
+  progLabel.textContent = `Day 0 / ${dates.length}`;
+  statusNote.classList.add("hidden");
+  document.getElementById("md_kpi_card").style.display    = "none";
+  document.getElementById("md_chart_section").style.display = "none";
+
+  const basePayload    = getPayload();
+  const useRealWeather = basePayload.use_real_weather;
+  let weatherByDate    = {};
+
+  if (useRealWeather) {
+    showPopup(`Fetching weather for ${dates.length}-day range…`, "info", 10000);
+    try {
+      const allWeather = await fetchWeatherRangeFromBrowser(
+        basePayload.latitude, basePayload.longitude, startDate, endDate
+      );
+      for (const [ts, vals] of Object.entries(allWeather)) {
+        const day = ts.slice(0, 10);
+        if (!weatherByDate[day]) weatherByDate[day] = {};
+        weatherByDate[day][ts] = vals;
+      }
+      showPopup(`✓ Weather fetched — simulating ${dates.length} days…`, "success", 4000);
+    } catch (err) {
+      showPopup(`⚠ Weather fetch failed: ${err.message}. Using clear-sky.`, "warning", 5000);
+    }
+  }
+
+  // Run in batches of 5 to avoid overwhelming the free-tier server
+  const BATCH   = 5;
+  const results = [];
+  let completed = 0;
+
+  for (let i = 0; i < dates.length; i += BATCH) {
+    const batch = dates.slice(i, i + BATCH);
+    const batchResults = await Promise.all(batch.map(async (date) => {
+      const payload = { ...basePayload, date };
+      if (useRealWeather && weatherByDate[date]) {
+        payload.weather_data = weatherByDate[date];
+      } else {
+        delete payload.weather_data;
+      }
+
+      const cacheKey = _simCacheKey(payload);
+      if (_simulationCache.has(cacheKey)) {
+        return { date, result: _simulationCache.get(cacheKey) };
+      }
+
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 90000);
+      try {
+        const resp = await fetch(`${API_BASE}/simulate/day`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify(payload),
+          signal:  controller.signal,
+        });
+        clearTimeout(tid);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        _simCacheSet(cacheKey, data);
+        return { date, result: data };
+      } catch (err) {
+        clearTimeout(tid);
+        console.error(`Multi-day ${date}:`, err.message);
+        return { date, result: null };
+      }
+    }));
+
+    results.push(...batchResults);
+    completed += batch.length;
+    progFill.style.width  = `${Math.round(completed / dates.length * 100)}%`;
+    progLabel.textContent = `Day ${completed} / ${dates.length}`;
+  }
+
+  _mdRunning = false;
+  runBtn.disabled = false;
+  runBtn.textContent = "▶ Run";
+  progWrap.classList.add("hidden");
+
+  const failed = results.filter(r => !r.result).length;
+  if (failed) {
+    statusNote.textContent = `⚠ ${failed} day${failed > 1 ? "s" : ""} failed — results show successful days only.`;
+    statusNote.classList.remove("hidden");
+  }
+
+  renderMultiDayResults(results, startDate, endDate);
+}
+
+/* ── Render multi-day bar chart + summary ───────────────────────────── */
+function renderMultiDayResults(results, startDate, endDate) {
+  const ok = results.filter(r =>
+    r.result && r.result.daily_energy_with_backtracking != null
+  );
+  if (!ok.length) { showPopup("No results to display. Check API connection.", "error"); return; }
+
+  const accent  = getAccentColor();
+  const isDark  = document.documentElement.dataset.theme !== "light";
+  const gridCol = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)";
+  const tickCol = isDark ? "#64748b" : "#94a3b8";
+
+  const labels      = ok.map(r => new Date(r.date + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+  const energyFixed = ok.map(r => +Number(r.result.daily_energy_fixed                       || 0).toFixed(4));
+  const energyNobt  = ok.map(r => +Number(r.result.daily_energy_without_backtracking        || 0).toFixed(4));
+  const energyBt    = ok.map(r => +Number(r.result.daily_energy_with_backtracking           || 0).toFixed(4));
+
+  if (mdEnergyChart) { mdEnergyChart.destroy(); mdEnergyChart = null; }
+
+  const ctx = document.getElementById("mdEnergyChart").getContext("2d");
+  mdEnergyChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "Fixed Panel",   data: energyFixed, backgroundColor: "rgba(100,116,139,0.45)", borderColor: "#64748b", borderWidth: 1,   borderRadius: 3 },
+        { label: "Tracker No BT", data: energyNobt,  backgroundColor: "rgba(0,229,255,0.35)",  borderColor: "#00e5ff", borderWidth: 1,   borderRadius: 3 },
+        { label: "Tracker BT",    data: energyBt,    backgroundColor: accent + "55",            borderColor: accent,    borderWidth: 1.5, borderRadius: 3 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: {
+          position: "top",
+          labels: { color: tickCol, font: { size: 11 }, boxWidth: 12, padding: 12 },
+        },
+        tooltip: {
+          callbacks: { label: c => ` ${c.dataset.label}: ${Number(c.parsed.y).toFixed(3)} kWh` },
+        },
+      },
+      scales: {
+        x: { ticks: { color: tickCol, font: { size: 10 }, maxRotation: ok.length > 20 ? 45 : 0 }, grid: { color: gridCol } },
+        y: { ticks: { color: tickCol, font: { size: 10 } }, grid: { color: gridCol }, beginAtZero: true },
+      },
+    },
+  });
+
+  // ── Aggregates ────────────────────────────────────────────────────────────
+  const totFixed = ok.reduce((s, r) => s + Number(r.result.daily_energy_fixed                    || 0), 0);
+  const totNobt  = ok.reduce((s, r) => s + Number(r.result.daily_energy_without_backtracking     || 0), 0);
+  const totBt    = ok.reduce((s, r) => s + Number(r.result.daily_energy_with_backtracking        || 0), 0);
+  const n        = ok.length;
+
+  const bestFixed = Math.max(...ok.map(r => Number(r.result.daily_energy_fixed                   || 0)));
+  const bestNobt  = Math.max(...ok.map(r => Number(r.result.daily_energy_without_backtracking    || 0)));
+  const bestBt    = Math.max(...ok.map(r => Number(r.result.daily_energy_with_backtracking       || 0)));
+
+  const gainBtPct   = totFixed > 0 ? ((totBt   - totFixed) / totFixed * 100) : 0;
+  const gainNobtPct = totFixed > 0 ? ((totNobt  - totFixed) / totFixed * 100) : 0;
+
+  const f3 = v => Number(v).toFixed(3);
+  document.getElementById("md_kpi_days").textContent     = n;
+  document.getElementById("md_kpi_total_bt").textContent = totBt.toFixed(2);
+  document.getElementById("md_kpi_avg_bt").textContent   = (totBt / n).toFixed(3);
+  document.getElementById("md_kpi_gain").textContent     = `+${gainBtPct.toFixed(2)}%`;
+  document.getElementById("md_tot_fixed").textContent    = f3(totFixed);
+  document.getElementById("md_tot_nobt").textContent     = f3(totNobt);
+  document.getElementById("md_tot_bt").textContent       = f3(totBt);
+  document.getElementById("md_avg_fixed").textContent    = f3(totFixed / n);
+  document.getElementById("md_avg_nobt").textContent     = f3(totNobt  / n);
+  document.getElementById("md_avg_bt").textContent       = f3(totBt    / n);
+  document.getElementById("md_best_fixed").textContent   = f3(bestFixed);
+  document.getElementById("md_best_nobt").textContent    = f3(bestNobt);
+  document.getElementById("md_best_bt").textContent      = f3(bestBt);
+  document.getElementById("md_gain_nobt").textContent    = `${gainNobtPct >= 0 ? "+" : ""}${gainNobtPct.toFixed(2)}%`;
+  document.getElementById("md_gain_bt").textContent      = `+${gainBtPct.toFixed(2)}%`;
+
+  const rangeLabel = (startDate && endDate) ? `${startDate} → ${endDate}` : "";
+  const rangeLabelEl = document.getElementById("md_range_label");
+  if (rangeLabelEl) rangeLabelEl.textContent = rangeLabel;
+
+  // ── Financial ─────────────────────────────────────────────────────────────
+  const rate   = parseFloat(document.getElementById("elec_rate")?.value   || "0.30");
+  const panels = Math.max(1, parseInt(document.getElementById("num_panels")?.value || "1", 10));
+  const fmtV   = v => `$${(v * panels * rate).toFixed(2)}`;
+  const fmtG   = v => `${v >= 0 ? "+" : ""}$${Math.abs(v * panels * rate).toFixed(2)}`;
+
+  document.getElementById("md_fin_kwh_fixed").textContent  = (totFixed * panels).toFixed(2);
+  document.getElementById("md_fin_kwh_nobt").textContent   = (totNobt  * panels).toFixed(2);
+  document.getElementById("md_fin_kwh_bt").textContent     = (totBt    * panels).toFixed(2);
+  document.getElementById("md_fin_val_fixed").textContent  = fmtV(totFixed);
+  document.getElementById("md_fin_val_nobt").textContent   = fmtV(totNobt);
+  document.getElementById("md_fin_val_bt").textContent     = fmtV(totBt);
+  document.getElementById("md_fin_gain_nobt").textContent  = fmtG(totNobt - totFixed);
+  document.getElementById("md_fin_gain_bt").textContent    = fmtG(totBt   - totFixed);
+
+  document.getElementById("md_kpi_card").style.display     = "";
+  document.getElementById("md_chart_section").style.display = "";
+  showPopup(`✓ ${n} days simulated successfully.`, "success", 3500);
+}
+
 async function runSimulation() {
   const payload = getPayload();
   localStorage.setItem("solarInputs", JSON.stringify(payload));
@@ -3281,6 +3585,7 @@ window.onload = function () {
   setupLocationButton();
   setup2DControls();
   setupPresetButtons();
+  setupTabs();
   setupDeviceBar();
   setupChartModal();
   setupTracker2dModal();

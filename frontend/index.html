@@ -200,6 +200,14 @@
       </div>
     </section>
 
+    <!-- ── Tab navigation ─────────────────────────────── -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="singleday">📅 Single Day</button>
+      <button class="tab-btn" data-tab="multiday">📆 Multi-Day Range</button>
+    </div>
+
+    <!-- ── Single Day tab (existing content, untouched) ── -->
+    <div id="tab-singleday" class="tab-pane">
     <main class="layout-grid">
       <div class="section-divider full-width"><span>Inputs &amp; Metrics</span></div>
       <section class="card inputs-card">
@@ -631,6 +639,112 @@
         </details>
       </section>
     </main>
+    </div><!-- /tab-singleday -->
+
+    <!-- ── Multi-Day tab ──────────────────────────────── -->
+    <div id="tab-multiday" class="tab-pane hidden">
+
+      <div class="layout-grid">
+
+        <!-- Settings card -->
+        <section class="card inputs-card">
+          <div class="section-head">
+            <h2>Multi-Day Settings</h2>
+          </div>
+          <p class="md-shared-note">Location, panel &amp; weather settings are shared from the Single Day tab.</p>
+          <div class="input-grid compact-grid" style="margin-top:10px">
+            <div>
+              <label for="md_start_date">Start Date</label>
+              <input type="date" id="md_start_date" />
+            </div>
+            <div>
+              <label for="md_end_date">End Date</label>
+              <input type="date" id="md_end_date" />
+            </div>
+            <div class="location-col">
+              <label>&nbsp;</label>
+              <button type="button" id="md_run_btn">▶ Run</button>
+            </div>
+          </div>
+          <small class="helper-text" style="display:block;margin-top:6px">Max 92 days (~3 months). Uses same location, panel size, weather &amp; loss settings.</small>
+
+          <div id="md_progress" class="md-progress-wrap hidden">
+            <div class="md-progress-bar"><div id="md_progress_fill" class="md-progress-fill"></div></div>
+            <span id="md_progress_label" class="helper-text" style="display:block;margin-top:4px;font-size:11px">Day 0 / 0</span>
+          </div>
+
+          <div id="md_status_note" class="comparison-summary hidden" style="margin-top:10px"></div>
+        </section>
+
+        <!-- Summary card -->
+        <section class="card" id="md_kpi_card" style="display:none">
+          <div class="section-head">
+            <h2>Range Summary</h2>
+            <span id="md_range_label" class="section-note" style="font-size:10px"></span>
+          </div>
+          <div class="kpi-grid primary-kpis">
+            <div class="kpi primary"><span>Days</span><strong id="md_kpi_days">-</strong></div>
+            <div class="kpi primary"><span>Total BT (kWh/panel)</span><strong id="md_kpi_total_bt">-</strong></div>
+            <div class="kpi primary"><span>Avg Daily (kWh/panel)</span><strong id="md_kpi_avg_bt">-</strong></div>
+            <div class="kpi primary"><span>BT Gain vs Fixed</span><strong id="md_kpi_gain">-</strong></div>
+          </div>
+          <div class="fin-table-wrap" style="margin-top:10px">
+          <table class="fin-table">
+            <thead>
+              <tr><th></th><th>Fixed</th><th>No BT</th><th>BT</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Total energy (kWh/panel)</td><td id="md_tot_fixed">-</td><td id="md_tot_nobt">-</td><td id="md_tot_bt">-</td></tr>
+              <tr><td>Avg daily (kWh/panel)</td><td id="md_avg_fixed">-</td><td id="md_avg_nobt">-</td><td id="md_avg_bt">-</td></tr>
+              <tr><td>Best day (kWh/panel)</td><td id="md_best_fixed">-</td><td id="md_best_nobt">-</td><td id="md_best_bt">-</td></tr>
+              <tr class="fin-highlight"><td>BT gain vs Fixed</td><td>—</td><td id="md_gain_nobt">-</td><td id="md_gain_bt">-</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </section>
+
+      </div><!-- /.layout-grid -->
+
+      <!-- Bar chart + financial — show after run -->
+      <div id="md_chart_section" style="display:none">
+
+        <div class="section-divider full-width" style="margin-top:14px"><span>Daily Energy Output</span></div>
+        <section class="card full-width" style="margin-top:0">
+          <div class="section-head">
+            <h2>Daily Energy (kWh / panel)</h2>
+            <span class="section-note section-note-desktop">Fixed · No BT · BT — one group per simulated day</span>
+          </div>
+          <div class="chart-yaxis-label">kWh / panel / day</div>
+          <div class="chart-container md-chart-tall"><canvas id="mdEnergyChart"></canvas></div>
+        </section>
+
+        <div class="section-divider full-width" style="margin-top:14px"><span>Financial Estimate — Date Range</span></div>
+        <section class="card full-width">
+          <div class="section-head">
+            <h2>Financial Estimate</h2>
+            <span class="section-note" style="font-size:10px">Rate &amp; panel count from Single Day tab</span>
+          </div>
+          <div class="fin-table-wrap">
+          <table class="fin-table">
+            <thead>
+              <tr><th></th><th>Fixed Panel</th><th>Tracker (No BT)</th><th>Tracker (BT)</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Total energy (kWh)</td><td id="md_fin_kwh_fixed">-</td><td id="md_fin_kwh_nobt">-</td><td id="md_fin_kwh_bt">-</td></tr>
+              <tr><td>Total value ($)</td><td id="md_fin_val_fixed">-</td><td id="md_fin_val_nobt">-</td><td id="md_fin_val_bt">-</td></tr>
+              <tr class="fin-highlight"><td>BT gain vs Fixed</td><td>—</td><td id="md_fin_gain_nobt">-</td><td id="md_fin_gain_bt">-</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <small class="helper-text" style="margin-top:8px;display:block">
+            Total for the simulated date range × number of panels × electricity rate. Actual yield varies with season.
+          </small>
+        </section>
+
+      </div><!-- /#md_chart_section -->
+
+    </div><!-- /tab-multiday -->
+
   </div>
   <!-- ── 2D Tracker popup modal ───────────────────── -->
   <div id="tracker2dModal" class="chart-modal hidden" role="dialog" aria-modal="true">
