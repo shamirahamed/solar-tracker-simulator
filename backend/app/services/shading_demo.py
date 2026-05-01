@@ -218,6 +218,7 @@ def run_full_simulation(
     row_spacing: float,
     panel_efficiency: float,
     backtracking_enabled: bool,
+    bifaciality: float = 0.0,
 ) -> List[Dict[str, Any]]:
     panel_area = panel_width * panel_height
     results: List[Dict[str, Any]] = []
@@ -242,6 +243,7 @@ def run_full_simulation(
             irradiance_raw = 0.0
             irradiance_fixed = 0.0
             power_fixed_val = 0.0
+            power_bifacial_val = 0.0
         else:
             t_amb = float(row.get("temp", 20.0))
 
@@ -308,6 +310,27 @@ def run_full_simulation(
             irradiance_raw = max(0.0, float(row["ghi"]))
             irradiance_fixed = max(0.0, float(row.get("irradiance_fixed", 0.0)))
 
+            # Bifacial rear-side gain (simplified model):
+            # G_rear = GHI × ground_albedo × bifaciality_factor
+            # Rear gain is added to BT front POA; cell temp recalculated with higher irradiance.
+            if bifaciality > 0:
+                g_rear = irradiance_raw * ALBEDO * bifaciality
+                poa_bif = irradiance_with_backtracking + g_rear
+                try:
+                    t_cell_bif = float(pvlib.temperature.noct_sam(
+                        poa_global=poa_bif,
+                        temp_air=t_amb,
+                        wind_speed=max(0.1, float(row.get("wind_speed", 1.0))),
+                        noct=NOCT,
+                        module_efficiency=panel_efficiency,
+                    ))
+                except Exception:
+                    t_cell_bif = t_amb + (NOCT - 20.0) / 800.0 * poa_bif
+                tf_bif = max(0.0, 1.0 + TEMP_COEFF * (t_cell_bif - 25.0))
+                power_bifacial_val = poa_bif * panel_area * panel_efficiency * tf_bif
+            else:
+                power_bifacial_val = power_with_backtracking
+
         if backtracking_enabled:
             selected_shadow_length = shadow_length_with
             selected_shaded = shaded_with
@@ -355,6 +378,8 @@ def run_full_simulation(
                 "precipitation": round(float(row.get("precipitation", 0.0)), 3),
                 "humidity":      round(float(row.get("humidity",      50.0)), 1),
                 "dew_point":     round(float(row.get("dew_point",     10.0)), 2),
+                # v1.3
+                "power_bifacial": round(power_bifacial_val, 2),
             }
         )
 

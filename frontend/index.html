@@ -339,6 +339,28 @@
                 <input type="range" id="wind_stow_speed" min="1" max="30" step="0.5" value="15" />
                 <small class="helper-text">Typical industrial stow: 12–18 m/s. When active, tracker locks flat (0°) — reduces irradiance and power output in simulation.</small>
               </div>
+
+              <!-- Bifacial panels -->
+              <div class="checkbox-row full-span">
+                <label class="checkbox-inline" for="bifacial_enable">
+                  <input type="checkbox" id="bifacial_enable" />
+                  <span>Bifacial panels</span>
+                </label>
+                <small class="helper-text">Adds rear-side irradiance gain to BT power. Enable for bifacial modules.</small>
+              </div>
+              <div class="full-span" id="bifacial_row" style="display:none">
+                <label for="bifaciality">Bifaciality Factor</label>
+                <div class="soiling-input-row">
+                  <div class="preset-btn-row">
+                    <button type="button" class="preset-btn" data-target="bifaciality" data-value="0.55">0.55 Entry</button>
+                    <button type="button" class="preset-btn" data-target="bifaciality" data-value="0.65">0.65 Standard</button>
+                    <button type="button" class="preset-btn" data-target="bifaciality" data-value="0.70">0.70 Good</button>
+                    <button type="button" class="preset-btn" data-target="bifaciality" data-value="0.80">0.80 High</button>
+                  </div>
+                  <input type="number" step="0.01" id="bifaciality" value="0.70" min="0" max="1" style="width:70px;flex-shrink:0" />
+                </div>
+                <small class="helper-text">Typical bifacial: 0.65–0.80. Rear gain calculated using ground albedo 0.20.</small>
+              </div>
             </div>
           </details>
 
@@ -845,6 +867,7 @@
           <label class="pdf-check"><input type="checkbox" id="pdf_pow_fixed" checked> Fixed Panel</label>
           <label class="pdf-check"><input type="checkbox" id="pdf_pow_nobt" checked> Tracker – No BT</label>
           <label class="pdf-check"><input type="checkbox" id="pdf_pow_bt" checked> Tracker – BT</label>
+          <label class="pdf-check"><input type="checkbox" id="pdf_pow_bifacial" checked> Tracker – BT Bifacial</label>
         </div>
 
         <div class="pdf-filter-group">

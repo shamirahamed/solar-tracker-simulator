@@ -45,6 +45,7 @@ CSV_FIELDS = [
     "precipitation",
     "humidity",
     "dew_point",
+    "power_bifacial",
 ]
 
 
@@ -139,6 +140,7 @@ def _build_simulation_rows(payload: SimulationRequest):
         row_spacing=payload.row_spacing,
         panel_efficiency=payload.panel_efficiency,
         backtracking_enabled=payload.backtracking,
+        bifaciality=getattr(payload, "bifaciality", 0.0),
     )
     return rows, weather_source
 
@@ -178,6 +180,9 @@ def _build_response(payload: SimulationRequest) -> Dict:
     daily_energy_fixed = round(
         sum(row.get("power_fixed", 0.0) for row in simulation_data) * interval_hours / 1000.0, 3
     )
+    daily_energy_bifacial = round(
+        sum(row.get("power_bifacial", 0.0) for row in simulation_data) * interval_hours / 1000.0, 3
+    )
 
     return {
         "latitude": payload.latitude,
@@ -196,6 +201,7 @@ def _build_response(payload: SimulationRequest) -> Dict:
         "irradiance_gain_bt_vs_no_bt": round(gain_bt_vs_no_bt, 2),
         "weather_source": weather_source,
         "daily_energy_fixed": daily_energy_fixed,
+        "daily_energy_bifacial": daily_energy_bifacial,
         "data": simulation_data,
     }
 

@@ -29,6 +29,10 @@ class SimulationRequest(BaseModel):
     # {ghi, bhi, dhi, temp, wind_speed, wind_dir, cloud_cover, precipitation, humidity, dew_point}.
     weather_data: Optional[Dict[str, Any]] = None
 
+    # v1.3 bifacial support
+    # 0.0 = monofacial (no rear gain), 0.65–0.80 = typical bifacial modules
+    bifaciality: float = Field(default=0.0, ge=0.0, le=1.0)
+
 
 class SimulationPoint(BaseModel):
     timestamp: str
@@ -64,6 +68,8 @@ class SimulationPoint(BaseModel):
     # v1.2 — pvlib-validated extras
     power_fixed: float = 0.0
     temp: float = 20.0
+    # v1.3
+    power_bifacial: float = 0.0
     cell_temp: float = 20.0
     clearsky_ghi: float = 0.0
     projected_solar_zenith: float = 0.0
@@ -96,5 +102,8 @@ class SimulationResponse(BaseModel):
     # v1.2 additions
     weather_source: str = "clearsky (ineichen)"
     daily_energy_fixed: float = 0.0
+
+    # v1.3
+    daily_energy_bifacial: float = 0.0
 
     data: List[SimulationPoint]

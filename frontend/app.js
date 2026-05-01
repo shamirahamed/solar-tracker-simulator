@@ -406,7 +406,10 @@ function getPayload() {
     soiling_loss: Math.min(0.5, Math.max(0, soilingPct / 100.0)),
     wind_stow_speed: document.getElementById("wind_stow_enable")?.checked
       ? parseFloat(document.getElementById("wind_stow_speed")?.value || "15")
-      : 0
+      : 0,
+    bifaciality: document.getElementById("bifacial_enable")?.checked
+      ? Math.min(1, Math.max(0, parseFloat(document.getElementById("bifaciality")?.value || "0.70")))
+      : 0.0,
   };
 }
 
@@ -930,21 +933,28 @@ function buildCharts(data) {
   });
 
   // ── Power Output (W) — temperature-derated via pvlib noct_sam ─────────
+  const _hasBifacial = data.some(r => (r.power_bifacial || 0) > 0);
   const maxPowerW = Math.max(
     ...data.map(r => Number(r.power_fixed               || 0)),
     ...data.map(r => Number(r.power_without_backtracking || 0)),
-    ...data.map(r => Number(r.power_with_backtracking    || 0)), 1);
+    ...data.map(r => Number(r.power_with_backtracking    || 0)),
+    ...(_hasBifacial ? data.map(r => Number(r.power_bifacial || 0)) : [0]), 1);
+
+  const _pwDatasets = [
+    { label: "Fixed Panel",     data: data.map(r => r.power_fixed),                borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.07)", borderWidth: 2,   borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
+    { label: "Tracker – No BT", data: data.map(r => r.power_without_backtracking), borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.07)",  borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.22 },
+    { label: "Tracker – BT",    data: data.map(r => r.power_with_backtracking),    borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",   borderWidth: 2.5,                   pointRadius: 0, tension: 0.22 },
+  ];
+  if (_hasBifacial) {
+    _pwDatasets.push({ label: "BT Bifacial", data: data.map(r => r.power_bifacial), borderColor: "#a78bfa", backgroundColor: "rgba(167,139,250,0.08)", borderWidth: 2.5, borderDash: [6,3], pointRadius: 0, tension: 0.22 });
+  }
 
   powerWChart = new Chart(powerWCtx, {
     type: "line",
     plugins: [timeLinePlugin],
     data: {
       labels,
-      datasets: [
-        { label: "Fixed Panel",     data: data.map(r => r.power_fixed),                borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.07)", borderWidth: 2,   borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – No BT", data: data.map(r => r.power_without_backtracking), borderColor: "#f59e0b", backgroundColor: "rgba(245,158,11,0.07)",  borderWidth: 2,   borderDash: [10,5], pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – BT",    data: data.map(r => r.power_with_backtracking),    borderColor: "#00e5ff", backgroundColor: "rgba(0,229,255,0.07)",   borderWidth: 2.5,                  pointRadius: 0, tension: 0.22 },
-      ]
+      datasets: _pwDatasets,
     },
     options: (() => {
       const base = chartBaseOptions("Power (W)");
@@ -2964,9 +2974,10 @@ async function downloadPdf() {
     const powerWImg = pdfOffscreenChart({
       type: "line",
       data: { labels: _lbl, datasets: [
-        { label: "Fixed Panel",     hidden: !_chk("pdf_pow_fixed"), data: _ds.map(r => r.power_fixed),                borderColor: C.fixed, borderWidth: 5, borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – No BT", hidden: !_chk("pdf_pow_nobt"),  data: _ds.map(r => r.power_without_backtracking), borderColor: C.nobt,  borderWidth: 5, borderDash: [10,5], pointRadius: 0, tension: 0.22 },
-        { label: "Tracker – BT",    hidden: !_chk("pdf_pow_bt"),    data: _ds.map(r => r.power_with_backtracking),    borderColor: C.bt,    borderWidth: 6,                   pointRadius: 0, tension: 0.22 }
+        { label: "Fixed Panel",     hidden: !_chk("pdf_pow_fixed"),    data: _ds.map(r => r.power_fixed),                borderColor: C.fixed,    borderWidth: 5, borderDash: [2,6],  pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – No BT", hidden: !_chk("pdf_pow_nobt"),     data: _ds.map(r => r.power_without_backtracking), borderColor: C.nobt,     borderWidth: 5, borderDash: [10,5], pointRadius: 0, tension: 0.22 },
+        { label: "Tracker – BT",    hidden: !_chk("pdf_pow_bt"),       data: _ds.map(r => r.power_with_backtracking),    borderColor: C.bt,       borderWidth: 6,                     pointRadius: 0, tension: 0.22 },
+        { label: "BT Bifacial",     hidden: !_chk("pdf_pow_bifacial"), data: _ds.map(r => r.power_bifacial || 0),        borderColor: "#a78bfa",  borderWidth: 6, borderDash: [6,3],  pointRadius: 0, tension: 0.22 }
       ]},
       options: { ..._pdfChartOpts("Power (W)"),
         scales: { ...(_pdfChartOpts("Power (W)").scales || {}),
@@ -3735,6 +3746,11 @@ window.onload = function () {
 
   document.getElementById("wind_stow_speed")?.addEventListener("input", e => {
     document.getElementById("wind_stow_val").textContent = e.target.value;
+  });
+
+  document.getElementById("bifacial_enable")?.addEventListener("change", e => {
+    const row = document.getElementById("bifacial_row");
+    if (row) row.style.display = e.target.checked ? "" : "none";
   });
 
   // Soiling loss preset buttons
