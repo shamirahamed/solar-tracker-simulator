@@ -503,20 +503,25 @@ function updateFinancialCalc(result) {
   const kwhFixed  = (Number(result.daily_energy_fixed  || 0) * panels);
   const kwhNoBt   = (Number(result.daily_energy_without_backtracking || 0) * panels);
   const kwhBt     = (Number(result.daily_energy_with_backtracking    || 0) * panels);
+  const kwhBif    = (Number(result.daily_energy_bifacial             || 0) * panels);
 
   const annFixed  = kwhFixed  * 365;
   const annNoBt   = kwhNoBt   * 365;
   const annBt     = kwhBt     * 365;
+  const annBif    = kwhBif    * 365;
 
   const valFixed  = kwhFixed  * rate;
   const valNoBt   = kwhNoBt   * rate;
   const valBt     = kwhBt     * rate;
+  const valBif    = kwhBif    * rate;
   const avalFixed = annFixed  * rate;
   const avalNoBt  = annNoBt   * rate;
   const avalBt    = annBt     * rate;
+  const avalBif   = annBif    * rate;
 
   const gainNoBt  = avalNoBt  - avalFixed;
   const gainBt    = avalBt    - avalFixed;
+  const gainBif   = avalBif   - avalFixed;
 
   const fmt2  = (n) => n.toFixed(2);
   const fmtM  = (n) => n >= 1000 ? `${(n / 1000).toFixed(2)} k` : n.toFixed(0);
@@ -527,17 +532,22 @@ function updateFinancialCalc(result) {
   document.getElementById("fin_kwh_fixed").textContent  = fmt2(kwhFixed);
   document.getElementById("fin_kwh_nobt").textContent   = fmt2(kwhNoBt);
   document.getElementById("fin_kwh_bt").textContent     = fmt2(kwhBt);
+  document.getElementById("fin_kwh_bif").textContent    = fmt2(kwhBif);
   document.getElementById("fin_ann_fixed").textContent  = fmtM(annFixed);
   document.getElementById("fin_ann_nobt").textContent   = fmtM(annNoBt);
   document.getElementById("fin_ann_bt").textContent     = fmtM(annBt);
+  document.getElementById("fin_ann_bif").textContent    = fmtM(annBif);
   document.getElementById("fin_val_fixed").textContent  = fmtD(valFixed);
   document.getElementById("fin_val_nobt").textContent   = fmtD(valNoBt);
   document.getElementById("fin_val_bt").textContent     = fmtD(valBt);
+  document.getElementById("fin_val_bif").textContent    = fmtD(valBif);
   document.getElementById("fin_aval_fixed").textContent = fmtA(avalFixed);
   document.getElementById("fin_aval_nobt").textContent  = fmtA(avalNoBt);
   document.getElementById("fin_aval_bt").textContent    = fmtA(avalBt);
+  document.getElementById("fin_aval_bif").textContent   = fmtA(avalBif);
   document.getElementById("fin_gain_nobt").textContent  = sign(gainNoBt);
   document.getElementById("fin_gain_bt").textContent    = sign(gainBt);
+  document.getElementById("fin_gain_bif").textContent   = sign(gainBif);
 
   placeholder?.classList.add("hidden");
   table?.classList.remove("hidden");
@@ -2181,23 +2191,30 @@ function renderMultiDayResults(results, startDate, endDate) {
   const gridCol = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)";
   const tickCol = isDark ? "#64748b" : "#94a3b8";
 
-  const labels      = ok.map(r => new Date(r.date + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric" }));
-  const energyFixed = ok.map(r => +Number(r.result.daily_energy_fixed                       || 0).toFixed(4));
-  const energyNobt  = ok.map(r => +Number(r.result.daily_energy_without_backtracking        || 0).toFixed(4));
-  const energyBt    = ok.map(r => +Number(r.result.daily_energy_with_backtracking           || 0).toFixed(4));
+  const labels         = ok.map(r => new Date(r.date + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+  const energyFixed    = ok.map(r => +Number(r.result.daily_energy_fixed                       || 0).toFixed(4));
+  const energyNobt     = ok.map(r => +Number(r.result.daily_energy_without_backtracking        || 0).toFixed(4));
+  const energyBt       = ok.map(r => +Number(r.result.daily_energy_with_backtracking           || 0).toFixed(4));
+  const energyBifacial = ok.map(r => +Number(r.result.daily_energy_bifacial                    || 0).toFixed(4));
+  const _hasMdBif      = energyBifacial.some(v => v > 0);
 
   if (mdEnergyChart) { mdEnergyChart.destroy(); mdEnergyChart = null; }
+
+  const _mdDatasets = [
+    { label: "Fixed Panel",   data: energyFixed,    backgroundColor: "rgba(100,116,139,0.45)", borderColor: "#64748b", borderWidth: 1,   borderRadius: 3 },
+    { label: "Tracker No BT", data: energyNobt,     backgroundColor: "rgba(0,229,255,0.35)",  borderColor: "#00e5ff", borderWidth: 1,   borderRadius: 3 },
+    { label: "Tracker BT",    data: energyBt,       backgroundColor: accent + "55",            borderColor: accent,    borderWidth: 1.5, borderRadius: 3 },
+  ];
+  if (_hasMdBif) {
+    _mdDatasets.push({ label: "BT Bifacial", data: energyBifacial, backgroundColor: "rgba(167,139,250,0.35)", borderColor: "#a78bfa", borderWidth: 1.5, borderRadius: 3 });
+  }
 
   const ctx = document.getElementById("mdEnergyChart").getContext("2d");
   mdEnergyChart = new Chart(ctx, {
     type: "bar",
     data: {
       labels,
-      datasets: [
-        { label: "Fixed Panel",   data: energyFixed, backgroundColor: "rgba(100,116,139,0.45)", borderColor: "#64748b", borderWidth: 1,   borderRadius: 3 },
-        { label: "Tracker No BT", data: energyNobt,  backgroundColor: "rgba(0,229,255,0.35)",  borderColor: "#00e5ff", borderWidth: 1,   borderRadius: 3 },
-        { label: "Tracker BT",    data: energyBt,    backgroundColor: accent + "55",            borderColor: accent,    borderWidth: 1.5, borderRadius: 3 },
-      ],
+      datasets: _mdDatasets,
     },
     options: {
       responsive: true,
@@ -2223,14 +2240,17 @@ function renderMultiDayResults(results, startDate, endDate) {
   const totFixed = ok.reduce((s, r) => s + Number(r.result.daily_energy_fixed                    || 0), 0);
   const totNobt  = ok.reduce((s, r) => s + Number(r.result.daily_energy_without_backtracking     || 0), 0);
   const totBt    = ok.reduce((s, r) => s + Number(r.result.daily_energy_with_backtracking        || 0), 0);
+  const totBif   = ok.reduce((s, r) => s + Number(r.result.daily_energy_bifacial                 || 0), 0);
   const n        = ok.length;
 
   const bestFixed = Math.max(...ok.map(r => Number(r.result.daily_energy_fixed                   || 0)));
   const bestNobt  = Math.max(...ok.map(r => Number(r.result.daily_energy_without_backtracking    || 0)));
   const bestBt    = Math.max(...ok.map(r => Number(r.result.daily_energy_with_backtracking       || 0)));
+  const bestBif   = Math.max(...ok.map(r => Number(r.result.daily_energy_bifacial                || 0)));
 
   const gainBtPct   = totFixed > 0 ? ((totBt   - totFixed) / totFixed * 100) : 0;
   const gainNobtPct = totFixed > 0 ? ((totNobt  - totFixed) / totFixed * 100) : 0;
+  const gainBifPct  = totFixed > 0 ? ((totBif   - totFixed) / totFixed * 100) : 0;
 
   const f3 = v => Number(v).toFixed(3);
   document.getElementById("md_kpi_days").textContent     = n;
@@ -2240,14 +2260,18 @@ function renderMultiDayResults(results, startDate, endDate) {
   document.getElementById("md_tot_fixed").textContent    = f3(totFixed);
   document.getElementById("md_tot_nobt").textContent     = f3(totNobt);
   document.getElementById("md_tot_bt").textContent       = f3(totBt);
+  document.getElementById("md_tot_bif").textContent      = f3(totBif);
   document.getElementById("md_avg_fixed").textContent    = f3(totFixed / n);
   document.getElementById("md_avg_nobt").textContent     = f3(totNobt  / n);
   document.getElementById("md_avg_bt").textContent       = f3(totBt    / n);
+  document.getElementById("md_avg_bif").textContent      = f3(totBif   / n);
   document.getElementById("md_best_fixed").textContent   = f3(bestFixed);
   document.getElementById("md_best_nobt").textContent    = f3(bestNobt);
   document.getElementById("md_best_bt").textContent      = f3(bestBt);
+  document.getElementById("md_best_bif").textContent     = f3(bestBif);
   document.getElementById("md_gain_nobt").textContent    = `${gainNobtPct >= 0 ? "+" : ""}${gainNobtPct.toFixed(2)}%`;
   document.getElementById("md_gain_bt").textContent      = `+${gainBtPct.toFixed(2)}%`;
+  document.getElementById("md_gain_bif").textContent     = `${gainBifPct >= 0 ? "+" : ""}${gainBifPct.toFixed(2)}%`;
 
   const rangeLabel = (startDate && endDate) ? `${startDate} → ${endDate}` : "";
   const rangeLabelEl = document.getElementById("md_range_label");
@@ -2262,11 +2286,14 @@ function renderMultiDayResults(results, startDate, endDate) {
   document.getElementById("md_fin_kwh_fixed").textContent  = (totFixed * panels).toFixed(2);
   document.getElementById("md_fin_kwh_nobt").textContent   = (totNobt  * panels).toFixed(2);
   document.getElementById("md_fin_kwh_bt").textContent     = (totBt    * panels).toFixed(2);
+  document.getElementById("md_fin_kwh_bif").textContent    = (totBif   * panels).toFixed(2);
   document.getElementById("md_fin_val_fixed").textContent  = fmtV(totFixed);
   document.getElementById("md_fin_val_nobt").textContent   = fmtV(totNobt);
   document.getElementById("md_fin_val_bt").textContent     = fmtV(totBt);
+  document.getElementById("md_fin_val_bif").textContent    = fmtV(totBif);
   document.getElementById("md_fin_gain_nobt").textContent  = fmtG(totNobt - totFixed);
   document.getElementById("md_fin_gain_bt").textContent    = fmtG(totBt   - totFixed);
+  document.getElementById("md_fin_gain_bif").textContent   = fmtG(totBif  - totFixed);
 
   document.getElementById("md_kpi_card").style.display     = "";
   document.getElementById("md_chart_section").style.display = "";
@@ -3177,7 +3204,11 @@ async function downloadPdf() {
       `Max shadow with backtracking: ${formatShadowMetric(metrics.maxShadowBt)}`,
       `Peak irradiance – Fixed: ${metrics.maxIrrFixed.toFixed(1)} W/m²`,
       `Peak irradiance – No BT: ${metrics.maxIrrNoBt.toFixed(1)} W/m²`,
-      `Peak irradiance – BT: ${metrics.maxIrrBt.toFixed(1)} W/m²`
+      `Peak irradiance – BT: ${metrics.maxIrrBt.toFixed(1)} W/m²`,
+      ...(payload.bifaciality > 0 ? [
+        `Daily energy – BT: ${Number(result.daily_energy_with_backtracking || 0).toFixed(3)} kWh/panel`,
+        `Daily energy – BT Bifacial: ${Number(result.daily_energy_bifacial || 0).toFixed(3)} kWh/panel (bifaciality ${payload.bifaciality.toFixed(2)})`,
+      ] : [])
     ], 14, 138, mobileView ? 5.0 : 5.2);
 
     pdfSectionTitle(doc, "Comparison summary", 14, 178);
@@ -3751,6 +3782,7 @@ window.onload = function () {
   document.getElementById("bifacial_enable")?.addEventListener("change", e => {
     const row = document.getElementById("bifacial_row");
     if (row) row.style.display = e.target.checked ? "" : "none";
+    document.querySelectorAll(".bif-col").forEach(el => el.classList.toggle("hidden", !e.target.checked));
   });
 
   // Soiling loss preset buttons

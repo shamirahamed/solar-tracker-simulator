@@ -524,6 +524,7 @@
                 <th>Fixed Panel</th>
                 <th>Tracker (No BT)</th>
                 <th>Tracker (BT)</th>
+                <th class="bif-col hidden" style="color:#a78bfa">BT Bifacial</th>
               </tr>
             </thead>
             <tbody>
@@ -532,30 +533,35 @@
                 <td id="fin_kwh_fixed">-</td>
                 <td id="fin_kwh_nobt">-</td>
                 <td id="fin_kwh_bt">-</td>
+                <td class="bif-col hidden" id="fin_kwh_bif">-</td>
               </tr>
               <tr>
                 <td>Annual energy (kWh)</td>
                 <td id="fin_ann_fixed">-</td>
                 <td id="fin_ann_nobt">-</td>
                 <td id="fin_ann_bt">-</td>
+                <td class="bif-col hidden" id="fin_ann_bif">-</td>
               </tr>
               <tr>
                 <td>Daily value ($)</td>
                 <td id="fin_val_fixed">-</td>
                 <td id="fin_val_nobt">-</td>
                 <td id="fin_val_bt">-</td>
+                <td class="bif-col hidden" id="fin_val_bif">-</td>
               </tr>
               <tr>
                 <td>Annual value ($)</td>
                 <td id="fin_aval_fixed">-</td>
                 <td id="fin_aval_nobt">-</td>
                 <td id="fin_aval_bt">-</td>
+                <td class="bif-col hidden" id="fin_aval_bif">-</td>
               </tr>
               <tr class="fin-highlight">
                 <td>BT gain vs Fixed (annual)</td>
                 <td>—</td>
                 <td id="fin_gain_nobt">-</td>
                 <td id="fin_gain_bt">-</td>
+                <td class="bif-col hidden" id="fin_gain_bif">-</td>
               </tr>
             </tbody>
           </table>
@@ -718,13 +724,13 @@
           <div class="fin-table-wrap" style="margin-top:10px">
           <table class="fin-table">
             <thead>
-              <tr><th></th><th>Fixed</th><th>No BT</th><th>BT</th></tr>
+              <tr><th></th><th>Fixed</th><th>No BT</th><th>BT</th><th class="bif-col hidden" style="color:#a78bfa">BT Bif.</th></tr>
             </thead>
             <tbody>
-              <tr><td>Total energy (kWh/panel)</td><td id="md_tot_fixed">-</td><td id="md_tot_nobt">-</td><td id="md_tot_bt">-</td></tr>
-              <tr><td>Avg daily (kWh/panel)</td><td id="md_avg_fixed">-</td><td id="md_avg_nobt">-</td><td id="md_avg_bt">-</td></tr>
-              <tr><td>Best day (kWh/panel)</td><td id="md_best_fixed">-</td><td id="md_best_nobt">-</td><td id="md_best_bt">-</td></tr>
-              <tr class="fin-highlight"><td>BT gain vs Fixed</td><td>—</td><td id="md_gain_nobt">-</td><td id="md_gain_bt">-</td></tr>
+              <tr><td>Total energy (kWh/panel)</td><td id="md_tot_fixed">-</td><td id="md_tot_nobt">-</td><td id="md_tot_bt">-</td><td class="bif-col hidden" id="md_tot_bif">-</td></tr>
+              <tr><td>Avg daily (kWh/panel)</td><td id="md_avg_fixed">-</td><td id="md_avg_nobt">-</td><td id="md_avg_bt">-</td><td class="bif-col hidden" id="md_avg_bif">-</td></tr>
+              <tr><td>Best day (kWh/panel)</td><td id="md_best_fixed">-</td><td id="md_best_nobt">-</td><td id="md_best_bt">-</td><td class="bif-col hidden" id="md_best_bif">-</td></tr>
+              <tr class="fin-highlight"><td>BT gain vs Fixed</td><td>—</td><td id="md_gain_nobt">-</td><td id="md_gain_bt">-</td><td class="bif-col hidden" id="md_gain_bif">-</td></tr>
             </tbody>
           </table>
           </div>
@@ -754,12 +760,12 @@
           <div class="fin-table-wrap">
           <table class="fin-table">
             <thead>
-              <tr><th></th><th>Fixed Panel</th><th>Tracker (No BT)</th><th>Tracker (BT)</th></tr>
+              <tr><th></th><th>Fixed Panel</th><th>Tracker (No BT)</th><th>Tracker (BT)</th><th class="bif-col hidden" style="color:#a78bfa">BT Bifacial</th></tr>
             </thead>
             <tbody>
-              <tr><td>Total energy (kWh)</td><td id="md_fin_kwh_fixed">-</td><td id="md_fin_kwh_nobt">-</td><td id="md_fin_kwh_bt">-</td></tr>
-              <tr><td>Total value ($)</td><td id="md_fin_val_fixed">-</td><td id="md_fin_val_nobt">-</td><td id="md_fin_val_bt">-</td></tr>
-              <tr class="fin-highlight"><td>BT gain vs Fixed</td><td>—</td><td id="md_fin_gain_nobt">-</td><td id="md_fin_gain_bt">-</td></tr>
+              <tr><td>Total energy (kWh)</td><td id="md_fin_kwh_fixed">-</td><td id="md_fin_kwh_nobt">-</td><td id="md_fin_kwh_bt">-</td><td class="bif-col hidden" id="md_fin_kwh_bif">-</td></tr>
+              <tr><td>Total value ($)</td><td id="md_fin_val_fixed">-</td><td id="md_fin_val_nobt">-</td><td id="md_fin_val_bt">-</td><td class="bif-col hidden" id="md_fin_val_bif">-</td></tr>
+              <tr class="fin-highlight"><td>BT gain vs Fixed</td><td>—</td><td id="md_fin_gain_nobt">-</td><td id="md_fin_gain_bt">-</td><td class="bif-col hidden" id="md_fin_gain_bif">-</td></tr>
             </tbody>
           </table>
           </div>
