@@ -74,6 +74,7 @@ let _mapInst      = null;   // Leaflet map instance (created once)
 let _mapMarker    = null;   // draggable pin
 let _mapPending   = null;   // { lat, lon } — confirmed when user clicks "Use"
 let _mapTileLayer = null;   // current tile layer (swapped on theme change)
+let _mapTileIsLight = false; // independent dark/light state for map tiles only
 
 /* ── Theme & accent system ─────────────────────────────────────────── */
 const ACCENTS = {
@@ -122,11 +123,6 @@ function applyTheme(theme) {
     const idx = parseInt(document.getElementById("timeSlider")?.value || "720", 10);
     const safeIdx = Math.max(0, Math.min(idx, latestSimulationData.length - 1));
     draw2DScene(latestSimulationData[safeIdx]);
-  }
-  // Swap Leaflet tile layer to match new theme
-  if (_mapInst && _mapTileLayer) {
-    _mapTileLayer.remove();
-    _mapTileLayer = _makeMapTileLayer(theme === "light").addTo(_mapInst);
   }
 }
 
@@ -1880,12 +1876,28 @@ function _makeMapTileLayer(isLight) {
   });
 }
 
+function _applyMapTileTheme(isLight) {
+  _mapTileIsLight = isLight;
+  if (_mapInst && _mapTileLayer) {
+    _mapTileLayer.remove();
+    _mapTileLayer = _makeMapTileLayer(isLight).addTo(_mapInst);
+  }
+  const btn = document.getElementById("mapTileThemeBtn");
+  if (btn) {
+    btn.textContent = isLight ? "🌙" : "☀️";
+    btn.title = isLight ? "Switch map to Dark" : "Switch map to Light";
+  }
+}
+
 function setupMapPicker() {
   document.getElementById("mapPickerBtn")?.addEventListener("click", openMapPicker);
   document.getElementById("mapPickerBackdrop")?.addEventListener("click", closeMapPicker);
   document.getElementById("mapPickerClose")?.addEventListener("click", closeMapPicker);
   document.getElementById("mapPickerCancel")?.addEventListener("click", closeMapPicker);
   document.getElementById("mapPickerConfirm")?.addEventListener("click", _confirmMapLocation);
+
+  // Tile theme toggle (independent from app theme)
+  document.getElementById("mapTileThemeBtn")?.addEventListener("click", () => _applyMapTileTheme(!_mapTileIsLight));
 
   // Search box
   const searchInput = document.getElementById("mapSearchInput");
@@ -1910,8 +1922,7 @@ function openMapPicker() {
   if (!_mapInst) {
     // First open — create map at world-overview zoom
     _mapInst = L.map("mapPickerEl", { zoomControl: true });
-    const isLight = document.documentElement.dataset.theme === "light";
-    _mapTileLayer = _makeMapTileLayer(isLight).addTo(_mapInst);
+    _mapTileLayer = _makeMapTileLayer(_mapTileIsLight).addTo(_mapInst);
 
     const accent = getAccentColor();
     const pinIcon = L.divIcon({

@@ -2061,6 +2061,7 @@ body[data-preview="desktop"] .app-shell            { max-width: 960px !important
 
 /* Map pin marker */
 .map-marker-pin { background: transparent; border: none; }
+.map-tile-theme-btn { font-size: 16px; padding: 2px 6px; margin-right: 4px; }
 
 /* Search row */
 .map-search-row {
