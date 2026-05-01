@@ -70,6 +70,10 @@ let _chartTouchActive = false;  // true while a finger is on any chart canvas
 let mdEnergyChart = null;
 let _mdRunning = false;
 
+let _mapInst   = null;   // Leaflet map instance (created once)
+let _mapMarker = null;   // draggable pin
+let _mapPending = null;  // { lat, lon } — confirmed when user clicks "Use"
+
 /* ── Theme & accent system ─────────────────────────────────────────── */
 const ACCENTS = {
   cyber:    { base: "#00c853", dark: "#00a844", dim: "rgba(0,200,83,0.12)",    glow: "rgba(0,200,83,0.25)" },
@@ -1839,6 +1843,125 @@ async function fetchWeatherFromBrowser(latitude, longitude, date) {
   return result;
 }
 
+/* ── Map location picker ───────────────────────────────────────────────── */
+function setupMapPicker() {
+  document.getElementById("mapPickerBtn")?.addEventListener("click", openMapPicker);
+  document.getElementById("mapPickerBackdrop")?.addEventListener("click", closeMapPicker);
+  document.getElementById("mapPickerClose")?.addEventListener("click", closeMapPicker);
+  document.getElementById("mapPickerCancel")?.addEventListener("click", closeMapPicker);
+  document.getElementById("mapPickerConfirm")?.addEventListener("click", _confirmMapLocation);
+}
+
+function openMapPicker() {
+  if (typeof L === "undefined") {
+    showPopup("Map library failed to load. Check your connection.", "error");
+    return;
+  }
+  const modal = document.getElementById("mapPickerModal");
+  modal.classList.remove("hidden");
+
+  const lat = parseFloat(document.getElementById("latitude").value)  || 51.505;
+  const lon = parseFloat(document.getElementById("longitude").value) || -0.09;
+  _mapPending = { lat, lon };
+  _updateMapCoordDisplay(lat, lon);
+
+  if (!_mapInst) {
+    _mapInst = L.map("mapPickerEl", { zoomControl: true });
+
+    const isDark = document.documentElement.dataset.theme !== "light";
+    L.tileLayer(
+      isDark
+        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: "abcd",
+        maxZoom: 19,
+      }
+    ).addTo(_mapInst);
+
+    const accent = getAccentColor();
+    const pinIcon = L.divIcon({
+      className: "map-marker-pin",
+      html: `<svg width="28" height="40" viewBox="0 0 28 40" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 26 14 26S28 24.5 28 14C28 6.268 21.732 0 14 0z" fill="${accent}"/>
+        <circle cx="14" cy="14" r="6" fill="white" fill-opacity="0.9"/>
+      </svg>`,
+      iconSize:   [28, 40],
+      iconAnchor: [14, 40],
+    });
+
+    _mapMarker = L.marker([lat, lon], { icon: pinIcon, draggable: true }).addTo(_mapInst);
+
+    _mapMarker.on("drag", e => {
+      const { lat: la, lng: ln } = e.latlng;
+      _mapPending = { lat: la, lon: ln };
+      _updateMapCoordDisplay(la, ln);
+    });
+    _mapMarker.on("dragend", e => {
+      const { lat: la, lng: ln } = e.latlng;
+      _mapPending = { lat: la, lon: ln };
+      _reverseGeocode(la, ln);
+    });
+    _mapInst.on("click", e => {
+      const { lat: la, lng: ln } = e.latlng;
+      _mapMarker.setLatLng([la, ln]);
+      _mapPending = { lat: la, lon: ln };
+      _updateMapCoordDisplay(la, ln);
+      _reverseGeocode(la, ln);
+    });
+  } else {
+    _mapMarker.setLatLng([lat, lon]);
+  }
+
+  _mapInst.setView([lat, lon], Math.max(_mapInst.getZoom() || 0, 8));
+
+  // Leaflet needs two rAF ticks after the modal becomes visible to know its size
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    _mapInst.invalidateSize();
+    _reverseGeocode(lat, lon);
+  }));
+}
+
+function closeMapPicker() {
+  document.getElementById("mapPickerModal")?.classList.add("hidden");
+}
+
+function _confirmMapLocation() {
+  if (!_mapPending) { closeMapPicker(); return; }
+  const { lat, lon } = _mapPending;
+  document.getElementById("latitude").value  = lat.toFixed(6);
+  document.getElementById("longitude").value = lon.toFixed(6);
+  updateLocationPreviewFromInputs();
+  updateScenarioHeader();
+  closeMapPicker();
+  showPopup(`📍 Location set: ${lat.toFixed(4)}°, ${lon.toFixed(4)}°`, "success", 3000);
+}
+
+function _updateMapCoordDisplay(lat, lon) {
+  const el = document.getElementById("mapPickerCoords");
+  if (el) el.textContent = `${lat >= 0 ? "" : ""}${lat.toFixed(5)}°, ${lon.toFixed(5)}°`;
+  const pl = document.getElementById("mapPickerPlace");
+  if (pl) pl.textContent = "";
+}
+
+async function _reverseGeocode(lat, lon) {
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`,
+      { headers: { "Accept-Language": "en" } }
+    );
+    if (!resp.ok) return;
+    const d = await resp.json();
+    const a = d.address || {};
+    const place   = a.city || a.town || a.village || a.county || a.state || "";
+    const country = a.country_code ? a.country_code.toUpperCase() : (a.country || "");
+    const label   = [place, country].filter(Boolean).join(", ");
+    const pl = document.getElementById("mapPickerPlace");
+    if (pl) pl.textContent = label;
+  } catch (_) {}
+}
+
 /* ── Tab navigation ────────────────────────────────────────────────────── */
 function setupTabs() {
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -3586,6 +3709,7 @@ window.onload = function () {
   setup2DControls();
   setupPresetButtons();
   setupTabs();
+  setupMapPicker();
   setupDeviceBar();
   setupChartModal();
   setupTracker2dModal();

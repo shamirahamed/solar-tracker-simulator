@@ -17,6 +17,8 @@
   <script src="_api_config.js" onerror="void 0"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -233,7 +235,10 @@
 
             <div class="location-col">
               <label>&nbsp;</label>
-              <button type="button" id="getLocation" class="secondary-btn compact-btn">📍 Use Location</button>
+              <div class="location-btns">
+                <button type="button" id="getLocation" class="secondary-btn compact-btn">📍 GPS</button>
+                <button type="button" id="mapPickerBtn" class="secondary-btn compact-btn">🗺 Map</button>
+              </div>
             </div>
 
             <div class="location-row full-span">
@@ -877,6 +882,29 @@
       <div class="chart-modal-footer" style="justify-content:space-between">
         <button type="button" id="pdfModalCancel" class="secondary-btn">✕ Cancel</button>
         <button type="button" id="pdfModalExport" class="primary-btn">⬇ Export PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Map location picker modal ──────────────── -->
+  <div id="mapPickerModal" class="chart-modal hidden" role="dialog" aria-modal="true">
+    <div class="chart-modal-backdrop" id="mapPickerBackdrop"></div>
+    <div class="chart-modal-content map-modal-content">
+      <div class="chart-modal-header">
+        <span class="chart-modal-title">🗺 Pick Location</span>
+        <span id="mapPickerCoords" class="map-coords-display">–</span>
+        <span id="mapPickerPlace" class="map-place-display"></span>
+        <button type="button" id="mapPickerClose" class="secondary-btn chart-modal-close-inline">✕</button>
+      </div>
+      <div class="map-modal-body">
+        <div id="mapPickerEl"></div>
+      </div>
+      <div class="chart-modal-footer" style="justify-content:space-between;align-items:center">
+        <small class="helper-text" style="display:block">Click anywhere on the map or drag the pin to set location.</small>
+        <div style="display:flex;gap:8px">
+          <button type="button" id="mapPickerCancel" class="secondary-btn">Cancel</button>
+          <button type="button" id="mapPickerConfirm" class="primary-btn">✓ Use This Location</button>
+        </div>
       </div>
     </div>
   </div>
